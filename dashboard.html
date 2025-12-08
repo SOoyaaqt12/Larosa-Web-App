@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="style/dashboard.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo-section">
+            <div class="logo">
+                <div class="logo-inner">
+                    POT & PLANT
+                </div>
+            </div>
+            <div class="brand-name">LAROSAPOT</div>
+        </div>
+        
+        <div class="nav-menu">
+            <div class="nav-item active">Dashboard</div>
+            <div class="nav-item">kasir</div>
+            <div class="nav-item">Stok Produk</div>
+            <div class="nav-item">Riwayat</div>
+            <div class="nav-item">Data Pelanggan</div>
+        </div>
+
+        <div class="nav-bottom">
+           <a href="index.html" style="text-decoration: none;"><div class="nav-item logout">
+                <span>Logout</span>
+                <span>➜</span>
+            </div></a>
+            <div class="nav-item settings">
+                <span>Settings</span>
+                <span>⚙</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <h1>Dashboard</h1>
+            <div class="user-avatar"></div>
+        </div>
+
+        <div class="dashboard-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Jumlah Pelanggan</h3>
+                        <p>1.000.000</p>
+                    </div>
+                    <div class="stat-icon">👤</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Jumlah Vendor</h3>
+                        <p>1.000.000</p>
+                    </div>
+                    <div class="stat-icon">👥</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Barang Tersedia</h3>
+                        <p>1.000.000</p>
+                    </div>
+                    <div class="stat-icon">🔒</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Produk Terjual</h3>
+                        <p>1.000.000</p>
+                    </div>
+                    <div class="stat-icon">📈</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Penjualan</h3>
+                        <p>1.000.000</p>
+                    </div>
+                    <div class="stat-icon">📈</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Pendapatan Diterima Dimuka</h3>
+                        <p>1.000.000</p>
+                    </div>
+                    <div class="stat-icon">📈</div>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h2>Sales Trend</h2>
+                    <div class="chart-container">
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h2>Ketagori Produk</h2>
+                    <div class="chart-container">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script/dashboard.js"></script>
+</body>
+</html>
