@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #EBD5AB;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    text-align: center;
+    width: 100%;
+    max-width: 800px;
+}
+
+.logo {
+    width: 150px;
+    height: 150px;
+    margin: 0 auto 20px;
+    background-image: url('asset/image/larosa-logo.png');
+    background-repeat: no-repeat;
+    background-size: cover;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+h1 {
+    font-size: 36px;
+    font-weight: bold;
+    margin-bottom: 40px;
+    color: #000;
+}
+
+.login-box {
+    background-color: white;
+    border-radius: 30px;
+    padding: 60px 50px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+h2 {
+    font-size: 32px;
+    font-weight: bold;
+    margin-bottom: 40px;
+    color: #000;
+}
+
+.form-group {
+    margin-bottom: 25px;
+    text-align: left;
+}
+
+label {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #000;
+    text-transform: uppercase;
+}
+
+input {
+    width: 100%;
+    padding: 18px 20px;
+    border: none;
+    border-radius: 15px;
+    background-color: #f0f0f0;
+    font-size: 16px;
+    outline: none;
+    transition: background-color 0.3s;
+}
+
+input:focus {
+    background-color: #e8e8e8;
+}
+
+.login-btn {
+    width: 100%;
+    max-width: 220px;
+    padding: 16px 30px;
+    margin-top: 30px;
+    background-color: #628141;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background-color 0.3s;
+}
+
+.login-btn:hover {
+    background-color: #5a7851;
+}
+
+.login-btn:active {
+    transform: scale(0.98);
+}
