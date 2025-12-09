@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <link rel="stylesheet" href="style/kasir.css">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo-section">
+            <div class="logo">
+                <div class="logo-inner">
+                    POT & PLANT
+                </div>
+            </div>
+            <div class="brand-name">LAROSAPOT</div>
+        </div>
+        
+        <div class="nav-menu">
+            <div class="nav-item">Dashboard</div>
+            <div class="nav-item active">kasir</div>
+            <div class="nav-item">Stok Produk</div>
+            <div class="nav-item">Riwayat</div>
+            <div class="nav-item">Data Pelanggan</div>
+        </div>
+
+        <div class="nav-bottom">
+            <div class="nav-item logout">
+                <span>Logout</span>
+                <span>➜</span>
+            </div>
+            <div class="nav-item settings">
+                <span>Settings</span>
+                <span>⚙</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <h1>Kasir</h1>
+            <div class="user-avatar"></div>
+        </div>
+
+        <div class="content-area">
+            <div class="form-section">
+                <h2 class="section-title">Tambah Pesanan</h2>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>No Pesanan</label>
+                        <input type="text" id="noPesanan" placeholder="Masukkan no pesanan">
+                    </div>
+                    <div class="form-group">
+                        <label>Tanggal Dibuat</label>
+                        <input type="date" id="tanggalDibuat">
+                    </div>
+                </div>
+
+                <h3 class="subsection-title">Informasi Pelanggan</h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nama Pelanggan</label>
+                        <input type="text" id="namaPelanggan" placeholder="Masukkan nama pelanggan">
+                    </div>
+                    <div class="form-group">
+                        <label>Kasir</label>
+                        <input type="text" id="kasir" placeholder="Masukkan nama kasir">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>No Telepon Pelanggan</label>
+                        <input type="number" id="noTelepon" placeholder="Masukkan no telepon">
+                    </div>
+                    <div class="form-group">
+                        <label>Paymen</label>
+                        <select id="paymen">
+                            <option value="">Pilih metode pembayaran</option>
+                            <option value="Transfer">Transfer</option>
+                            <option value="Tunai">Tunai</option>
+                        </select>
+                    </div>
+                </div>
+
+                <h3 class="subsection-title">Keranjang</h3>
+                
+                <div class="keranjang-layout">
+                    <div class="form-group">
+                        <label>No SKU</label>
+                        <input type="text" id="noSku" placeholder="Masukkan no SKU">
+                    </div>
+                    <div class="form-group">
+                        <label>Jumlah</label>
+                        <input type="number" id="jumlah" placeholder="0" onchange="hitungTotalHarga()">
+                    </div>
+                    <div class="form-group">
+                        <label>Harga</label>
+                        <input type="number" id="harga" placeholder="Rp. 0" onchange="hitungTotalHarga()">
+                    </div>
+                </div>
+
+                <div class="keranjang-layout">
+                    <div class="form-group">
+                        <label>Nama Produk</label>
+                        <input type="text" id="namaProduk" placeholder="Masukkan nama produk">
+                    </div>
+                    <div class="form-group">
+                        <label>Satuan</label>
+                        <input type="text" id="satuan" placeholder="Pcs/Kg/dll">
+                    </div>
+                    <div class="form-group">
+                        <label>Total Harga</label>
+                        <input type="number" id="totalHarga" placeholder="Rp. 0" readonly>
+                    </div>
+                </div>
+
+                <button class="btn-simpan" onclick="tambahKeKeranjang()">Simpan</button>
+
+                <div class="cart-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>SKU</th>
+                                <th>Produk</th>
+                                <th>Jumlah</th>
+                                <th>Satuan</th>
+                                <th>Harga</th>
+                                <th>Total</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="keranjangBody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="bottom-section">
+                    <div class="left-calc">
+                        <div class="calc-item">
+                            <label>Subtotal</label>
+                            <input type="number" id="subtotal" placeholder="Rp. 0" readonly>
+                        </div>
+                        <div class="calc-item">
+                            <label>Packing</label>
+                            <input type="number" id="packing" placeholder="Rp. 0" onchange="hitungTotalTagihan()">
+                        </div>
+                    </div>
+                    <div class="right-calc">
+                        <div class="calc-item">
+                            <label>Ongkir</label>
+                            <input type="number" id="ongkir" placeholder="Rp. 0" onchange="hitungTotalTagihan()">
+                        </div>
+                        <div class="calc-item">
+                            <label>Diskon</label>
+                            <input type="number" id="diskon" placeholder="Rp. 0" onchange="hitungTotalTagihan()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bottom-section">
+                    <div class="calc-item full-width-calc">
+                        <label>Total Tagihan</label>
+                        <input type="number" id="totalTagihan" placeholder="Rp. 0" readonly>
+                    </div>
+                </div>
+
+                <div class="bottom-section">
+                    <div class="calc-item">
+                        <label>DP 1</label>
+                        <input type="number" id="dp1" placeholder="Rp. 0" onchange="hitungSisaTagihan()">
+                    </div>
+                    <div class="calc-item">
+                        <label>DP 2</label>
+                        <input type="number" id="dp2" placeholder="Rp. 0" onchange="hitungSisaTagihan()">
+                    </div>
+                </div>
+
+                <div class="bottom-section">
+                    <div class="calc-item full-width-calc">
+                        <label>Sisa Tagihan</label>
+                        <input type="number" id="sisaTagihan" placeholder="Rp. 0" readonly>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn-dp">DP</button>
+                    <button class="btn-lunas">Lunas</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script/kasir.js"></script>
+</body>
+</html>
