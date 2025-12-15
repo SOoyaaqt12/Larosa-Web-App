@@ -1,4 +1,12 @@
 /* Shared Layout Styles (Sidebar & Header) */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  display: block !important; /* Override flex on body which causes issues with fixed sidebar */
+}
+
 .sidebar {
   width: 268px !important;
   background-color: #d4b896;
@@ -107,6 +115,8 @@
 /* Fix Main Content Margin to match Sidebar */
 .main-content {
   margin-left: 268px !important;
+  width: auto !important;
+  overflow-x: hidden; /* Prevent horizontal scroll */
 }
 
 /* Ensure header fixed positioning matches if used */

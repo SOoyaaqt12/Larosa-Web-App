@@ -12,9 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
     <div class="sidebar">
         <div class="logo-section">
             <div class="logo">
-                <div class="logo-inner">
-                    POT & PLANT
-                </div>
+                <img src="asset/image/larosa-logo.png" alt="Larosa Pot" style="width: 100%; height: 100%; object-fit: contain;">
             </div>
             <div class="brand-name">LAROSAPOT</div>
         </div>
