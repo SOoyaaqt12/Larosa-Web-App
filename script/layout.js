@@ -1,9 +1,28 @@
 document.addEventListener("DOMContentLoaded", () => {
+  injectLayout();
+});
+
+// Handle bfcache - when user navigates back to page
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) {
+    // Page was restored from bfcache, reinject if needed
+    injectLayout();
+  }
+});
+
+function injectLayout() {
+  // Check if already injected
+  if (document.querySelector(".sidebar")) {
+    return;
+  }
+
   // Inject Layout CSS
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.href = "style/layout.css";
-  document.head.appendChild(link); // Append to end to override previous styles which are loaded in head
+  if (!document.querySelector('link[href="style/layout.css"]')) {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "style/layout.css";
+    document.head.appendChild(link);
+  }
 
   const path = window.location.pathname;
   const page = path.split("/").pop() || "index.html";
@@ -54,24 +73,13 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
     `;
 
-  // Inject Sidebar
-  // We assume the body structure is standard, but to be safe, let's prepend or find a specific container if it exists.
-  // However, the existing HTML has .sidebar as a direct child of body in dashboard.html.
-  // Let's adopt a strategy: Create a container if not exists, or just prepend to body.
-
-  // For the Header, it is usually inside .main-content.
-
-  // Strategy:
-  // 1. Inject Sidebar at the beginning of <body>
-  // 2. Inject Header at the beginning of .main-content
-
   document.body.insertAdjacentHTML("afterbegin", sidebarHTML);
 
   const mainContent = document.querySelector(".main-content");
-  if (mainContent) {
+  if (mainContent && !mainContent.querySelector(".header")) {
     mainContent.insertAdjacentHTML("afterbegin", headerHTML);
   }
-});
+}
 
 function getPageTitle(page) {
   switch (page) {

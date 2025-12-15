@@ -4,6 +4,8 @@
  */
 
 const KUSTOMER_SHEET_NAME = "KOSTUMER";
+const CACHE_KEY = "kustomer_data_cache";
+const CACHE_TIMESTAMP_KEY = "kustomer_cache_timestamp";
 
 // Load customers when page loads
 document.addEventListener("DOMContentLoaded", () => {
@@ -15,22 +17,85 @@ async function loadCustomers() {
   const tbody = document.getElementById("kustomerTableBody");
   if (!tbody) return;
 
-  tbody.innerHTML =
-    '<tr><td colspan="8" style="text-align: center;">Memuat data...</td></tr>';
+  // Step 1: Immediately show cached data if available
+  const cachedData = getCachedData();
+  if (cachedData && cachedData.length > 0) {
+    console.log("Showing cached data instantly");
+    renderCustomerTable(cachedData);
+    // Show subtle indicator that we're refreshing
+    showRefreshIndicator();
+  } else {
+    tbody.innerHTML =
+      '<tr><td colspan="8" style="text-align: center;">Memuat data...</td></tr>';
+  }
 
+  // Step 2: Fetch fresh data in background
   try {
     const result = await fetchSheetData(KUSTOMER_SHEET_NAME);
 
     if (result.data && result.data.length > 0) {
+      // Save to cache
+      setCachedData(result.data);
+      // Render fresh data
       renderCustomerTable(result.data);
-    } else {
+    } else if (!cachedData || cachedData.length === 0) {
       tbody.innerHTML =
         '<tr><td colspan="8" style="text-align: center;">Tidak ada data pelanggan</td></tr>';
     }
+    hideRefreshIndicator();
   } catch (error) {
     console.error("Error loading customers:", error);
-    tbody.innerHTML =
-      '<tr><td colspan="8" style="text-align: center; color: red;">Gagal memuat data. Pastikan Google Apps Script sudah di-deploy.</td></tr>';
+    hideRefreshIndicator();
+    // Only show error if no cached data
+    if (!cachedData || cachedData.length === 0) {
+      tbody.innerHTML =
+        '<tr><td colspan="8" style="text-align: center; color: red;">Gagal memuat data. Pastikan Google Apps Script sudah di-deploy.</td></tr>';
+    }
+  }
+}
+
+// Cache functions
+function getCachedData() {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+  } catch (e) {
+    console.error("Error reading cache:", e);
+  }
+  return null;
+}
+
+function setCachedData(data) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+    localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
+  } catch (e) {
+    console.error("Error saving cache:", e);
+  }
+}
+
+function clearCache() {
+  localStorage.removeItem(CACHE_KEY);
+  localStorage.removeItem(CACHE_TIMESTAMP_KEY);
+}
+
+// Refresh indicator
+function showRefreshIndicator() {
+  const header = document.querySelector(".header h1");
+  if (header && !document.getElementById("refreshIndicator")) {
+    header.insertAdjacentHTML(
+      "afterend",
+      '<span id="refreshIndicator" style="font-size: 12px; color: #888; margin-left: 10px;">Memperbarui data...</span>'
+    );
+  }
+}
+
+function hideRefreshIndicator() {
+  const indicator = document.getElementById("refreshIndicator");
+  if (indicator) {
+    indicator.remove();
   }
 }
 
@@ -309,16 +374,33 @@ async function addCustomer(formData) {
     "JUMLAH\nTRANSAKSI": 0,
   };
 
-  console.log("Sending data:", data);
+  // Optimistic update: add to cache immediately
+  const tempRowIndex = Date.now(); // Temporary ID
+  const newCustomer = { ...data, _rowIndex: tempRowIndex };
+  customersData.push(newCustomer);
+  setCachedData(customersData);
+  renderCustomerTable(customersData);
+  closeCustomerModal();
 
+  // Sync to Google Sheets in background
   try {
     const result = await addSheetRow(KUSTOMER_SHEET_NAME, data);
     if (result.success) {
-      alert("Pelanggan berhasil ditambahkan!");
-      closeCustomerModal();
+      console.log("Customer synced to Google Sheets");
+      // Refresh to get actual row index
       loadCustomers();
+    } else {
+      // Rollback on failure
+      customersData = customersData.filter((c) => c._rowIndex !== tempRowIndex);
+      setCachedData(customersData);
+      renderCustomerTable(customersData);
+      alert("Gagal menyimpan ke server. Data akan dimuat ulang.");
     }
   } catch (error) {
+    // Rollback on error
+    customersData = customersData.filter((c) => c._rowIndex !== tempRowIndex);
+    setCachedData(customersData);
+    renderCustomerTable(customersData);
     alert("Gagal menambahkan pelanggan: " + error.message);
   }
 }
@@ -493,29 +575,84 @@ async function updateCustomer(formData) {
     CHANNEL: formData.get("CHANNEL"),
   };
 
+  // Save original for rollback
+  const originalCustomer = customersData.find((c) => c._rowIndex === rowIndex);
+  const originalData = originalCustomer ? { ...originalCustomer } : null;
+
+  // Optimistic update: update cache immediately
+  const customerIndex = customersData.findIndex(
+    (c) => c._rowIndex === rowIndex
+  );
+  if (customerIndex !== -1) {
+    customersData[customerIndex] = { ...customersData[customerIndex], ...data };
+    setCachedData(customersData);
+    renderCustomerTable(customersData);
+  }
+  closeCustomerModal();
+
+  // Sync to Google Sheets in background
   try {
     const result = await updateSheetRow(KUSTOMER_SHEET_NAME, rowIndex, data);
     if (result.success) {
-      alert("Pelanggan berhasil diupdate!");
-      closeCustomerModal();
-      loadCustomers();
+      console.log("Customer updated in Google Sheets");
+    } else {
+      // Rollback on failure
+      if (originalData && customerIndex !== -1) {
+        customersData[customerIndex] = originalData;
+        setCachedData(customersData);
+        renderCustomerTable(customersData);
+      }
+      alert("Gagal menyimpan perubahan ke server.");
     }
   } catch (error) {
+    // Rollback on error
+    if (originalData && customerIndex !== -1) {
+      customersData[customerIndex] = originalData;
+      setCachedData(customersData);
+      renderCustomerTable(customersData);
+    }
     alert("Gagal mengupdate pelanggan: " + error.message);
   }
 }
 
 async function deleteCustomer(rowIndex) {
-  if (confirm("Apakah Anda yakin ingin menghapus pelanggan ini?")) {
-    try {
-      const result = await deleteSheetRow(KUSTOMER_SHEET_NAME, rowIndex);
-      if (result.success) {
-        alert("Pelanggan berhasil dihapus!");
-        loadCustomers();
+  if (!confirm("Apakah Anda yakin ingin menghapus pelanggan ini?")) {
+    return;
+  }
+
+  // Save for rollback
+  const deletedCustomer = customersData.find((c) => c._rowIndex === rowIndex);
+  const deletedIndex = customersData.findIndex((c) => c._rowIndex === rowIndex);
+
+  // Optimistic update: remove from cache immediately
+  customersData = customersData.filter((c) => c._rowIndex !== rowIndex);
+  setCachedData(customersData);
+  renderCustomerTable(customersData);
+
+  // Sync to Google Sheets in background
+  try {
+    const result = await deleteSheetRow(KUSTOMER_SHEET_NAME, rowIndex);
+    if (result.success) {
+      console.log("Customer deleted from Google Sheets");
+      // Refresh to update row indices
+      loadCustomers();
+    } else {
+      // Rollback on failure
+      if (deletedCustomer) {
+        customersData.splice(deletedIndex, 0, deletedCustomer);
+        setCachedData(customersData);
+        renderCustomerTable(customersData);
       }
-    } catch (error) {
-      alert("Gagal menghapus pelanggan: " + error.message);
+      alert("Gagal menghapus dari server.");
     }
+  } catch (error) {
+    // Rollback on error
+    if (deletedCustomer) {
+      customersData.splice(deletedIndex, 0, deletedCustomer);
+      setCachedData(customersData);
+      renderCustomerTable(customersData);
+    }
+    alert("Gagal menghapus pelanggan: " + error.message);
   }
 }
 
