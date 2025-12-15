@@ -1,0 +1,116 @@
+/* Shared Layout Styles (Sidebar & Header) */
+.sidebar {
+  width: 268px !important;
+  background-color: #d4b896;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  height: 100vh;
+  left: 0;
+  top: 0;
+  z-index: 1000; /* Ensure it stays on top */
+}
+
+.logo-section {
+  padding: 30px 20px;
+  text-align: center;
+  border-bottom: 2px solid #c4a886;
+}
+
+.logo {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 15px;
+  background-color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-inner {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #d97757 0%, #c95f44 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 8px;
+  font-weight: bold;
+}
+
+.brand-name {
+  font-size: 28px;
+  font-weight: bold;
+  color: #000;
+}
+
+.nav-menu {
+  flex: 1;
+  padding: 20px 0;
+}
+
+.nav-item {
+  padding: 18px 30px;
+  font-size: 18px;
+  color: #000;
+  cursor: pointer;
+  border-bottom: 1px solid #c4a886;
+  transition: background-color 0.3s;
+}
+
+.nav-item:hover {
+  background-color: #c4a886;
+}
+
+.nav-item.active {
+  background-color: #c4a886;
+  font-weight: bold;
+}
+
+.nav-bottom {
+  border-top: 2px solid #c4a886;
+}
+
+.nav-item.logout,
+.nav-item.settings {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Header Styles */
+.header {
+  background-color: white;
+  padding: 25px 40px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  /* Fixed position logic might differ per page, but ideally it should be consistent */
+}
+
+.header h1 {
+  font-size: 36px;
+  font-weight: bold;
+}
+
+.user-avatar {
+  width: 50px;
+  height: 50px;
+  background-color: #d4b896;
+  border-radius: 50%;
+}
+
+/* Fix Main Content Margin to match Sidebar */
+.main-content {
+  margin-left: 268px !important;
+}
+
+/* Ensure header fixed positioning matches if used */
+.header {
+  /* If header is fixed */
+  z-index: 50;
+}
