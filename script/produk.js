@@ -4,6 +4,11 @@
  */
 
 const PRODUK_SHEET_NAME = "PERSEDIAAN BARANG";
+const PRODUK_CACHE_KEY = "produk_data_cache";
+const PRODUK_CACHE_TIMESTAMP_KEY = "produk_cache_timestamp";
+
+// Store products data for editing
+let productsData = [];
 
 // Load products when page loads
 document.addEventListener("DOMContentLoaded", () => {
@@ -15,23 +20,72 @@ async function loadProducts() {
   const tbody = document.getElementById("produkTableBody");
   if (!tbody) return;
 
-  tbody.innerHTML =
-    '<tr><td colspan="15" style="text-align: center;">Memuat data...</td></tr>';
+  // Step 1: Immediately show cached data if available
+  const cachedData = getProdukCachedData();
+  if (cachedData && cachedData.length > 0) {
+    console.log("Showing cached product data instantly");
+    renderProductTable(cachedData);
+    showProdukRefreshIndicator();
+  } else {
+    tbody.innerHTML =
+      '<tr><td colspan="15" style="text-align: center;">Memuat data...</td></tr>';
+  }
 
+  // Step 2: Fetch fresh data in background
   try {
     const result = await fetchSheetData(PRODUK_SHEET_NAME);
 
     if (result.data && result.data.length > 0) {
+      setProdukCachedData(result.data);
       renderProductTable(result.data);
-    } else {
+    } else if (!cachedData || cachedData.length === 0) {
       tbody.innerHTML =
         '<tr><td colspan="15" style="text-align: center;">Tidak ada data produk</td></tr>';
     }
+    hideProdukRefreshIndicator();
   } catch (error) {
     console.error("Error loading products:", error);
-    tbody.innerHTML =
-      '<tr><td colspan="15" style="text-align: center; color: red;">Gagal memuat data. Pastikan Google Apps Script sudah di-deploy.</td></tr>';
+    hideProdukRefreshIndicator();
+    if (!cachedData || cachedData.length === 0) {
+      tbody.innerHTML =
+        '<tr><td colspan="15" style="text-align: center; color: red;">Gagal memuat data. Pastikan Google Apps Script sudah di-deploy.</td></tr>';
+    }
   }
+}
+
+// Cache functions for Produk
+function getProdukCachedData() {
+  try {
+    const cached = localStorage.getItem(PRODUK_CACHE_KEY);
+    if (cached) return JSON.parse(cached);
+  } catch (e) {
+    console.error("Error reading produk cache:", e);
+  }
+  return null;
+}
+
+function setProdukCachedData(data) {
+  try {
+    localStorage.setItem(PRODUK_CACHE_KEY, JSON.stringify(data));
+    localStorage.setItem(PRODUK_CACHE_TIMESTAMP_KEY, Date.now().toString());
+  } catch (e) {
+    console.error("Error saving produk cache:", e);
+  }
+}
+
+function showProdukRefreshIndicator() {
+  const header = document.querySelector(".header h1");
+  if (header && !document.getElementById("produkRefreshIndicator")) {
+    header.insertAdjacentHTML(
+      "afterend",
+      '<span id="produkRefreshIndicator" style="font-size: 12px; color: #888; margin-left: 10px;">Memperbarui data...</span>'
+    );
+  }
+}
+
+function hideProdukRefreshIndicator() {
+  const indicator = document.getElementById("produkRefreshIndicator");
+  if (indicator) indicator.remove();
 }
 
 function renderProductTable(products) {
