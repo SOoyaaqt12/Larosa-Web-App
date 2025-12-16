@@ -18,7 +18,7 @@
         <div class="login-box">
             <h2>LOGIN</h2>
             
-            <form>
+            <form id="loginForm">
                 <div class="form-group">
                     <label for="username">USERNAME</label>
                     <input type="text" id="username" name="username" required>
@@ -28,12 +28,53 @@
                     <label for="password">PASSWORD</label>
                     <input type="password" id="password" name="password" required>
                 </div>
+
+                <div id="errorMessage" style="color: #ff4444; text-align: center; margin-bottom: 10px; display: none;"></div>
                 
-                <a href="dashboard.html"><button type="button" class="login-btn">LOGIN</button></a>
+                <button type="submit" class="login-btn" id="loginBtn">LOGIN</button>
             </form>
         </div>
     </div>
 
-    <script src="script/script.js"></script>
+    <script src="script/auth.js"></script>
+    <script>
+        // Redirect if already logged in
+        redirectIfLoggedIn();
+
+        // Handle login form submission
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // Reset error message
+            errorMessage.style.display = 'none';
+            
+            // Disable button and show loading
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'LOADING...';
+            
+            try {
+                const result = await login(username, password);
+                
+                if (result.success) {
+                    window.location.href = 'dashboard.html';
+                } else {
+                    errorMessage.textContent = result.message;
+                    errorMessage.style.display = 'block';
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'LOGIN';
+                }
+            } catch (error) {
+                errorMessage.textContent = 'Terjadi kesalahan. Coba lagi.';
+                errorMessage.style.display = 'block';
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'LOGIN';
+            }
+        });
+    </script>
 </body>
 </html>

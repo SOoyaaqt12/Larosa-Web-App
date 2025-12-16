@@ -20,6 +20,7 @@ const SHEET_ID = "1YQk8azd5gUXdQE9ZvD4hFsdqdG6UUrg2ZNf951dLfyY";
 const SHEET_CONFIG = {
   KOSTUMER: { headerRow: 5 },
   "PERSEDIAAN BARANG": { headerRow: 6 },
+  USERS: { headerRow: 1 },
 };
 
 function doGet(e) {
@@ -54,6 +55,9 @@ function doPost(e) {
     case "delete":
       result = deleteRow(sheet, rowIndex);
       break;
+    case "login":
+      result = authenticateUser(data.username, data.password);
+      break;
     default:
       result = { error: "Invalid action" };
   }
@@ -61,6 +65,69 @@ function doPost(e) {
   return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(
     ContentService.MimeType.JSON
   );
+}
+
+/**
+ * Authenticate user against USERS sheet
+ * @param {string} username
+ * @param {string} password
+ * @returns {object} - {success: boolean, message: string, user?: string}
+ */
+function authenticateUser(username, password) {
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sheet = ss.getSheetByName("USERS");
+
+    if (!sheet) {
+      return { success: false, message: "Sheet USERS tidak ditemukan" };
+    }
+
+    const config = SHEET_CONFIG["USERS"];
+    const headerRow = config.headerRow;
+    const lastRow = sheet.getLastRow();
+    const lastCol = sheet.getLastColumn();
+
+    if (lastRow <= headerRow) {
+      return { success: false, message: "Tidak ada data user" };
+    }
+
+    // Get headers
+    const headers = sheet.getRange(headerRow, 1, 1, lastCol).getValues()[0];
+    const usernameCol = headers.indexOf("USERNAME") + 1;
+    const passwordCol = headers.indexOf("PASSWORD") + 1;
+
+    if (usernameCol === 0 || passwordCol === 0) {
+      return {
+        success: false,
+        message: "Kolom USERNAME atau PASSWORD tidak ditemukan",
+      };
+    }
+
+    // Get all user data
+    const dataStartRow = headerRow + 1;
+    const numDataRows = lastRow - headerRow;
+    const dataRange = sheet.getRange(dataStartRow, 1, numDataRows, lastCol);
+    const dataValues = dataRange.getValues();
+
+    // Find matching user
+    for (let i = 0; i < dataValues.length; i++) {
+      const row = dataValues[i];
+      const rowUsername = String(row[usernameCol - 1]).trim();
+      const rowPassword = String(row[passwordCol - 1]).trim();
+
+      if (rowUsername === username.trim() && rowPassword === password) {
+        return {
+          success: true,
+          message: "Login berhasil",
+          user: rowUsername,
+        };
+      }
+    }
+
+    return { success: false, message: "Username atau password salah" };
+  } catch (error) {
+    return { success: false, message: error.toString() };
+  }
 }
 
 function readSheet(sheetName) {

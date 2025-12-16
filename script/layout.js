@@ -5,12 +5,28 @@ document.addEventListener("DOMContentLoaded", () => {
 // Handle bfcache - when user navigates back to page
 window.addEventListener("pageshow", (event) => {
   if (event.persisted) {
-    // Page was restored from bfcache, reinject if needed
+    // Page was restored from bfcache, re-check auth immediately
+    if (typeof isLoggedIn === "function" && !isLoggedIn()) {
+      window.location.replace("index.html");
+      return;
+    }
+    // Reinject layout if needed
     injectLayout();
   }
 });
 
 function injectLayout() {
+  // Check authentication first - redirect to login if not authenticated
+  if (typeof isLoggedIn === "function" && !isLoggedIn()) {
+    window.location.replace("index.html"); // Use replace to prevent back button
+    return;
+  }
+
+  // Show the page now that auth is verified
+  if (typeof showPage === "function") {
+    showPage();
+  }
+
   // Check if already injected
   if (document.querySelector(".sidebar")) {
     return;
@@ -55,7 +71,7 @@ function injectLayout() {
         </div>
 
         <div class="nav-bottom">
-           <a href="index.html" style="text-decoration: none;"><div class="nav-item logout">
+           <a href="#" onclick="logout(); return false;" style="text-decoration: none;"><div class="nav-item logout">
                 <span>Logout</span>
                 <span>➜</span>
             </div></a>

@@ -229,3 +229,80 @@ tbody tr {
   font-size: 11px;
   cursor: pointer;
 }
+
+/* Autocomplete container */
+.autocomplete-container {
+  position: relative;
+  width: 100%;
+}
+
+.autocomplete-container input {
+  width: 100%;
+  padding: 12px 15px;
+  border: none;
+  border-radius: 8px;
+  background-color: #e0e0e0;
+  font-size: 14px;
+  outline: none;
+}
+
+.suggestion-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  display: none;
+}
+
+.suggestion-list.show {
+  display: block;
+}
+
+.suggestion-item {
+  padding: 12px 15px;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+  transition: background 0.2s;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:hover {
+  background-color: #f0f7ff;
+}
+
+.suggestion-item .phone {
+  font-weight: bold;
+  color: #333;
+}
+
+.suggestion-item .name {
+  font-size: 12px;
+  color: #666;
+  margin-top: 2px;
+}
+
+.suggestion-item.no-result {
+  color: #999;
+  font-style: italic;
+  cursor: default;
+}
+
+.suggestion-item.no-result:hover {
+  background: white;
+}
+
+/* Readonly input styling */
+.form-group input[readonly] {
+  background-color: #f0f0f0;
+  color: #666;
+}

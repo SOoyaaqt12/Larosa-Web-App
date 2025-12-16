@@ -19,12 +19,12 @@
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>No Pesanan</label>
-                        <input type="text" id="noPesanan" placeholder="Masukkan no pesanan">
+                        <label>No Invoice</label>
+                        <input type="text" id="noPesanan" placeholder="Otomatis" readonly>
                     </div>
                     <div class="form-group">
                         <label>Tanggal Dibuat</label>
-                        <input type="date" id="tanggalDibuat">
+                        <input type="date" id="tanggalDibuat" onchange="updateInvoiceNumber()">
                     </div>
                 </div>
 
@@ -32,22 +32,32 @@
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Nama Pelanggan</label>
-                        <input type="text" id="namaPelanggan" placeholder="Masukkan nama pelanggan">
+                        <label>No Telepon Pelanggan</label>
+                        <div class="autocomplete-container">
+                            <input type="text" id="noTelepon" placeholder="Ketik no telepon..." autocomplete="off">
+                            <div id="suggestionList" class="suggestion-list"></div>
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label>Kasir</label>
-                        <input type="text" id="kasir" placeholder="Masukkan nama kasir">
+                        <label>Nama Pelanggan</label>
+                        <input type="text" id="namaPelanggan" placeholder="Otomatis dari pencarian" readonly>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>No Telepon Pelanggan</label>
-                        <input type="number" id="noTelepon" placeholder="Masukkan no telepon">
+                        <label>Alamat</label>
+                        <input type="text" id="alamatPelanggan" placeholder="Otomatis dari pencarian" readonly>
                     </div>
                     <div class="form-group">
-                        <label>Paymen</label>
+                        <label>Kasir</label>
+                        <input type="text" id="kasir" placeholder="Otomatis dari login" readonly>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Metode Pembayaran</label>
                         <select id="paymen">
                             <option value="">Pilih metode pembayaran</option>
                             <option value="Transfer">Transfer</option>
@@ -61,26 +71,29 @@
                 <div class="keranjang-layout">
                     <div class="form-group">
                         <label>No SKU</label>
-                        <input type="text" id="noSku" placeholder="Masukkan no SKU">
+                        <div class="autocomplete-container">
+                            <input type="text" id="noSku" placeholder="Ketik SKU..." autocomplete="off">
+                            <div id="skuSuggestionList" class="suggestion-list"></div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Jumlah</label>
-                        <input type="number" id="jumlah" placeholder="0" onchange="hitungTotalHarga()">
+                        <input type="number" id="jumlah" placeholder="0" oninput="hitungTotalHarga()">
                     </div>
                     <div class="form-group">
                         <label>Harga</label>
-                        <input type="number" id="harga" placeholder="Rp. 0" onchange="hitungTotalHarga()">
+                        <input type="number" id="harga" placeholder="Otomatis" readonly>
                     </div>
                 </div>
 
                 <div class="keranjang-layout">
                     <div class="form-group">
                         <label>Nama Produk</label>
-                        <input type="text" id="namaProduk" placeholder="Masukkan nama produk">
+                        <input type="text" id="namaProduk" placeholder="Otomatis dari SKU" readonly>
                     </div>
                     <div class="form-group">
                         <label>Satuan</label>
-                        <input type="text" id="satuan" placeholder="Pcs/Kg/dll">
+                        <input type="text" id="satuan" placeholder="Otomatis" readonly>
                     </div>
                     <div class="form-group">
                         <label>Total Harga</label>
@@ -166,7 +179,9 @@
         </div>
     </div>
 
+    <script src="script/auth.js"></script>
     <script src="script/layout.js"></script>
+    <script src="script/sheets-api.js"></script>
     <script src="script/kasir.js"></script>
 </body>
 </html>
