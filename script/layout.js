@@ -95,7 +95,26 @@ function injectLayout() {
   if (mainContent && !mainContent.querySelector(".header")) {
     mainContent.insertAdjacentHTML("afterbegin", headerHTML);
   }
+
+  // Inject Global Loader
+  if (!document.querySelector(".global-loader")) {
+    document.body.insertAdjacentHTML(
+      "beforeend",
+      `<div class="global-loader"><div class="spinner"></div></div>`
+    );
+  }
 }
+
+// Global Loader Control
+window.showGlobalLoader = function () {
+  const loader = document.querySelector(".global-loader");
+  if (loader) loader.classList.add("visible");
+};
+
+window.hideGlobalLoader = function () {
+  const loader = document.querySelector(".global-loader");
+  if (loader) loader.classList.remove("visible");
+};
 
 function getPageTitle(page) {
   switch (page) {
@@ -109,6 +128,8 @@ function getPageTitle(page) {
       return "Riwayat Transaksi";
     case "kustomer.html":
       return "Data Pelanggan";
+    case "invoice.html":
+      return "Invoice";
     default:
       return "Dashboard";
   }

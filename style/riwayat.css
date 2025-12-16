@@ -36,6 +36,7 @@ body {
   background-color: white;
   border-radius: 15px;
   overflow: hidden;
+  overflow-x: auto; /* Allow horizontal scroll */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -106,4 +107,21 @@ tbody tr:last-child td {
 
 .btn-hapus:hover {
   background-color: #b71c1c;
+}
+
+.btn-edit {
+  background-color: #fceabb; /* Fallback */
+  background-color: #ff9800;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.btn-edit:hover {
+  background-color: #f57c00;
 }

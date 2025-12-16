@@ -15,6 +15,10 @@ let allCustomers = [];
 // Invoice counter storage key (stores {date: 'YYYY-MM-DD', count: number})
 const INVOICE_COUNTER_KEY = "larosapot_invoice_counter";
 
+// Edit Mode State
+let isEditMode = false;
+let editOriginalOrderNo = "";
+
 // Initialize page when loaded
 document.addEventListener("DOMContentLoaded", () => {
   initKasirPage();
@@ -24,7 +28,13 @@ document.addEventListener("DOMContentLoaded", () => {
  * Initialize kasir page
  */
 async function initKasirPage() {
-  // Set today's date
+  // Show loader immediately
+  if (window.showGlobalLoader) window.showGlobalLoader();
+
+  // Check for edit mode FIRST
+  const editData = sessionStorage.getItem("editInvoiceData");
+
+  // Set today's date if not editing
   const tanggalInput = document.getElementById("tanggalDibuat");
   if (tanggalInput) {
     tanggalInput.valueAsDate = new Date();
@@ -51,6 +61,36 @@ async function initKasirPage() {
   // Setup autocomplete event listeners
   setupAutocomplete();
   setupProductAutocomplete();
+
+  // Setup calculator input validation
+  setupCalculatorInputs();
+
+  // Apply edit data if available
+  checkEditMode();
+
+  // Hide loader when done
+  if (window.hideGlobalLoader) window.hideGlobalLoader();
+}
+
+/**
+ * Setup input validation for calculator fields
+ * Only allows: numbers, =, +, -, *, /, (, ), .
+ */
+function setupCalculatorInputs() {
+  const calculatorFields = ["packing", "ongkir", "diskon", "dp1", "dp2"];
+
+  calculatorFields.forEach((fieldId) => {
+    const input = document.getElementById(fieldId);
+    if (input) {
+      input.addEventListener("input", (e) => {
+        // Only allow: numbers, =, +, -, *, /, (, ), .
+        const filtered = e.target.value.replace(/[^0-9=+\-*/().]/g, "");
+        if (filtered !== e.target.value) {
+          e.target.value = filtered;
+        }
+      });
+    }
+  });
 }
 
 /**
@@ -212,8 +252,8 @@ function showProductSuggestions(query) {
 
   // Filter products by SKU or name
   const matches = allProducts.filter((p) => {
-    const sku = (p["SKU"] || "").toUpperCase();
-    const nama = (p["NAMA PRODUK"] || "").toUpperCase();
+    const sku = String(p["SKU"] || "").toUpperCase();
+    const nama = String(p["NAMA PRODUK"] || "").toUpperCase();
     return sku.includes(query) || nama.includes(query);
   });
 
@@ -231,6 +271,7 @@ function showProductSuggestions(query) {
       const nama = product["NAMA PRODUK"] || "";
       const satuan = product["SATUAN"] || "Pcs";
       const harga = parseFloat(product["HARGA JUAL"]) || 0;
+      const kategori = product["KATEGORI"] || "";
 
       const item = document.createElement("div");
       item.className = "suggestion-item";
@@ -240,7 +281,7 @@ function showProductSuggestions(query) {
       `;
 
       item.addEventListener("click", () => {
-        selectProduct(sku, nama, satuan, harga);
+        selectProduct(sku, nama, satuan, harga, kategori);
       });
 
       suggestionList.appendChild(item);
@@ -263,11 +304,15 @@ function hideProductSuggestions() {
 /**
  * Select a product from suggestions
  */
-function selectProduct(sku, nama, satuan, harga) {
+function selectProduct(sku, nama, satuan, harga, kategori = "") {
   document.getElementById("noSku").value = sku;
   document.getElementById("namaProduk").value = nama;
   document.getElementById("satuan").value = satuan;
   document.getElementById("harga").value = harga;
+
+  // Store category in dataset for later use
+  document.getElementById("noSku").dataset.kategori = kategori;
+
   hideProductSuggestions();
 
   // Recalculate total if jumlah already has a value
@@ -353,7 +398,7 @@ function showSuggestions(query) {
 
   // Filter customers by phone number
   const matches = allCustomers.filter((c) => {
-    const phone = c["NO HP"] || c["NO\nHP"] || c["No HP"] || "";
+    const phone = String(c["NO HP"] || c["NO\nHP"] || c["No HP"] || "");
     const normalizedPhone = normalizePhone(phone);
     return normalizedPhone.includes(normalizedQuery) || phone.includes(query);
   });
@@ -379,6 +424,9 @@ function showSuggestions(query) {
         "";
       const alamat = customer["ALAMAT"] || customer["Alamat"] || "";
 
+      const city = customer["KOTA"] || customer["Kota"] || "";
+      const channel = customer["CHANNEL"] || customer["Channel"] || "";
+
       const item = document.createElement("div");
       item.className = "suggestion-item";
       item.innerHTML = `
@@ -387,7 +435,7 @@ function showSuggestions(query) {
       `;
 
       item.addEventListener("click", () => {
-        selectCustomer(phone, nama, alamat);
+        selectCustomer(phone, nama, alamat, city, channel);
       });
 
       suggestionList.appendChild(item);
@@ -407,13 +455,24 @@ function hideSuggestions() {
   }
 }
 
+// Store selected customer details
+let selectedCustomer = {
+  kota: "",
+  channel: "",
+};
+
 /**
  * Select a customer from suggestions
  */
-function selectCustomer(phone, nama, alamat) {
+function selectCustomer(phone, nama, alamat, kota = "", channel = "") {
   document.getElementById("noTelepon").value = phone;
   document.getElementById("namaPelanggan").value = nama;
   document.getElementById("alamatPelanggan").value = alamat;
+
+  // Store extra details
+  selectedCustomer.kota = kota;
+  selectedCustomer.channel = channel;
+
   hideSuggestions();
 }
 
@@ -435,6 +494,7 @@ function tambahKeKeranjang() {
   const jumlah = parseFloat(document.getElementById("jumlah").value) || 0;
   const harga = parseFloat(document.getElementById("harga").value) || 0;
   const satuan = document.getElementById("satuan").value.trim();
+  const kategori = document.getElementById("noSku").dataset.kategori || "";
   const totalHarga =
     parseFloat(document.getElementById("totalHarga").value) || 0;
 
@@ -450,6 +510,7 @@ function tambahKeKeranjang() {
     jumlah: jumlah,
     satuan: satuan || "Pcs",
     harga: harga,
+    kategori: kategori,
     total: totalHarga,
   });
 
@@ -504,6 +565,34 @@ function hapusItem(index) {
 }
 
 /**
+ * Evaluate math expression if it starts with '='
+ * Supports: +, -, *, /
+ * Example: =10000+5000 → 15000
+ */
+function evaluateExpression(input) {
+  const value = input.value.trim();
+
+  if (value.startsWith("=")) {
+    const expression = value.substring(1); // Remove '='
+
+    try {
+      // Only allow numbers and math operators for safety
+      if (/^[\d\s+\-*/().]+$/.test(expression)) {
+        const result = Function('"use strict"; return (' + expression + ")")();
+        if (!isNaN(result) && isFinite(result)) {
+          input.value = Math.round(result); // Round to whole number
+          return result;
+        }
+      }
+    } catch (e) {
+      console.error("Expression evaluation error:", e);
+    }
+  }
+
+  return parseFloat(value) || 0;
+}
+
+/**
  * Calculate subtotal (sum of all item totals)
  */
 function hitungSubtotal() {
@@ -517,9 +606,15 @@ function hitungSubtotal() {
  */
 function hitungTotalTagihan() {
   const subtotal = parseFloat(document.getElementById("subtotal").value) || 0;
-  const ongkir = parseFloat(document.getElementById("ongkir").value) || 0;
-  const packing = parseFloat(document.getElementById("packing").value) || 0;
-  const diskon = parseFloat(document.getElementById("diskon").value) || 0;
+
+  // Evaluate expressions for ongkir, packing, diskon
+  const ongkirInput = document.getElementById("ongkir");
+  const packingInput = document.getElementById("packing");
+  const diskonInput = document.getElementById("diskon");
+
+  const ongkir = evaluateExpression(ongkirInput);
+  const packing = evaluateExpression(packingInput);
+  const diskon = evaluateExpression(diskonInput);
 
   const totalTagihan = subtotal + ongkir + packing - diskon;
   document.getElementById("totalTagihan").value = totalTagihan;
@@ -532,9 +627,359 @@ function hitungTotalTagihan() {
 function hitungSisaTagihan() {
   const totalTagihan =
     parseFloat(document.getElementById("totalTagihan").value) || 0;
-  const dp1 = parseFloat(document.getElementById("dp1").value) || 0;
-  const dp2 = parseFloat(document.getElementById("dp2").value) || 0;
+
+  // Evaluate expressions for DP1 and DP2
+  const dp1Input = document.getElementById("dp1");
+  const dp2Input = document.getElementById("dp2");
+
+  const dp1 = evaluateExpression(dp1Input);
+  const dp2 = evaluateExpression(dp2Input);
 
   const sisaTagihan = totalTagihan - (dp1 + dp2);
   document.getElementById("sisaTagihan").value = sisaTagihan;
+}
+
+const INVOICE_SHEET_NAME = "DATA_INVOICE";
+
+/**
+ * Save invoice to Google Sheets
+ * @param {string} status - 'DP' or 'LUNAS'
+ */
+async function saveInvoice(status) {
+  // Validate cart
+  if (keranjangData.length === 0) {
+    alert("Keranjang masih kosong!");
+    return;
+  }
+
+  // Validate customer
+  const namaPelanggan = document.getElementById("namaPelanggan").value.trim();
+  if (!namaPelanggan) {
+    alert("Silakan pilih pelanggan terlebih dahulu!");
+    return;
+  }
+
+  // Gather invoice data
+  const tanggal = document.getElementById("tanggalDibuat").value;
+  const noPesanan = document.getElementById("noPesanan").value;
+  const kasir = document.getElementById("kasir").value;
+  const noTelepon = document.getElementById("noTelepon").value;
+  const alamat = document.getElementById("alamatPelanggan").value;
+  const payment = document.getElementById("paymen").value;
+
+  const subtotal = parseFloat(document.getElementById("subtotal").value) || 0;
+  const ongkir = parseFloat(document.getElementById("ongkir").value) || 0;
+  const packing = parseFloat(document.getElementById("packing").value) || 0;
+  const diskon = parseFloat(document.getElementById("diskon").value) || 0;
+  const totalTagihan =
+    parseFloat(document.getElementById("totalTagihan").value) || 0;
+
+  // Format date
+  const formattedDate = formatDateForInvoice(tanggal);
+
+  // Build rows for each product
+  const rows = [];
+
+  keranjangData.forEach((item, index) => {
+    if (index === 0) {
+      // First row: full data
+      rows.push({
+        TANGGAL: formattedDate,
+        "NO PESANAN": noPesanan,
+        KASIR: kasir,
+        TRANSAKSI: status,
+        PAYMENT: payment,
+        "NAMA PELANGGAN": namaPelanggan,
+        "NO HP": noTelepon,
+        ALAMAT: alamat,
+        KOTA: selectedCustomer.kota || "",
+        CHANNEL: selectedCustomer.channel || "",
+        KATEGORI: item.kategori || "",
+        SKU: item.sku,
+        PRODUK: item.produk,
+        JUMLAH: item.jumlah,
+        SATUAN: item.satuan,
+        HARGA: item.harga,
+        TOTAL: item.total,
+        SUBTOTAL: subtotal,
+        ONGKIR: ongkir,
+        PACKING: packing,
+        DISKON: diskon,
+        "TOTAL TAGIHAN": totalTagihan,
+      });
+    } else {
+      // Subsequent rows: only product data
+      rows.push({
+        TANGGAL: "",
+        "NO PESANAN": "",
+        KASIR: "",
+        TRANSAKSI: "",
+        PAYMENT: "",
+        "NAMA PELANGGAN": "",
+        "NO HP": "",
+        ALAMAT: "",
+        KOTA: "",
+        CHANNEL: "",
+        KATEGORI: item.kategori || "",
+        SKU: item.sku,
+        PRODUK: item.produk,
+        JUMLAH: item.jumlah,
+        SATUAN: item.satuan,
+        HARGA: item.harga,
+        TOTAL: item.total,
+        SUBTOTAL: "",
+        ONGKIR: "",
+        PACKING: "",
+        DISKON: "",
+        "TOTAL TAGIHAN": "",
+      });
+    }
+  });
+
+  // Save to Google Sheets
+  try {
+    // Show loading
+    const btnDp = document.querySelector(".btn-dp");
+    const btnLunas = document.querySelector(".btn-lunas");
+    if (btnDp) btnDp.disabled = true;
+    if (btnLunas) btnLunas.disabled = true;
+
+    // Save each row (reversed order so the first row ends up at the top)
+    // Save each row (reversed order so the first row ends up at the top)
+    if (isEditMode && editOriginalOrderNo) {
+      // If in edit mode, delete original invoice first
+      // We only do this if we are saving successfully
+      // However, if we delete then fail to save, data is lost.
+      // Ideally we should update, but our structure (split rows) makes update hard.
+      // Atomic transaction not supported, so we delete first.
+      const deleteResult = await deleteInvoice(
+        INVOICE_SHEET_NAME,
+        editOriginalOrderNo
+      );
+      if (!deleteResult.success) {
+        throw new Error("Gagal menghapus invoice lama: " + deleteResult.error);
+      }
+    }
+
+    for (const row of rows.reverse()) {
+      const result = await addSheetRow(INVOICE_SHEET_NAME, row);
+      if (!result.success) {
+        throw new Error(result.error || "Gagal menyimpan data");
+      }
+    }
+
+    // Increment invoice counter for today
+    const selectedDate =
+      document.getElementById("tanggalDibuat").valueAsDate || new Date();
+    const day = String(selectedDate.getDate()).padStart(2, "0");
+    const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+    const dateString = `${selectedDate.getFullYear()}-${month}-${day}`;
+    incrementInvoiceCounter(dateString);
+
+    alert(`Invoice ${noPesanan} berhasil disimpan dengan status ${status}!`);
+
+    // Prepare data for invoice page (use raw variables before reset)
+    const invoiceData = {
+      info: {
+        noPesanan: noPesanan,
+        tanggal: formattedDate,
+        kasir: kasir,
+        transaksi: status === "LUNAS" ? "Lunas" : status, // Or customize
+        payment: payment,
+      },
+      customer: {
+        nama: namaPelanggan,
+        noHp: noTelepon,
+        alamat: alamat,
+        city: selectedCustomer.kota,
+        channel: selectedCustomer.channel,
+      },
+      items: keranjangData.map((item) => ({
+        sku: item.sku,
+        produk: item.produk,
+        jumlah: item.jumlah,
+        satuan: item.satuan,
+        harga: item.harga,
+        total: item.total,
+      })),
+      summary: {
+        subtotal: subtotal,
+        ongkir: ongkir,
+        packing: packing,
+        diskon: diskon,
+        totalTagihan: totalTagihan,
+      },
+    };
+
+    // Save to sessionStorage
+    sessionStorage.setItem("invoiceData", JSON.stringify(invoiceData));
+
+    // Reset form
+    resetKasirForm();
+
+    // Redirect to invoice page
+    window.location.href = "invoice.html";
+  } catch (error) {
+    console.error("Error saving invoice:", error);
+    alert("Gagal menyimpan invoice: " + error.message);
+  } finally {
+    // Re-enable buttons
+    const btnDp = document.querySelector(".btn-dp");
+    const btnLunas = document.querySelector(".btn-lunas");
+    if (btnDp) btnDp.disabled = false;
+    if (btnLunas) btnLunas.disabled = false;
+  }
+}
+
+/**
+ * Format date for invoice (DD-Mon-YYYY)
+ */
+function formatDateForInvoice(dateString) {
+  if (!dateString) return "";
+
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, "0");
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  const month = months[date.getMonth()];
+  const year = date.getFullYear();
+
+  return `${day}-${month}-${year}`;
+}
+
+/**
+ * Reset kasir form after successful save
+ */
+function resetKasirForm() {
+  // Reset customer info
+  document.getElementById("noTelepon").value = "";
+  document.getElementById("namaPelanggan").value = "";
+  document.getElementById("alamatPelanggan").value = "";
+  document.getElementById("paymen").value = "";
+
+  // Reset selected customer
+  selectedCustomer = { kota: "", channel: "" };
+
+  // Reset cart
+  keranjangData = [];
+  nomorUrut = 1;
+  updateTabelKeranjang();
+
+  // Reset calculations
+  document.getElementById("subtotal").value = "";
+  document.getElementById("ongkir").value = "";
+  document.getElementById("packing").value = "";
+  document.getElementById("diskon").value = "";
+  document.getElementById("totalTagihan").value = "";
+  document.getElementById("dp1").value = "";
+  document.getElementById("dp2").value = "";
+  document.getElementById("sisaTagihan").value = "";
+
+  // Generate new invoice number
+  updateInvoiceNumber();
+
+  // Reset edit mode
+  isEditMode = false;
+  editOriginalOrderNo = "";
+}
+
+/**
+ * Check if we are in Edit Mode and populate form
+ */
+function checkEditMode() {
+  const editDataString = sessionStorage.getItem("editInvoiceData");
+  if (!editDataString) return;
+
+  try {
+    const editData = JSON.parse(editDataString);
+    sessionStorage.removeItem("editInvoiceData"); // Clear after use
+
+    isEditMode = true;
+    editOriginalOrderNo = editData.info.noPesanan;
+
+    // Set Fields
+    document.getElementById("tanggalDibuat").value = formatDateForInput(
+      editData.info.tanggal
+    ); // Need helper for DD-Mon-YYYY to YYYY-MM-DD
+    // Or if saved as DD-Mon-YYYY, input type=date expects YYYY-MM-DD.
+    // Our formatDateForInvoice makes it DD-Mon-YYYY.
+    // We need to parse it back.
+
+    document.getElementById("noPesanan").value = editData.info.noPesanan;
+    document.getElementById("kasir").value = editData.info.kasir;
+    document.getElementById("paymen").value =
+      editData.info.payment || "Transfer"; // Default?
+
+    // Set Customer
+    document.getElementById("namaPelanggan").value = editData.customer.nama;
+    document.getElementById("noTelepon").value = editData.customer.noHp;
+    document.getElementById("alamatPelanggan").value = editData.customer.alamat;
+    selectedCustomer.kota = editData.customer.city;
+    selectedCustomer.channel = editData.customer.channel;
+
+    // Set Cart
+    keranjangData = [];
+    nomorUrut = 1;
+
+    editData.items.forEach((item) => {
+      keranjangData.push({
+        no: nomorUrut++,
+        sku: item.sku,
+        produk: item.produk,
+        jumlah: item.jumlah,
+        satuan: item.satuan,
+        harga: item.harga,
+        total: item.total,
+        kategori: item.kategori, // Ensure this is carried over
+      });
+    });
+
+    updateTabelKeranjang();
+
+    // Set Totals
+    document.getElementById("subtotal").value = editData.summary.subtotal;
+    document.getElementById("ongkir").value = editData.summary.ongkir;
+    document.getElementById("packing").value = editData.summary.packing;
+    document.getElementById("diskon").value = editData.summary.diskon;
+
+    hitungTotalTagihan();
+  } catch (e) {
+    console.error("Error loading edit data:", e);
+  }
+}
+
+function formatDateForInput(dateString) {
+  if (!dateString) return new Date().toISOString().split("T")[0];
+  const months = {
+    Jan: "01",
+    Feb: "02",
+    Mar: "03",
+    Apr: "04",
+    May: "05",
+    Jun: "06",
+    Jul: "07",
+    Aug: "08",
+    Sep: "09",
+    Oct: "10",
+    Nov: "11",
+    Dec: "12",
+  };
+  // Input: 16-Dec-2025
+  const parts = dateString.split("-");
+  if (parts.length === 3) {
+    return `${parts[2]}-${months[parts[1]]}-${parts[0]}`;
+  }
+  return dateString;
 }

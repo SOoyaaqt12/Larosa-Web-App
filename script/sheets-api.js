@@ -134,3 +134,39 @@ async function deleteSheetRow(sheetName, rowIndex) {
     throw error;
   }
 }
+
+/**
+ * Delete an entire invoice group by Order Number
+ * @param {string} sheetName - Name of the sheet
+ * @param {string} noPesanan - The invoice number to delete
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+async function deleteInvoice(sheetName, noPesanan) {
+  try {
+    const response = await fetch(SHEETS_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain",
+      },
+      body: JSON.stringify({
+        sheet: sheetName,
+        action: "delete-invoice",
+        data: {
+          noPesanan: noPesanan,
+        },
+      }),
+    });
+
+    const result = await response.json();
+
+    if (result.error) {
+      console.error("Error deleting invoice:", result.error);
+      throw new Error(result.error);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to delete invoice:", error);
+    throw error;
+  }
+}

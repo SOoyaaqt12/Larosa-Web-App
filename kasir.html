@@ -131,17 +131,17 @@
                         </div>
                         <div class="calc-item">
                             <label>Packing</label>
-                            <input type="number" id="packing" placeholder="Rp. 0" onchange="hitungTotalTagihan()">
+                            <input type="text" id="packing" placeholder="Rp. 0 atau =rumus" onchange="hitungTotalTagihan()">
                         </div>
                     </div>
                     <div class="right-calc">
                         <div class="calc-item">
                             <label>Ongkir</label>
-                            <input type="number" id="ongkir" placeholder="Rp. 0" onchange="hitungTotalTagihan()">
+                            <input type="text" id="ongkir" placeholder="Rp. 0 atau =rumus" onchange="hitungTotalTagihan()">
                         </div>
                         <div class="calc-item">
                             <label>Diskon</label>
-                            <input type="number" id="diskon" placeholder="Rp. 0" onchange="hitungTotalTagihan()">
+                            <input type="text" id="diskon" placeholder="Rp. 0 atau =rumus" onchange="hitungTotalTagihan()">
                         </div>
                     </div>
                 </div>
@@ -156,11 +156,11 @@
                 <div class="bottom-section">
                     <div class="calc-item">
                         <label>DP 1</label>
-                        <input type="number" id="dp1" placeholder="Rp. 0" onchange="hitungSisaTagihan()">
+                        <input type="text" id="dp1" placeholder="Rp. 0 atau =rumus" onchange="hitungSisaTagihan()">
                     </div>
                     <div class="calc-item">
                         <label>DP 2</label>
-                        <input type="number" id="dp2" placeholder="Rp. 0" onchange="hitungSisaTagihan()">
+                        <input type="text" id="dp2" placeholder="Rp. 0 atau =rumus" onchange="hitungSisaTagihan()">
                     </div>
                 </div>
 
@@ -172,8 +172,8 @@
                 </div>
 
                 <div class="action-buttons">
-                    <button class="btn-dp">DP</button>
-                    <button class="btn-lunas">Lunas</button>
+                    <button class="btn-dp" onclick="saveInvoice('DP')">DP</button>
+                    <button class="btn-lunas" onclick="saveInvoice('LUNAS')">Lunas</button>
                 </div>
             </div>
         </div>

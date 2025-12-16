@@ -21,6 +21,7 @@ const SHEET_CONFIG = {
   KOSTUMER: { headerRow: 5 },
   "PERSEDIAAN BARANG": { headerRow: 6 },
   USERS: { headerRow: 1 },
+  DATA_INVOICE: { headerRow: 2, insertAtTop: true },
 };
 
 function doGet(e) {
@@ -54,6 +55,9 @@ function doPost(e) {
       break;
     case "delete":
       result = deleteRow(sheet, rowIndex);
+      break;
+    case "delete-invoice":
+      result = deleteInvoice(sheet, rowData.noPesanan);
       break;
     case "login":
       result = authenticateUser(data.username, data.password);
@@ -213,6 +217,7 @@ function addRow(sheetName, rowData) {
 
     const config = SHEET_CONFIG[sheetName] || { headerRow: 1 };
     const headerRow = config.headerRow;
+    const insertAtTop = config.insertAtTop || false; // New option
 
     const headers = sheet
       .getRange(headerRow, 1, 1, sheet.getLastColumn())
@@ -221,39 +226,51 @@ function addRow(sheetName, rowData) {
     // Build the new row based on headers
     const newRow = headers.map((header) => rowData[header] || "");
 
-    // Find the last row with data in the data area (after header)
+    // Data starts right after header
     const dataStartRow = headerRow + 1;
-    const lastRow = sheet.getLastRow();
 
-    // If there's no data yet, insert after header
-    if (lastRow < dataStartRow) {
+    if (insertAtTop) {
+      // Insert at TOP: right after header row
       sheet.insertRowAfter(headerRow);
       sheet.getRange(dataStartRow, 1, 1, newRow.length).setValues([newRow]);
-      return { success: true, message: "Row added at row " + dataStartRow };
-    }
+      return {
+        success: true,
+        message: "Row inserted at top (row " + dataStartRow + ")",
+      };
+    } else {
+      // Original behavior: append at bottom
+      const lastRow = sheet.getLastRow();
 
-    // Find last row with data by checking column A
-    const dataRange = sheet.getRange(dataStartRow, 1, lastRow - headerRow, 1);
-    const dataValues = dataRange.getValues();
-
-    let lastDataRow = headerRow;
-    for (let i = 0; i < dataValues.length; i++) {
-      if (dataValues[i][0] !== "" && dataValues[i][0] !== null) {
-        lastDataRow = dataStartRow + i;
+      // If there's no data yet, insert after header
+      if (lastRow < dataStartRow) {
+        sheet.insertRowAfter(headerRow);
+        sheet.getRange(dataStartRow, 1, 1, newRow.length).setValues([newRow]);
+        return { success: true, message: "Row added at row " + dataStartRow };
       }
+
+      // Find last row with data by checking column A
+      const dataRange = sheet.getRange(dataStartRow, 1, lastRow - headerRow, 1);
+      const dataValues = dataRange.getValues();
+
+      let lastDataRow = headerRow;
+      for (let i = 0; i < dataValues.length; i++) {
+        if (dataValues[i][0] !== "" && dataValues[i][0] !== null) {
+          lastDataRow = dataStartRow + i;
+        }
+      }
+
+      // Insert a NEW row after the last data row
+      sheet.insertRowAfter(lastDataRow);
+      const insertRow = lastDataRow + 1;
+
+      // Now set the values in the newly inserted row
+      sheet.getRange(insertRow, 1, 1, newRow.length).setValues([newRow]);
+
+      return {
+        success: true,
+        message: "Row added successfully at row " + insertRow,
+      };
     }
-
-    // Insert a NEW row after the last data row
-    sheet.insertRowAfter(lastDataRow);
-    const insertRow = lastDataRow + 1;
-
-    // Now set the values in the newly inserted row
-    sheet.getRange(insertRow, 1, 1, newRow.length).setValues([newRow]);
-
-    return {
-      success: true,
-      message: "Row added successfully at row " + insertRow,
-    };
   } catch (error) {
     return { error: error.toString() };
   }
@@ -308,6 +325,66 @@ function deleteRow(sheetName, rowIndex) {
     sheet.deleteRow(rowIndex);
 
     return { success: true, message: "Row deleted successfully" };
+  } catch (error) {
+    return { error: error.toString() };
+  }
+}
+
+function deleteInvoice(sheetName, noPesanan) {
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sheet = ss.getSheetByName(sheetName);
+
+    if (!sheet) {
+      return { error: "Sheet not found: " + sheetName };
+    }
+
+    const config = SHEET_CONFIG[sheetName] || { headerRow: 1 };
+    const headerRow = config.headerRow;
+
+    // Find NO PESANAN column
+    const headers = sheet
+      .getRange(headerRow, 1, 1, sheet.getLastColumn())
+      .getValues()[0];
+    const noPesananCol = headers.indexOf("NO PESANAN");
+
+    if (noPesananCol === -1) {
+      return { error: "Column NO PESANAN not found" };
+    }
+
+    const lastRow = sheet.getLastRow();
+    const dataStartRow = headerRow + 1;
+
+    if (lastRow < dataStartRow) {
+      return { success: true, message: "No data to delete" };
+    }
+
+    // Get all data
+    const dataRange = sheet.getRange(
+      dataStartRow,
+      1,
+      lastRow - headerRow,
+      sheet.getLastColumn()
+    );
+    const dataValues = dataRange.getValues();
+
+    // Collect rows to delete
+    // We process from bottom to top to handle index shifting
+    let rowsDeleted = 0;
+
+    for (let i = dataValues.length - 1; i >= 0; i--) {
+      const rowNoPesanan = String(dataValues[i][noPesananCol]);
+      if (rowNoPesanan === String(noPesanan)) {
+        // Row index in sheet is dataStartRow + i
+        sheet.deleteRow(dataStartRow + i);
+        rowsDeleted++;
+      }
+    }
+
+    return {
+      success: true,
+      message: `Deleted ${rowsDeleted} rows for invoice ${noPesanan}`,
+    };
   } catch (error) {
     return { error: error.toString() };
   }

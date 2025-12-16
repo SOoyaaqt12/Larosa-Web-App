@@ -1,0 +1,338 @@
+:root {
+  --primary-color: #000;
+  --secondary-color: #333;
+  --green-accent: #8e9e82; /* Sage green from screenshot */
+  --border-color: #000;
+  --font-family: Arial, Helvetica, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: #e0e0e0;
+  color: var(--primary-color);
+  font-size: 10pt;
+}
+
+/* Layout Integration */
+.content-area {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+  min-height: 100vh;
+}
+
+.invoice-container {
+  background-color: white;
+  width: 210mm;
+  min-height: 297mm;
+  padding: 15mm;
+  position: relative;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  /* Margin handled by flex centering in content-area */
+}
+
+/* Header Sections */
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 5px;
+}
+
+.header-left {
+  flex: 6;
+}
+
+.header-right {
+  flex: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.header-logo {
+  margin-bottom: 20px; /* Space between logo and table */
+}
+
+.header-logo img {
+  max-height: 90px;
+}
+
+.invoice-box {
+  border: 1px solid black;
+  font-weight: bold;
+  padding: 5px 40px;
+  display: inline-block;
+  margin-bottom: 15px;
+  background-color: #fff;
+  font-size: 12pt;
+  letter-spacing: 1px;
+}
+
+.company-info {
+  font-size: 10pt;
+  line-height: 1.4;
+}
+
+.info-table td {
+  padding: 2px 0 2px 15px; /* Indent values */
+  vertical-align: top;
+  text-align: left;
+}
+.info-table td:first-child {
+  padding-left: 0;
+}
+
+/* Divider */
+.divider {
+  border: 0;
+  border-top: 1px solid black;
+  margin: 15px 0 15px 0;
+}
+
+.divider.thick {
+  border-top: 2px solid black;
+}
+
+/* Info Section (Customer) */
+.info-section {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.info-left {
+  flex: 6;
+}
+
+.info-right {
+  flex: 4;
+  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.details-table td {
+  padding: 2px 5px;
+  vertical-align: top;
+}
+.details-table td:first-child {
+  padding-left: 0;
+}
+
+/* Table Items */
+.table-container {
+  flex-grow: 1;
+  margin-bottom: 20px;
+}
+
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+}
+
+.items-table th {
+  border-top: 2px solid black;
+  border-bottom: 2px solid black;
+  padding: 8px 5px;
+  text-align: left;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.items-table td {
+  padding: 8px 5px;
+  border-bottom: none;
+}
+
+/* Alignments */
+.items-table th:nth-child(1),
+.items-table td:nth-child(1) {
+  text-align: center;
+  width: 30px;
+}
+.items-table th:nth-child(4),
+.items-table td:nth-child(4) {
+  text-align: center;
+}
+.items-table th:nth-child(5),
+.items-table td:nth-child(5) {
+  text-align: center;
+}
+.items-table th:nth-child(6),
+.items-table td:nth-child(6) {
+  text-align: right;
+}
+.items-table th:nth-child(7),
+.items-table td:nth-child(7) {
+  text-align: right;
+}
+
+/* Footer Section */
+.footer-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end; /* Align bottom */
+  margin-bottom: 50px; /* Space for bottom bar */
+  font-size: 9pt;
+}
+
+.footer-left {
+  flex: 1;
+  padding-right: 20px;
+}
+
+.footer-right {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.notes,
+.terms {
+  margin-bottom: 10px;
+}
+
+.notes strong,
+.terms strong {
+  display: block;
+  margin-bottom: 3px;
+}
+
+.notes ul,
+.terms ul {
+  list-style-type: none; /* Reference shows bullets or dashes manually? standard bullets fine */
+  padding-left: 15px; /* Indent slightly */
+}
+.notes ul li,
+.terms ul li {
+  position: relative;
+}
+.notes ul li::before,
+.terms ul li::before {
+  content: "•";
+  position: absolute;
+  left: -15px;
+}
+
+.summary-table {
+  width: 100%;
+  max-width: 350px;
+}
+
+.summary-table td {
+  padding: 3px 0;
+  text-align: right;
+}
+
+.summary-table td:first-child {
+  text-align: left;
+  padding-right: 20px;
+}
+
+/* Bottom Bar */
+.bottom-bar {
+  height: 35px; /* Thicker bar */
+  background-color: var(--green-accent);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+}
+
+/* Action Buttons */
+.action-buttons {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.action-buttons button {
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+  font-weight: bold;
+  color: white;
+  font-family: inherit;
+}
+
+.btn-print {
+  background-color: #007bff;
+}
+
+.btn-back {
+  background-color: #6c757d;
+}
+
+/* Print Styles */
+/* Print Styles */
+@media print {
+  body {
+    background-color: white;
+    padding: 0;
+  }
+
+  /* Hide Application Layout */
+  .sidebar,
+  .header,
+  .action-buttons,
+  .bottom-bar {
+    /* Hide bottom bar if not desired in print, but user ref showed it? 
+        Ref image HAS green bar. So keep bottom-bar.
+        Hide sidebar, header, buttons.
+     */
+    display: none !important;
+  }
+
+  /* Exception for bottom-bar: show it */
+  .bottom-bar {
+    display: block !important;
+  }
+
+  .sidebar,
+  .header,
+  .action-buttons {
+    display: none !important;
+  }
+
+  .main-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  .content-area {
+    padding: 0 !important;
+    display: block !important;
+  }
+
+  .invoice-container {
+    width: 100% !important;
+    height: auto;
+    min-height: auto;
+    box-shadow: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 10mm 15mm;
+  }
+}
