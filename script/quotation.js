@@ -1,0 +1,606 @@
+/**
+ * Quotation Page - Core Functions
+ * Handles customer autocomplete, cart management, and calculations for Quotations
+ */
+
+const QUOTATION_SHEET_NAME = "QUOTATION";
+const KUSTOMER_SHEET_NAME = "KOSTUMER";
+const PRODUK_SHEET_NAME = "PERSEDIAAN BARANG";
+
+// Cart data
+let keranjangData = [];
+let nomorUrut = 1;
+
+// Customer data cache for autocomplete
+let allCustomers = [];
+let selectedCustomer = { kota: "", channel: "" };
+
+// LocalStorage cache keys
+const CUSTOMER_CACHE_KEY = "larosapot_customer_cache";
+const PRODUCT_CACHE_KEY = "larosapot_product_cache";
+
+// Quotation counter storage key
+const QUOTATION_COUNTER_KEY = "larosapot_quotation_counter";
+
+// Edit Mode State (Simplified for Quotation)
+let isEditMode = false;
+let editOriginalOrderNo = "";
+let editOriginSheet = "";
+
+// Initialize page when loaded
+document.addEventListener("DOMContentLoaded", () => {
+  initQuotationPage();
+});
+
+/**
+ * Initialize quotation page
+ */
+async function initQuotationPage() {
+  const editData = sessionStorage.getItem("editQuotationData"); // Use distinct key if needed, or share? Let's assume share for now but clearer to separate.
+
+  const isEditMode = !!editData;
+  if (isEditMode && window.showGlobalLoader) {
+    window.showGlobalLoader();
+  }
+
+  const tanggalInput = document.getElementById("tanggalDibuat");
+  if (tanggalInput) {
+    tanggalInput.valueAsDate = new Date();
+  }
+
+  updateQuotationNumber();
+
+  const kasirInput = document.getElementById("kasir");
+  if (kasirInput && typeof getCurrentUser === "function") {
+    const user = getCurrentUser();
+    if (user && user.username) {
+      kasirInput.value = user.username;
+    }
+  }
+
+  await loadCustomersForAutocomplete();
+  await loadProductsForAutocomplete();
+
+  setupAutocomplete();
+  setupProductAutocomplete();
+  setupCalculatorInputs();
+
+  // checkEditMode(); // Implement if needed later
+
+  if (isEditMode && window.hideGlobalLoader) {
+    window.hideGlobalLoader();
+  }
+}
+
+function setupCalculatorInputs() {
+  const calculatorFields = ["packing", "ongkir", "diskon"];
+  calculatorFields.forEach((fieldId) => {
+    const input = document.getElementById(fieldId);
+    if (input) {
+      input.addEventListener("input", (e) => {
+        const filtered = e.target.value.replace(/[^0-9=+\-*/().]/g, "");
+        if (filtered !== e.target.value) {
+          e.target.value = filtered;
+        }
+      });
+    }
+  });
+}
+
+function getQuotationCounter(dateString) {
+  try {
+    const stored = localStorage.getItem(QUOTATION_COUNTER_KEY);
+    if (stored) {
+      const data = JSON.parse(stored);
+      if (data.date === dateString) {
+        return data.count;
+      }
+    }
+  } catch (e) {
+    console.error("Error reading quotation counter:", e);
+  }
+  return 1;
+}
+
+function incrementQuotationCounter(dateString) {
+  const currentCount = getQuotationCounter(dateString);
+  try {
+    localStorage.setItem(
+      QUOTATION_COUNTER_KEY,
+      JSON.stringify({
+        date: dateString,
+        count: currentCount + 1,
+      })
+    );
+  } catch (e) {
+    console.error("Error saving quotation counter:", e);
+  }
+}
+
+function generateQuotationNumber(date) {
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = String(date.getFullYear()).slice(-2);
+
+  const dateString = `${date.getFullYear()}-${month}-${day}`;
+  const orderNum = getQuotationCounter(dateString);
+  const orderNumPadded = String(orderNum).padStart(2, "0");
+
+  return `LRTQT/${orderNumPadded}/${day}${month}${year}`;
+}
+
+function updateQuotationNumber() {
+  const tanggalInput = document.getElementById("tanggalDibuat");
+  const noPesananInput = document.getElementById("noPesanan");
+
+  if (!tanggalInput || !noPesananInput) return;
+
+  const selectedDate = tanggalInput.valueAsDate || new Date();
+  const quotationNumber = generateQuotationNumber(selectedDate);
+  noPesananInput.value = quotationNumber;
+}
+
+async function loadCustomersForAutocomplete() {
+  try {
+    const cached = localStorage.getItem(CUSTOMER_CACHE_KEY);
+    if (cached) {
+      allCustomers = JSON.parse(cached);
+    }
+  } catch (e) {}
+
+  try {
+    const result = await fetchSheetData(KUSTOMER_SHEET_NAME);
+    if (result.data && result.data.length > 0) {
+      allCustomers = result.data;
+      localStorage.setItem(CUSTOMER_CACHE_KEY, JSON.stringify(result.data));
+    }
+  } catch (error) {
+    console.error("Error loading customers:", error);
+  }
+}
+
+async function loadProductsForAutocomplete() {
+  try {
+    const cached = localStorage.getItem(PRODUCT_CACHE_KEY);
+    if (cached) {
+      allProducts = JSON.parse(cached);
+    }
+  } catch (e) {}
+
+  try {
+    const result = await fetchSheetData(PRODUK_SHEET_NAME);
+    if (result.data && result.data.length > 0) {
+      allProducts = result.data;
+      localStorage.setItem(PRODUCT_CACHE_KEY, JSON.stringify(result.data));
+    }
+  } catch (error) {
+    console.error("Error loading products:", error);
+  }
+}
+
+// ... Autocomplete functions (setupProductAutocomplete, showProductSuggestions, etc.) ...
+// Copying standard autocomplete logic from kasir.js to ensure functionality
+// To save space, I will implement them identically.
+
+function setupProductAutocomplete() {
+  const skuInput = document.getElementById("noSku");
+  const suggestionList = document.getElementById("skuSuggestionList");
+  if (!skuInput || !suggestionList) return;
+  let debounceTimer;
+  skuInput.addEventListener("input", (e) => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(
+      () => showProductSuggestions(e.target.value),
+      100
+    );
+  });
+  skuInput.addEventListener("focus", () => {
+    if (skuInput.value.trim().length >= 1)
+      showProductSuggestions(skuInput.value);
+  });
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("#noSku") && !e.target.closest("#skuSuggestionList"))
+      hideProductSuggestions();
+  });
+}
+
+function showProductSuggestions(query) {
+  const suggestionList = document.getElementById("skuSuggestionList");
+  if (!suggestionList) return;
+  query = query.trim().toUpperCase();
+  if (query.length < 1) {
+    hideProductSuggestions();
+    return;
+  }
+  const matches = allProducts.filter((p) => {
+    const sku = String(p["SKU"] || "").toUpperCase();
+    const nama = String(p["NAMA PRODUK"] || "").toUpperCase();
+    return sku.includes(query) || nama.includes(query);
+  });
+  suggestionList.innerHTML = "";
+  if (matches.length === 0) {
+    suggestionList.innerHTML = `<div class="suggestion-item no-result">Produk tidak ditemukan</div>`;
+  } else {
+    matches.forEach((product) => {
+      const sku = product["SKU"] || "";
+      const nama = product["NAMA PRODUK"] || "";
+      const satuan = product["SATUAN"] || "Pcs";
+      const harga = parseFloat(product["HARGA JUAL"]) || 0;
+      const kategori = product["KATEGORI"] || "";
+      const item = document.createElement("div");
+      item.className = "suggestion-item";
+      item.innerHTML = `<div class="phone">${sku}</div><div class="name">${nama} - Rp${harga.toLocaleString(
+        "id-ID"
+      )}</div>`;
+      item.addEventListener("click", () =>
+        selectProduct(sku, nama, satuan, harga, kategori)
+      );
+      suggestionList.appendChild(item);
+    });
+  }
+  suggestionList.classList.add("show");
+}
+
+function hideProductSuggestions() {
+  const suggestionList = document.getElementById("skuSuggestionList");
+  if (suggestionList) suggestionList.classList.remove("show");
+}
+
+function selectProduct(sku, nama, satuan, harga, kategori = "") {
+  document.getElementById("noSku").value = sku;
+  document.getElementById("namaProduk").value = nama;
+  document.getElementById("satuan").value = satuan;
+  document.getElementById("harga").value = harga;
+  document.getElementById("noSku").dataset.kategori = kategori;
+  hideProductSuggestions();
+  hitungTotalHarga();
+  document.getElementById("jumlah").focus();
+}
+
+function setupAutocomplete() {
+  const noTeleponInput = document.getElementById("noTelepon");
+  if (!noTeleponInput) return;
+  let debounceTimer;
+  noTeleponInput.addEventListener("input", (e) => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => showSuggestions(e.target.value), 100);
+  });
+  noTeleponInput.addEventListener("focus", () => {
+    if (noTeleponInput.value.trim().length >= 2)
+      showSuggestions(noTeleponInput.value);
+  });
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".autocomplete-container")) hideSuggestions();
+  });
+}
+
+function normalizePhone(phone) {
+  if (!phone) return "";
+  phone = phone.toString().trim().replace(/[\s+]/g, "");
+  if (phone.startsWith("0")) phone = "62" + phone.substring(1);
+  else if (!phone.startsWith("62")) phone = "62" + phone;
+  return phone;
+}
+
+function showSuggestions(query) {
+  const suggestionList = document.getElementById("suggestionList");
+  if (!suggestionList) return;
+  query = query.trim();
+  if (query.length < 2) {
+    hideSuggestions();
+    return;
+  }
+  const normalizedQuery = normalizePhone(query);
+  const matches = allCustomers.filter((c) => {
+    const phone = String(c["NO HP"] || c["NO\nHP"] || c["No HP"] || "");
+    return (
+      normalizePhone(phone).includes(normalizedQuery) || phone.includes(query)
+    );
+  });
+  suggestionList.innerHTML = "";
+  if (matches.length === 0) {
+    suggestionList.innerHTML = `<div class="suggestion-item no-result">Pelanggan tidak ditemukan</div>`;
+  } else {
+    matches.forEach((customer) => {
+      const phone = customer["NO HP"] || customer["NO\nHP"] || "";
+      const nama =
+        customer["NAMA PELANGGAN"] || customer["NAMA\nPELANGGAN"] || "";
+      const alamat = customer["ALAMAT"] || customer["Alamat"] || "";
+      const city = customer["KOTA"] || customer["Kota"] || "";
+      const channel = customer["CHANNEL"] || customer["Channel"] || "";
+      const item = document.createElement("div");
+      item.className = "suggestion-item";
+      item.innerHTML = `<div class="phone">${phone}</div><div class="name">${nama}</div>`;
+      item.addEventListener("click", () =>
+        selectCustomer(phone, nama, alamat, city, channel)
+      );
+      suggestionList.appendChild(item);
+    });
+  }
+  suggestionList.classList.add("show");
+}
+
+function hideSuggestions() {
+  const suggestionList = document.getElementById("suggestionList");
+  if (suggestionList) suggestionList.classList.remove("show");
+}
+
+function selectCustomer(phone, nama, alamat, kota = "", channel = "") {
+  document.getElementById("noTelepon").value = phone;
+  document.getElementById("namaPelanggan").value = nama;
+  document.getElementById("alamatPelanggan").value = alamat;
+  selectedCustomer.kota = kota;
+  selectedCustomer.channel = channel;
+  hideSuggestions();
+}
+
+function hitungTotalHarga() {
+  const jumlah = parseFloat(document.getElementById("jumlah").value) || 0;
+  const harga = parseFloat(document.getElementById("harga").value) || 0;
+  document.getElementById("totalHarga").value = jumlah * harga;
+}
+
+function tambahKeKeranjang() {
+  const noSku = document.getElementById("noSku").value.trim();
+  const namaProduk = document.getElementById("namaProduk").value.trim();
+  const jumlah = parseFloat(document.getElementById("jumlah").value) || 0;
+  const harga = parseFloat(document.getElementById("harga").value) || 0;
+  const satuan = document.getElementById("satuan").value.trim();
+  const kategori = document.getElementById("noSku").dataset.kategori || "";
+  const totalHarga =
+    parseFloat(document.getElementById("totalHarga").value) || 0;
+
+  if (!noSku || !namaProduk || jumlah <= 0 || harga <= 0) {
+    alert("Mohon lengkapi semua data produk!");
+    return;
+  }
+
+  keranjangData.push({
+    no: nomorUrut++,
+    sku: noSku,
+    produk: namaProduk,
+    jumlah: jumlah,
+    satuan: satuan || "Pcs",
+    harga: harga,
+    kategori: kategori,
+    total: totalHarga,
+  });
+
+  updateTabelKeranjang();
+  hitungSubtotal();
+
+  document.getElementById("noSku").value = "";
+  document.getElementById("namaProduk").value = "";
+  document.getElementById("jumlah").value = "";
+  document.getElementById("harga").value = "";
+  document.getElementById("satuan").value = "";
+  document.getElementById("totalHarga").value = "";
+}
+
+function updateTabelKeranjang() {
+  const tbody = document.getElementById("keranjangBody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+  keranjangData.forEach((item, index) => {
+    const row = tbody.insertRow();
+    row.innerHTML = `
+      <td>${item.no}</td>
+      <td>${item.sku}</td>
+      <td>${item.produk}</td>
+      <td>${item.jumlah}</td>
+      <td>${item.satuan}</td>
+      <td>Rp${item.harga.toLocaleString("id-ID")}</td>
+      <td>Rp${item.total.toLocaleString("id-ID")}</td>
+      <td><button class="btn-remove" onclick="hapusItem(${index})">Hapus</button></td>
+    `;
+  });
+}
+
+function hapusItem(index) {
+  keranjangData.splice(index, 1);
+  keranjangData.forEach((item, i) => (item.no = i + 1));
+  nomorUrut = keranjangData.length + 1;
+  updateTabelKeranjang();
+  hitungSubtotal();
+}
+
+function evaluateExpression(input) {
+  const value = input.value.trim();
+  if (value.startsWith("=")) {
+    const expression = value.substring(1);
+    try {
+      if (/^[\d\s+\-*/().]+$/.test(expression)) {
+        const result = Function('"use strict"; return (' + expression + ")")();
+        if (!isNaN(result) && isFinite(result)) {
+          input.value = Math.round(result);
+          return result;
+        }
+      }
+    } catch (e) {
+      console.error("Expression evaluation error:", e);
+    }
+  }
+  return parseFloat(value) || 0;
+}
+
+function hitungSubtotal() {
+  const subtotal = keranjangData.reduce((sum, item) => sum + item.total, 0);
+  document.getElementById("subtotal").value = subtotal;
+  hitungTotalTagihan();
+}
+
+function hitungTotalTagihan() {
+  const subtotal = parseFloat(document.getElementById("subtotal").value) || 0;
+  const ongkir = evaluateExpression(document.getElementById("ongkir"));
+  const packing = evaluateExpression(document.getElementById("packing"));
+  const diskon = evaluateExpression(document.getElementById("diskon"));
+  const totalTagihan = subtotal + ongkir + packing - diskon;
+  document.getElementById("totalTagihan").value = totalTagihan;
+}
+
+// Main Save Function for Quotation
+async function saveQuotation() {
+  if (window.isSavingQuotation) return;
+  window.isSavingQuotation = true;
+
+  if (keranjangData.length === 0) {
+    alert("Keranjang masih kosong!");
+    window.isSavingQuotation = false;
+    return;
+  }
+
+  const namaPelanggan = document.getElementById("namaPelanggan").value.trim();
+  if (!namaPelanggan) {
+    alert("Silakan pilih pelanggan terlebih dahulu!");
+    window.isSavingQuotation = false;
+    return;
+  }
+
+  const tanggal = document.getElementById("tanggalDibuat").value;
+  const noPesanan = document.getElementById("noPesanan").value;
+  const kasir = document.getElementById("kasir").value;
+  const noTelepon = document.getElementById("noTelepon").value;
+  const alamat = document.getElementById("alamatPelanggan").value;
+  const payment = document.getElementById("paymen").value;
+
+  // Get jenis transaksi (Online/Offline)
+  const jenisTransaksi =
+    document.getElementById("jenisTransaksi")?.value || "Online";
+
+  const subtotal = parseFloat(document.getElementById("subtotal").value) || 0;
+  const ongkir = parseFloat(document.getElementById("ongkir").value) || 0;
+  const packing = parseFloat(document.getElementById("packing").value) || 0;
+  const diskon = parseFloat(document.getElementById("diskon").value) || 0;
+  const totalTagihan =
+    parseFloat(document.getElementById("totalTagihan").value) || 0;
+
+  const formattedDate = formatDateForInvoice(tanggal);
+
+  try {
+    const btnSimpan = document.querySelector(".btn-lunas");
+    if (btnSimpan) {
+      btnSimpan.disabled = true;
+      btnSimpan.innerText = "Menyimpan...";
+    }
+
+    const rows = [];
+    keranjangData.forEach((item, index) => {
+      let rowData = {};
+      if (index === 0) {
+        rowData = {
+          TANGGAL: formattedDate,
+          "NO PESANAN": noPesanan,
+          KASIR: kasir,
+          TRANSAKSI: jenisTransaksi, // Uses Online/Offline from select
+          PAYMENT: payment,
+          PELANGGAN: namaPelanggan,
+          "NO HP": noTelepon,
+          ALAMAT: alamat,
+          SKU: item.sku,
+          PRODUK: item.produk,
+          JUMLAH: item.jumlah,
+          SATUAN: item.satuan,
+          HARGA: item.harga,
+          TOTAL: item.total,
+          "SUB TOTAL": subtotal,
+          ONGKIR: ongkir,
+          PACKING: packing,
+          DISKON: diskon,
+          "TOTAL TAGIHAN": totalTagihan,
+        };
+      } else {
+        rowData = {
+          TANGGAL: "",
+          "NO PESANAN": "",
+          KASIR: "",
+          TRANSAKSI: "",
+          PAYMENT: "",
+          PELANGGAN: "",
+          "NO HP": "",
+          ALAMAT: "",
+          SKU: item.sku,
+          PRODUK: item.produk,
+          JUMLAH: item.jumlah,
+          SATUAN: item.satuan,
+          HARGA: item.harga,
+          TOTAL: item.total,
+          "SUB TOTAL": "",
+          ONGKIR: "",
+          PACKING: "",
+          DISKON: "",
+          "TOTAL TAGIHAN": "",
+        };
+      }
+      rows.push(rowData);
+    });
+
+    for (const row of rows.reverse()) {
+      const result = await addSheetRow(QUOTATION_SHEET_NAME, row);
+      if (!result.success) {
+        throw new Error(result.error || "Gagal menyimpan data");
+      }
+    }
+
+    const day = String(new Date().getDate()).padStart(2, "0");
+    const month = String(new Date().getMonth() + 1).padStart(2, "0");
+    const dateString = `${new Date().getFullYear()}-${month}-${day}`;
+    incrementQuotationCounter(dateString);
+
+    alert(`Quotation ${noPesanan} berhasil disimpan!`);
+    resetQuotationForm();
+  } catch (error) {
+    console.error("Error saving quotation:", error);
+    alert("Gagal menyimpan quotation: " + error.message);
+  } finally {
+    const btnSimpan = document.querySelector(".btn-lunas");
+    if (btnSimpan) {
+      btnSimpan.disabled = false;
+      btnSimpan.innerText = "Simpan Quotation";
+    }
+    window.isSavingQuotation = false;
+  }
+}
+
+function formatDateForInvoice(dateString) {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, "0");
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  const month = months[date.getMonth()];
+  const year = date.getFullYear();
+  return `${day}-${month}-${year}`;
+}
+
+function resetQuotationForm() {
+  document.getElementById("noTelepon").value = "";
+  document.getElementById("namaPelanggan").value = "";
+  document.getElementById("alamatPelanggan").value = "";
+  document.getElementById("paymen").value = "";
+
+  selectedCustomer = { kota: "", channel: "" };
+  keranjangData = [];
+  nomorUrut = 1;
+
+  updateTabelKeranjang();
+
+  document.getElementById("subtotal").value = "";
+  document.getElementById("ongkir").value = "";
+  document.getElementById("packing").value = "";
+  document.getElementById("diskon").value = "";
+  document.getElementById("totalTagihan").value = "";
+
+  updateQuotationNumber();
+}

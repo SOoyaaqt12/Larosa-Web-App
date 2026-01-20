@@ -79,6 +79,17 @@ th {
   text-transform: uppercase;
 }
 
+/* Text alignment utilities */
+th.text-left,
+td.text-left {
+  text-align: left;
+}
+
+th.text-center,
+td.text-center {
+  text-align: center;
+}
+
 td {
   padding: 18px 15px;
   border-bottom: 1px solid #e0e0e0;

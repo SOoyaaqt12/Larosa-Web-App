@@ -1,6 +1,11 @@
-const INVOICE_SHEET_NAME = "DATA_INVOICE";
-const RIWAYAT_CACHE_KEY = "riwayat_data_cache";
-const RIWAYAT_CACHE_TIMESTAMP_KEY = "riwayat_cache_timestamp";
+/**
+ * Riwayat Page - Google Sheets Integration
+ * Connects to INVOICE sheet
+ *
+ * Refactored to use shared utilities (utils.js, data-service.js)
+ */
+
+const invoiceService = DataServices.invoice;
 
 // Global variable to store grouped data for actions
 let groupedInvoices = {};
@@ -13,95 +18,53 @@ async function loadRiwayatData() {
   const tableBody = document.querySelector("tbody");
   if (!tableBody) return;
 
-  // Step 1: Immediately show cached data if available
-  const cachedData = getRiwayatCachedData();
-  if (cachedData && cachedData.map && Object.keys(cachedData.map).length > 0) {
-    console.log("Showing cached riwayat data instantly");
-    groupedInvoices = cachedData;
-    renderTable(cachedData);
-    showRiwayatRefreshIndicator();
-  } else {
-    tableBody.innerHTML =
-      '<tr><td colspan="5" style="text-align:center;">Memuat data...</td></tr>';
-  }
-
-  // Step 2: Fetch fresh data in background
-  try {
-    const result = await fetchSheetData(INVOICE_SHEET_NAME);
-
-    if (!result.data || result.data.length === 0) {
-      if (
-        !cachedData ||
-        !cachedData.map ||
-        Object.keys(cachedData.map).length === 0
-      ) {
-        tableBody.innerHTML =
-          '<tr><td colspan="5" style="text-align:center;">Belum ada riwayat transaksi.</td></tr>';
-      }
-    } else {
-      // Group data
-      const freshGroupedData = groupDataByOrder(result.data);
-      groupedInvoices = freshGroupedData;
-      setRiwayatCachedData(freshGroupedData);
-      renderTable(freshGroupedData);
-    }
-    hideRiwayatRefreshIndicator();
-  } catch (error) {
-    console.error("Error loading history:", error);
-    hideRiwayatRefreshIndicator();
-    // Only show error in table if no cache was shown
-    if (!cachedData || !cachedData.map) {
-      tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:red;">Gagal memuat data: ${error.message}</td></tr>`;
-    }
-  }
-}
-
-// Cache functions
-function getRiwayatCachedData() {
-  try {
-    const cached = localStorage.getItem(RIWAYAT_CACHE_KEY);
-    if (cached) return JSON.parse(cached);
-  } catch (e) {
-    console.error("Error reading riwayat cache:", e);
-  }
-  return null;
-}
-
-function setRiwayatCachedData(data) {
-  try {
-    localStorage.setItem(RIWAYAT_CACHE_KEY, JSON.stringify(data));
-    localStorage.setItem(RIWAYAT_CACHE_TIMESTAMP_KEY, Date.now().toString());
-  } catch (e) {
-    console.error("Error saving riwayat cache:", e);
-  }
-}
-
-function showRiwayatRefreshIndicator() {
-  // Try to find header to inject indicator
-  // layout.js header is in .main-content > .header > h1
-  const pageTitle = document.querySelector(".header h1");
-  if (pageTitle && !document.getElementById("riwayatRefreshIndicator")) {
-    pageTitle.insertAdjacentHTML(
-      "afterend",
-      '<span id="riwayatRefreshIndicator" style="font-size: 12px; color: #888; margin-left: 10px;">Memperbarui data...</span>'
-    );
-  }
-}
-
-function hideRiwayatRefreshIndicator() {
-  const indicator = document.getElementById("riwayatRefreshIndicator");
-  if (indicator) indicator.remove();
+  groupedInvoices = await invoiceService.loadGroupedData({
+    tbody: tableBody,
+    onRender: renderTable,
+    groupFn: groupDataByOrder,
+  });
 }
 
 function groupDataByOrder(data) {
   const groups = {};
-  const orderedGroups = []; // To keep sort order (newest first)
+  const orderedGroups = [];
   let currentOrderNo = null;
 
-  data.forEach((row) => {
-    let noPesanan = row["NO PESANAN"];
+  const invoiceKeys = [
+    "NO'PESANAN",
+    "NO PESANAN",
+    "INVOICE",
+    "NO\nPESANAN",
+    "INVOICE\n",
+    "invoice",
+  ];
 
-    // If this row has a new order number, start a new group
+  data.forEach((row) => {
+    let noPesanan = null;
+
+    // Try known keys
+    for (const key of invoiceKeys) {
+      if (row[key]) {
+        noPesanan = row[key];
+        break;
+      }
+    }
+
+    // Fallback: fuzzy search
+    if (!noPesanan) {
+      const keys = Object.keys(row);
+      for (const key of keys) {
+        const upperKey = key.toUpperCase();
+        if (
+          (upperKey.includes("INVOICE") || upperKey.includes("PESANAN")) &&
+          row[key]
+        ) {
+          noPesanan = row[key];
+          break;
+        }
+      }
+    }
+
     if (noPesanan) {
       currentOrderNo = noPesanan;
       if (!groups[currentOrderNo]) {
@@ -110,7 +73,6 @@ function groupDataByOrder(data) {
       }
     }
 
-    // If we have a current order context, add this row to it
     if (currentOrderNo) {
       groups[currentOrderNo].push(row);
     }
@@ -127,15 +89,17 @@ function renderTable(groupedData) {
 
   order.forEach((noPesanan, index) => {
     const invoiceRows = map[noPesanan];
-    const mainRow = invoiceRows[0]; // The first row has the header info
+    const mainRow = invoiceRows[0];
 
-    // Extract info
     const tanggal = mainRow["TANGGAL"];
-    const nama = mainRow["NAMA PELANGGAN"] || mainRow["Nama Pelanggan"];
+    const nama = getValueFromKeys(
+      mainRow,
+      ["NAMA PELANGGAN", "Nama Pelanggan"],
+      ""
+    );
     const itemsCount = invoiceRows.length;
     let totalTagihan = mainRow["TOTAL TAGIHAN"] || 0;
 
-    // Format currency
     const formattedTotal = parseFloat(totalTagihan).toLocaleString("id-ID");
 
     const tr = document.createElement("tr");
@@ -144,7 +108,9 @@ function renderTable(groupedData) {
       <td>${noPesanan}</td>
       <td>
         <div style="font-weight:bold;">${nama}</div>
-        <div style="font-size: 0.8em; color: gray;">${tanggal}</div>
+        <div style="font-size: 0.8em; color: gray;">${formatDisplayDate(
+          tanggal
+        )}</div>
       </td>
       <td>
          <div style="font-weight:bold;">Rp${formattedTotal}</div>
@@ -168,7 +134,6 @@ function viewInvoice(noPesanan) {
 
   const mainRow = invoiceRows[0];
 
-  // Reconstruct invoice object
   const invoiceData = {
     info: {
       noPesanan: noPesanan,
@@ -178,24 +143,29 @@ function viewInvoice(noPesanan) {
       payment: mainRow["PAYMENT"],
     },
     customer: {
-      nama: mainRow["NAMA PELANGGAN"],
+      nama: getValueFromKeys(mainRow, ["NAMA PELANGGAN", "Nama Pelanggan"], ""),
       noHp: mainRow["NO HP"],
       alamat: mainRow["ALAMAT"],
-      city: mainRow["KOTA"],
+      city: getValueFromKeys(mainRow, ["Kota", "KOTA"], ""),
       channel: mainRow["CHANNEL"],
     },
-    items: invoiceRows.map((row) => ({
-      sku: row["SKU"],
-      produk: row["PRODUK"],
-      jumlah: parseFloat(row["JUMLAH"]) || 0,
-      satuan: row["SATUAN"],
-      harga: parseFloat(row["HARGA"]) || 0,
-      total: parseFloat(row["TOTAL"]) || 0,
-      kategori: row["KATEGORI"],
-    })),
+    items: invoiceRows
+      .map((row) => ({
+        sku: row["SKU"],
+        produk: row["PRODUK"],
+        jumlah: parseFloat(row["JUMLAH"]) || 0,
+        satuan: row["SATUAN"],
+        harga: parseFloat(getValueFromKeys(row, ["U HARGA", "HARGA"], 0)) || 0,
+        total: parseFloat(getValueFromKeys(row, ["U TOTAL", "TOTAL"], 0)) || 0,
+        kategori: row["KATEGORI"],
+      }))
+      .filter((item) => item.sku || item.produk),
     summary: {
-      subtotal: parseFloat(mainRow["SUBTOTAL"]) || 0,
-      ongkir: parseFloat(mainRow["ONGKIR"]) || 0,
+      subtotal:
+        parseFloat(getValueFromKeys(mainRow, ["SUBTOTAL", "SUB TOTAL"], 0)) ||
+        0,
+      ongkir:
+        parseFloat(getValueFromKeys(mainRow, ["U ONGIR", "ONGKIR"], 0)) || 0,
       packing: parseFloat(mainRow["PACKING"]) || 0,
       diskon: parseFloat(mainRow["DISKON"]) || 0,
       totalTagihan: parseFloat(mainRow["TOTAL TAGIHAN"]) || 0,
@@ -210,12 +180,8 @@ function editInvoice(noPesanan) {
   const invoiceRows = groupedInvoices.map[noPesanan];
   if (!invoiceRows) return;
 
-  // Save for edit mode
-  // Reuse viewInvoice helper logic or duplicate
-  // We need distinct structure? No, existing structure works with checkEditMode in kasir.js
-
-  // Basically viewInvoice logic but save to differnet key
   const mainRow = invoiceRows[0];
+
   const editData = {
     info: {
       noPesanan: noPesanan,
@@ -225,32 +191,38 @@ function editInvoice(noPesanan) {
       payment: mainRow["PAYMENT"],
     },
     customer: {
-      nama: mainRow["NAMA PELANGGAN"],
+      nama: getValueFromKeys(mainRow, ["NAMA PELANGGAN", "Nama Pelanggan"], ""),
       noHp: mainRow["NO HP"],
       alamat: mainRow["ALAMAT"],
-      city: mainRow["KOTA"],
+      city: getValueFromKeys(mainRow, ["Kota", "KOTA"], ""),
       channel: mainRow["CHANNEL"],
     },
-    items: invoiceRows.map((row) => ({
-      sku: row["SKU"],
-      produk: row["PRODUK"],
-      jumlah: parseFloat(row["JUMLAH"]) || 0,
-      satuan: row["SATUAN"],
-      harga: parseFloat(row["HARGA"]) || 0,
-      total: parseFloat(row["TOTAL"]) || 0,
-      kategori: row["KATEGORI"],
-    })),
+    items: invoiceRows
+      .map((row) => ({
+        sku: row["SKU"],
+        produk: row["PRODUK"],
+        jumlah: parseFloat(row["JUMLAH"]) || 0,
+        satuan: row["SATUAN"],
+        harga: parseFloat(getValueFromKeys(row, ["U HARGA", "HARGA"], 0)) || 0,
+        total: parseFloat(getValueFromKeys(row, ["U TOTAL", "TOTAL"], 0)) || 0,
+        kategori: row["KATEGORI"],
+      }))
+      .filter((item) => item.sku || item.produk),
     summary: {
-      subtotal: parseFloat(mainRow["SUBTOTAL"]) || 0,
-      ongkir: parseFloat(mainRow["ONGKIR"]) || 0,
+      subtotal:
+        parseFloat(getValueFromKeys(mainRow, ["SUBTOTAL", "SUB TOTAL"], 0)) ||
+        0,
+      ongkir:
+        parseFloat(getValueFromKeys(mainRow, ["U ONGIR", "ONGKIR"], 0)) || 0,
       packing: parseFloat(mainRow["PACKING"]) || 0,
       diskon: parseFloat(mainRow["DISKON"]) || 0,
       totalTagihan: parseFloat(mainRow["TOTAL TAGIHAN"]) || 0,
     },
+    totalBayar: parseFloat(mainRow["TOTAL TAGIHAN"]) || 0,
   };
 
   sessionStorage.setItem("editInvoiceData", JSON.stringify(editData));
-  window.location.href = "kasir.html?mode=edit";
+  window.location.href = "form_edit_invoice.html?origin=INVOICE";
 }
 
 async function deleteInvoiceAction(noPesanan) {
@@ -262,18 +234,14 @@ async function deleteInvoiceAction(noPesanan) {
     return;
   }
 
-  // Show loading state
-  // We can't reach event.target easily from onclick string, but we can redraw table or use cached data
-  // Simplified:
-  const previousText = "Hapus"; // assumption
-  // Better: find button
+  // Show loading spinner
+  if (window.showGlobalLoader) window.showGlobalLoader();
 
   try {
-    const result = await deleteInvoice(INVOICE_SHEET_NAME, noPesanan);
+    const result = await deleteInvoice(invoiceService.sheetName, noPesanan);
     if (result.success) {
       alert("Invoice berhasil dihapus.");
-      // Clear cache and reload
-      localStorage.removeItem(RIWAYAT_CACHE_KEY);
+      await invoiceService.clearCache();
       loadRiwayatData();
     } else {
       throw new Error(result.error || "Gagal menghapus.");
@@ -281,5 +249,8 @@ async function deleteInvoiceAction(noPesanan) {
   } catch (error) {
     console.error("Error:", error);
     alert("Gagal menghapus: " + error.message);
+  } finally {
+    // Hide loading spinner
+    if (window.hideGlobalLoader) window.hideGlobalLoader();
   }
 }

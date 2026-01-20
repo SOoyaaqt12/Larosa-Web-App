@@ -12,6 +12,11 @@
   padding: 0;
 }
 
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
 body {
   font-family: var(--font-family);
   background-color: #e0e0e0;
@@ -31,7 +36,7 @@ body {
   background-color: white;
   width: 210mm;
   min-height: 297mm;
-  padding: 15mm;
+  padding: 10mm;
   position: relative;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   display: flex;
@@ -44,51 +49,66 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 5px;
 }
 
 .header-left {
-  flex: 6;
+  flex: 0 0 65%;
 }
 
 .header-right {
-  flex: 4;
+  flex: 0 0 35%;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;
 }
 
 .header-logo {
-  margin-bottom: 20px; /* Space between logo and table */
+  margin: 0;
+  align-self: flex-end;
+  margin-bottom: 10px;
 }
 
 .header-logo img {
-  max-height: 90px;
+  max-height: 70px;
 }
 
 .invoice-box {
   border: 1px solid black;
   font-weight: bold;
-  padding: 5px 40px;
+  padding: 5px 60px 5px 10px;
   display: inline-block;
-  margin-bottom: 15px;
+  margin-top: 15px;
+  margin-bottom: 10px;
   background-color: #fff;
   font-size: 12pt;
   letter-spacing: 1px;
+  text-align: left;
 }
 
 .company-info {
   font-size: 10pt;
   line-height: 1.4;
+  margin-top: 10px;
+}
+
+.company-info strong {
+  font-weight: bold;
+  font-size: 11pt;
+}
+
+.info-table {
+  margin-top: 0;
 }
 
 .info-table td {
-  padding: 2px 0 2px 15px; /* Indent values */
+  padding: 2px 0 2px 15px;
   vertical-align: top;
   text-align: left;
+  white-space: nowrap;
 }
 .info-table td:first-child {
   padding-left: 0;
+  width: 115px;
 }
 
 /* Divider */
@@ -107,25 +127,47 @@ body {
   display: flex;
   justify-content: space-between;
   margin-bottom: 20px;
+  align-items: flex-start;
 }
 
 .info-left {
-  flex: 6;
+  flex: 0 0 65%;
 }
 
 .info-right {
-  flex: 4;
-  text-align: right;
+  flex: 0 0 35%;
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column; /* Ensure column layout like header */
+  align-items: flex-start; /* Explicitly align items to left */
+  justify-content: flex-start;
+  text-align: left;
 }
 
 .details-table td {
   padding: 2px 5px;
   vertical-align: top;
 }
+
+#invNamaPelanggan {
+  font-weight: bold;
+}
 .details-table td:first-child {
   padding-left: 0;
+}
+
+/* Right side table (Kasir, Transaksi, Payment) */
+.right-table {
+  border-collapse: collapse; /* Reset from separate */
+  margin-top: 0;
+}
+.right-table td {
+  padding: 2px 0 2px 15px; /* Match info-table padding */
+  vertical-align: top;
+  text-align: left;
+}
+.right-table td:first-child {
+  padding-left: 0;
+  width: 115px;
 }
 
 /* Table Items */
@@ -177,12 +219,18 @@ body {
   text-align: right;
 }
 
+/* Footer Wrapper - Sticks to bottom */
+.footer-wrapper {
+  margin-top: auto;
+  position: relative;
+}
+
 /* Footer Section */
 .footer-section {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end; /* Align bottom */
-  margin-bottom: 50px; /* Space for bottom bar */
+  align-items: flex-start;
+  margin-bottom: 15px;
   font-size: 9pt;
 }
 
@@ -241,12 +289,10 @@ body {
 
 /* Bottom Bar */
 .bottom-bar {
-  height: 35px; /* Thicker bar */
+  height: 35px;
   background-color: var(--green-accent);
-  position: absolute;
-  bottom: 0;
-  left: 0;
   width: 100%;
+  margin-top: 10px;
 }
 
 /* Action Buttons */
@@ -279,60 +325,92 @@ body {
 /* Print Styles */
 /* Print Styles */
 @media print {
-  body {
-    background-color: white;
-    padding: 0;
+  /* Reset everything for print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
-  /* Hide Application Layout */
+  body {
+    background-color: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: 9pt !important;
+  }
+
+  /* Hide Application Layout completely */
   .sidebar,
   .header,
   .action-buttons,
-  .bottom-bar {
-    /* Hide bottom bar if not desired in print, but user ref showed it? 
-        Ref image HAS green bar. So keep bottom-bar.
-        Hide sidebar, header, buttons.
-     */
+  .no-print {
     display: none !important;
-  }
-
-  /* Exception for bottom-bar: show it */
-  .bottom-bar {
-    display: block !important;
-  }
-
-  .sidebar,
-  .header,
-  .action-buttons {
-    display: none !important;
+    visibility: hidden !important;
   }
 
   .main-content {
     margin: 0 !important;
+    margin-left: 0 !important;
     padding: 0 !important;
     width: 100% !important;
+    min-height: auto !important;
   }
 
   .content-area {
     padding: 0 !important;
+    margin: 0 !important;
     display: block !important;
+    min-height: auto !important;
   }
 
   .invoice-container {
     width: 100% !important;
-    height: auto;
-    min-height: auto;
-    box-shadow: none;
-    padding: 0;
-    margin: 0;
+    max-width: 200mm !important;
+    height: 277mm !important; /* A4 height minus margins */
+    min-height: 277mm !important;
+    box-shadow: none !important;
+    padding: 5mm !important;
+    margin: 0 auto !important;
+    page-break-inside: avoid;
+    display: flex !important;
+    flex-direction: column !important;
   }
 
-  .no-print {
-    display: none !important;
+  .table-container {
+    flex-grow: 0 !important;
+  }
+
+  .footer-wrapper {
+    margin-top: auto !important;
+  }
+
+  /* Ensure sections fit properly */
+  .header-section,
+  .green-bar,
+  .items-section,
+  .bottom-bar,
+  .keterangan-section,
+  .syarat-footer {
+    page-break-inside: avoid;
+  }
+
+  /* Scale down fonts slightly for print */
+  .header-left p,
+  .info-left p,
+  .info-right p,
+  .keterangan-section td,
+  .syarat-footer td {
+    font-size: 8pt !important;
+    line-height: 1.3 !important;
+  }
+
+  .items-table th,
+  .items-table td {
+    font-size: 8pt !important;
+    padding: 4px 6px !important;
   }
 
   @page {
-    size: A4;
-    margin: 10mm 15mm;
+    size: A4 portrait;
+    margin: 0;
   }
 }

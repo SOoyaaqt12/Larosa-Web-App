@@ -1,0 +1,198 @@
+{
+  "meta": {
+    "project": "LarosaWebApp",
+    "date": "2025-12-30",
+    "prepared_by": "Software Development Manager"
+  },
+  "product_overview": "LarosaWebApp is a web-based Point of Sale (POS) and inventory management system designed for LAROSAPOT, a retail business specializing in pots and plant accessories. It manages the entire business cycle including product inventory, sales transactions, customer and vendor management, and payment settlements with a seamless integration to Google Sheets for backend data storage and IndexedDB for offline caching.",
+  "core_goals": [
+    "Provide a complete POS and inventory management solution for LAROSAPOT business.",
+    "Enable efficient transaction processing with support for partial and full payments.",
+    "Manage product catalogs with detailed stock tracking and pricing.",
+    "Support customer and vendor data management for business operations.",
+    "Ensure secure user authentication and session management.",
+    "Offer business insights through dashboard statistics and sales trend visualization.",
+    "Maintain offline-first capabilities with local caching and background data refresh.",
+    "Provide quotation and invoice management including conversion from quotation to invoice.",
+    "Facilitate payment tracking including down payment settlements and full payment invoicing."
+  ],
+  "key_features": [
+    "User authentication with session persistence and auto-redirect to dashboard.",
+    "Dashboard showing key business metrics: customers, vendors, products, sales, and incoming down payments.",
+    "Point of Sale module with transaction input forms, cart management, autocomplete for product SKU and customer phone, pricing calculations, and DP/full payment options.",
+    "Quotation management: create, view, list, and convert quotations to invoices.",
+    "Product inventory management with SKU, categories, stock tracking (system vs actual), pricing, search, filter, pagination, and product CRUD operations.",
+    "Customer management tracking registration date, contact info, acquisition channel, and transaction counts.",
+    "Vendor management including contact, category, address, and bank account details.",
+    "Transaction history view with invoice number, customer name, amount, and options to view, edit, or delete.",
+    "Payment settlement tracking with DP vs full payment status and outstanding balance calculations.",
+    "Invoice generation and printing for both full payment and down payment transactions.",
+    "Responsive sidebar navigation with collapsible menu sections and dynamic page titles.",
+    "Centralized data service layer fetching and caching data from Google Sheets with IndexedDB cache-first strategy.",
+    "Shared utility functions for date, currency, phone formatting, and UI loading indicators."
+  ],
+  "user_flow_summary": [
+    "User logs in via authentication page; if authenticated, redirected to dashboard with session persistence.",
+    "From dashboard, user navigates to POS to create transactions by entering customer and product information with autocomplete assistance, and manages cart with real-time pricing calculations.",
+    "User can manage product inventory including adding, updating, deleting products with search, filter, and pagination support.",
+    "User manages customers and vendors through dedicated modules with full CRUD operations.",
+    "User creates quotations that can be reviewed and converted into invoices.",
+    "User views transaction history to monitor past sales with options to view, edit, or delete transactions.",
+    "User accesses payment settlement module to track and process outstanding payments from Down Payments to full payments.",
+    "User generates and prints invoices for transactions as needed.",
+    "Throughout user journeys, data is fetched from Google Sheets with offline caching in IndexedDB to support offline usage, with seamless background data refresh."
+  ],
+  "validation_criteria": [
+    "Secure login and session management with correct credential validation and auto-redirect behavior.",
+    "Successful data fetch and update operations between Google Sheets backend and frontend UI with IndexedDB caching working offline and synchronizing updates.",
+    "Accurate transaction processing with all pricing calculations (subtotal, packing, shipping, discount, DP, full payment) correctly computed and stored.",
+    "Product inventory accurately reflects stock movements with correct synchronization between system stock and actual physical stock.",
+    "Quotations can be created, viewed, listed, and converted into invoices with correct data handling.",
+    "Customer and vendor records can be created, edited, deleted, and listed with accurate transaction count and details.",
+    "Payment settlements correctly track outstanding amounts and status transitions from DP to full payment.",
+    "Invoice generation produces printable views for both full and partial payments with up-to-date transaction details.",
+    "Responsive UI navigation components function correctly with dynamic page headers and collapsible menus.",
+    "Utility functions reliably format dates, currency, phone numbers and indicate loading states consistently across the app."
+  ],
+  "code_summary": {
+    "tech_stack": [
+      "HTML5",
+      "CSS3",
+      "Vanilla JavaScript",
+      "IndexedDB",
+      "Google Apps Script",
+      "Google Sheets API",
+      "Chart.js"
+    ],
+    "features": [
+      {
+        "name": "Authentication",
+        "description": "User login and session management with credential validation and auto-redirect to dashboard",
+        "files": [
+          "index.html",
+          "script/auth.js"
+        ]
+      },
+      {
+        "name": "Dashboard",
+        "description": "Business summary dashboard displaying statistics cards (customers, vendors, products, sales) and charts (sales trend, category distribution)",
+        "files": [
+          "dashboard.html",
+          "script/dashboard.js"
+        ]
+      },
+      {
+        "name": "Point of Sale (Kasir)",
+        "description": "Transaction processing with autocomplete for customer phone and product SKU, cart management, pricing calculations (subtotal, packing, shipping, discount), and DP/full payment options",
+        "files": [
+          "kasir.html",
+          "script/kasir.js"
+        ]
+      },
+      {
+        "name": "Quotation Management",
+        "description": "Create, view, and manage price quotations with ability to convert quotation to invoice",
+        "files": [
+          "quotation.html",
+          "quotation_view.html",
+          "data_quotation.html",
+          "script/quotation.js",
+          "script/quotation_view.js",
+          "script/data_quotation.js"
+        ]
+      },
+      {
+        "name": "Product Inventory",
+        "description": "Product catalog management with SKU, categories, stock tracking (system vs field), pricing (HPP and selling price), search, filter, and pagination",
+        "files": [
+          "produk.html",
+          "script/produk.js"
+        ]
+      },
+      {
+        "name": "Customer Management",
+        "description": "Customer data management with registration date, contact info, address, acquisition channel, and transaction count tracking",
+        "files": [
+          "kustomer.html",
+          "script/kustomer.js"
+        ]
+      },
+      {
+        "name": "Vendor Management",
+        "description": "Supplier data management including contact info, category, address, and bank account details",
+        "files": [
+          "vendor.html",
+          "script/vendor.js"
+        ]
+      },
+      {
+        "name": "Transaction History",
+        "description": "View all transaction records with order number, customer name, total amount, and actions (view/edit/delete)",
+        "files": [
+          "riwayat.html",
+          "script/riwayat.js"
+        ]
+      },
+      {
+        "name": "Payment Settlement (Pelunasan)",
+        "description": "Track and process down payment settlements with status tracking (DP/LUNAS) and remaining balance calculation",
+        "files": [
+          "pelunasan.html",
+          "form_pelunasan.html",
+          "form_edit_pelunasan.html",
+          "script/pelunasan.js",
+          "script/form_pelunasan.js",
+          "script/form_edit_pelunasan.js"
+        ]
+      },
+      {
+        "name": "Invoice Generation",
+        "description": "Generate and print invoices for full payment and down payment transactions",
+        "files": [
+          "invoice.html",
+          "invoice_dp.html",
+          "form_edit_invoice.html",
+          "script/invoice.js",
+          "script/invoice_dp.js",
+          "script/form_edit_invoice.js"
+        ]
+      },
+      {
+        "name": "Layout/Navigation",
+        "description": "Responsive sidebar navigation with collapsible menu sections and dynamic page title",
+        "files": [
+          "script/layout.js"
+        ]
+      },
+      {
+        "name": "Data Service Layer",
+        "description": "Centralized data service for fetching and caching data from Google Sheets with cache-first strategy",
+        "files": [
+          "script/data-service.js",
+          "script/sheets-api.js"
+        ]
+      },
+      {
+        "name": "IndexedDB Cache",
+        "description": "Local caching using IndexedDB for offline-first experience with background refresh",
+        "files": [
+          "script/idb-cache.js"
+        ]
+      },
+      {
+        "name": "Utility Functions",
+        "description": "Shared utility functions for date formatting, currency formatting, phone number formatting, and loading indicators",
+        "files": [
+          "script/utils.js"
+        ]
+      },
+      {
+        "name": "Configuration",
+        "description": "API endpoint configuration for Google Apps Script",
+        "files": [
+          "script/config.js"
+        ]
+      }
+    ]
+  }
+}

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
     <link rel="stylesheet" href="style/dashboard.css">
+    <link rel="stylesheet" href="style/layout.css">
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -19,7 +20,7 @@
                 <div class="stat-card">
                     <div class="stat-info">
                         <h3>Jumlah Pelanggan</h3>
-                        <p>1.000.000</p>
+                        <p id="statPelanggan">Loading...</p>
                     </div>
                     <div class="stat-icon">👤</div>
                 </div>
@@ -27,7 +28,7 @@
                 <div class="stat-card">
                     <div class="stat-info">
                         <h3>Jumlah Vendor</h3>
-                        <p>1.000.000</p>
+                        <p id="statVendor">-</p>
                     </div>
                     <div class="stat-icon">👥</div>
                 </div>
@@ -35,33 +36,33 @@
                 <div class="stat-card">
                     <div class="stat-info">
                         <h3>Barang Tersedia</h3>
-                        <p>1.000.000</p>
+                        <p id="statBarang">Loading...</p>
                     </div>
-                    <div class="stat-icon">🔒</div>
+                    <div class="stat-icon">📦</div>
                 </div>
 
                 <div class="stat-card">
                     <div class="stat-info">
                         <h3>Produk Terjual</h3>
-                        <p>1.000.000</p>
+                        <p id="statTerjual">Loading...</p>
                     </div>
-                    <div class="stat-icon">📈</div>
+                    <div class="stat-icon">🛒</div>
                 </div>
 
                 <div class="stat-card">
                     <div class="stat-info">
                         <h3>Penjualan</h3>
-                        <p>1.000.000</p>
+                        <p id="statPenjualan">Loading...</p>
                     </div>
-                    <div class="stat-icon">📈</div>
+                    <div class="stat-icon">💰</div>
                 </div>
 
                 <div class="stat-card">
                     <div class="stat-info">
                         <h3>Pendapatan Diterima Dimuka</h3>
-                        <p>1.000.000</p>
+                        <p id="statDP">Loading...</p>
                     </div>
-                    <div class="stat-icon">📈</div>
+                    <div class="stat-icon">💵</div>
                 </div>
             </div>
 
@@ -76,7 +77,7 @@
                 </div>
 
                 <div class="chart-card">
-                    <h2>Ketagori Produk</h2>
+                    <h2>Kategori Produk</h2>
                     <div class="chart-container">
                         <canvas id="categoryChart"></canvas>
                     </div>
@@ -85,6 +86,9 @@
         </div>
     </div>
 
+    <script src="script/config.js"></script>
+    <script src="script/sheets-api.js"></script>
+    <script src="script/idb-cache.js"></script>
     <script src="script/auth.js"></script>
     <script src="script/layout.js"></script>
     <script src="script/dashboard.js"></script>

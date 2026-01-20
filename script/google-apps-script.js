@@ -18,10 +18,14 @@ const SHEET_ID = "1YQk8azd5gUXdQE9ZvD4hFsdqdG6UUrg2ZNf951dLfyY";
 // Konfigurasi baris header untuk setiap sheet
 // Sesuaikan angka ini dengan baris dimana header tabel Anda berada
 const SHEET_CONFIG = {
-  KOSTUMER: { headerRow: 5 },
-  "PERSEDIAAN BARANG": { headerRow: 6 },
+  KOSTUMER: { headerRow: 5, startColumn: 2, insertAtTop: true }, // Header kolom B, data baru di atas
+  "PERSEDIAAN BARANG": { headerRow: 6, startColumn: 2 }, // Header mulai kolom B
   USERS: { headerRow: 1 },
-  DATA_INVOICE: { headerRow: 2, insertAtTop: true },
+  INVOICE: { headerRow: 48, insertAtTop: true, startColumn: 2 }, // Sheet INVOICE, header baris 48, kolom B
+  "DP/Pelunasan": { headerRow: 52, insertAtTop: true, startColumn: 2 }, // Header di baris 52, mulai kolom B
+  DATA_QUOTATION: { headerRow: 4, insertAtTop: true },
+  QUOTATION: { headerRow: 50, insertAtTop: true, startColumn: 2 }, // Sheet QUOTATION header di baris 50, mulai kolom B
+  VENDOR: { headerRow: 5, startColumn: 2 }, // Header baris 5, mulai kolom B
 };
 
 function doGet(e) {
@@ -43,12 +47,13 @@ function doPost(e) {
   const action = data.action;
   const rowData = data.data;
   const rowIndex = data.rowIndex;
+  const uniqueColumn = data.uniqueColumn; // For unique constraint check
 
   let result;
 
   switch (action) {
     case "add":
-      result = addRow(sheet, rowData);
+      result = addRow(sheet, rowData, uniqueColumn);
       break;
     case "update":
       result = updateRow(sheet, rowIndex, rowData);
@@ -58,6 +63,9 @@ function doPost(e) {
       break;
     case "delete-invoice":
       result = deleteInvoice(sheet, rowData.noPesanan);
+      break;
+    case "increment-transaction":
+      result = incrementCustomerTransaction(data.phoneNumber);
       break;
     case "login":
       result = authenticateUser(data.username, data.password);
@@ -148,9 +156,11 @@ function readSheet(sheetName) {
     // Get configuration for this sheet
     const config = SHEET_CONFIG[sheetName] || { headerRow: 1 };
     const headerRow = config.headerRow;
+    const startColumn = config.startColumn || 1; // Default to column A
 
     const lastRow = sheet.getLastRow();
     const lastCol = sheet.getLastColumn();
+    const numDataCols = lastCol - startColumn + 1;
 
     if (lastRow < headerRow) {
       return ContentService.createTextOutput(
@@ -158,8 +168,11 @@ function readSheet(sheetName) {
       ).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // Get headers from the specified row
-    const headers = sheet.getRange(headerRow, 1, 1, lastCol).getValues()[0];
+    // Get headers from the specified row and starting column
+    const headers = sheet
+      .getRange(headerRow, startColumn, 1, numDataCols)
+      .getValues()[0]
+      .filter((h) => h !== "");
 
     // Get data starting from the row after headers
     const dataStartRow = headerRow + 1;
@@ -171,7 +184,12 @@ function readSheet(sheetName) {
       ).setMimeType(ContentService.MimeType.JSON);
     }
 
-    const dataRange = sheet.getRange(dataStartRow, 1, numDataRows, lastCol);
+    const dataRange = sheet.getRange(
+      dataStartRow,
+      startColumn,
+      numDataRows,
+      numDataCols
+    );
     const dataValues = dataRange.getValues();
 
     const rows = dataValues
@@ -206,7 +224,87 @@ function readSheet(sheetName) {
   }
 }
 
-function addRow(sheetName, rowData) {
+/**
+ * Apply formatting to a newly inserted row
+ * Background: transparent, Font: black, Size: 12, Alignment based on column type
+ */
+function applyRowFormatting(sheet, rowNum, startColumn, headers) {
+  const numCols = headers.length;
+  const rowRange = sheet.getRange(rowNum, startColumn, 1, numCols);
+
+  // Reset formatting
+  rowRange.setBackground(null);
+  rowRange.setFontWeight("normal");
+  rowRange.setFontColor("#000000");
+  rowRange.setFontSize(12);
+
+  // Center alignment for specific columns
+  const centerAlignColumns = ["JUMLAH TRANSAKSI", "JUMLAH\nTRANSAKSI"];
+  centerAlignColumns.forEach(function (colName) {
+    const colIndex = headers.indexOf(colName);
+    if (colIndex !== -1) {
+      sheet
+        .getRange(rowNum, colIndex + startColumn)
+        .setHorizontalAlignment("center");
+    }
+  });
+
+  // Right alignment for numeric columns
+  const rightAlignColumns = [
+    "JUMLAH",
+    "HARGA",
+    "TOTAL",
+    "SUB TOTAL",
+    "ONGKIR",
+    "PACKING",
+    "DISKON",
+    "TOTAL TAGIHAN",
+    "DP 1",
+    "DP 2",
+    "SISA TAGIHAN",
+    "STOK SISTEM",
+    "RESTOCK",
+    "TERJUAL",
+    "STOK AKTUAL",
+    "HPP",
+    "HARGA JUAL",
+  ];
+  rightAlignColumns.forEach(function (colName) {
+    const colIndex = headers.indexOf(colName);
+    if (colIndex !== -1) {
+      sheet
+        .getRange(rowNum, colIndex + startColumn)
+        .setHorizontalAlignment("right");
+    }
+  });
+
+  // Left alignment for text columns
+  const leftAlignColumns = [
+    "TANGGAL",
+    "NAMA PELANGGAN",
+    "NAMA\nPELANGGAN",
+    "NO HP",
+    "NO\nHP",
+    "ALAMAT",
+    "KOTA",
+    "CHANNEL",
+    "KATEGORI",
+    "SKU",
+    "PRODUK",
+    "Pelunasan",
+    "NAMA PRODUK",
+  ];
+  leftAlignColumns.forEach(function (colName) {
+    const colIndex = headers.indexOf(colName);
+    if (colIndex !== -1) {
+      sheet
+        .getRange(rowNum, colIndex + startColumn)
+        .setHorizontalAlignment("left");
+    }
+  });
+}
+
+function addRow(sheetName, rowData, uniqueColumn = null) {
   try {
     const ss = SpreadsheetApp.openById(SHEET_ID);
     const sheet = ss.getSheetByName(sheetName);
@@ -217,11 +315,65 @@ function addRow(sheetName, rowData) {
 
     const config = SHEET_CONFIG[sheetName] || { headerRow: 1 };
     const headerRow = config.headerRow;
-    const insertAtTop = config.insertAtTop || false; // New option
+    const insertAtTop = config.insertAtTop || false;
+    const startColumn = config.startColumn || 1; // Default to column A
 
     const headers = sheet
-      .getRange(headerRow, 1, 1, sheet.getLastColumn())
-      .getValues()[0];
+      .getRange(
+        headerRow,
+        startColumn,
+        1,
+        sheet.getLastColumn() - startColumn + 1
+      )
+      .getValues()[0]
+      .filter((h) => h !== ""); // Remove empty headers
+
+    // Check uniqueness if requested
+    if (uniqueColumn) {
+      // Find header case-insensitively
+      const uniqueColIndex = headers.findIndex(
+        (h) => h && h.toString().toUpperCase() === uniqueColumn.toUpperCase()
+      );
+
+      if (uniqueColIndex === -1) {
+        return {
+          error: "Unique column '" + uniqueColumn + "' not found in headers",
+        };
+      }
+
+      const lastRow = sheet.getLastRow();
+      const dataStartRow = headerRow + 1;
+
+      if (lastRow >= dataStartRow) {
+        const columnValues = sheet
+          .getRange(dataStartRow, uniqueColIndex + 1, lastRow - headerRow, 1)
+          .getValues();
+        const newValue = rowData[uniqueColumn];
+
+        const exists = columnValues.some((row) => {
+          let val = row[0];
+          if (val === null || val === undefined) val = "";
+          val = String(val).trim().toLowerCase();
+
+          let checkVal = newValue;
+          if (checkVal === null || checkVal === undefined) checkVal = "";
+          checkVal = String(checkVal).trim().toLowerCase();
+
+          return val === checkVal && val !== "";
+        });
+
+        if (exists) {
+          return {
+            error:
+              "Duplicate entry: " +
+              uniqueColumn +
+              " '" +
+              newValue +
+              "' already exists.",
+          };
+        }
+      }
+    }
 
     // Build the new row based on headers
     const newRow = headers.map((header) => rowData[header] || "");
@@ -232,7 +384,17 @@ function addRow(sheetName, rowData) {
     if (insertAtTop) {
       // Insert at TOP: right after header row
       sheet.insertRowAfter(headerRow);
-      sheet.getRange(dataStartRow, 1, 1, newRow.length).setValues([newRow]);
+      const newRowRange = sheet.getRange(
+        dataStartRow,
+        startColumn,
+        1,
+        newRow.length
+      );
+      newRowRange.setValues([newRow]);
+
+      // Apply formatting using helper function
+      applyRowFormatting(sheet, dataStartRow, startColumn, headers);
+
       return {
         success: true,
         message: "Row inserted at top (row " + dataStartRow + ")",
@@ -244,12 +406,24 @@ function addRow(sheetName, rowData) {
       // If there's no data yet, insert after header
       if (lastRow < dataStartRow) {
         sheet.insertRowAfter(headerRow);
-        sheet.getRange(dataStartRow, 1, 1, newRow.length).setValues([newRow]);
+        const newRowRange = sheet.getRange(
+          dataStartRow,
+          startColumn,
+          1,
+          newRow.length
+        );
+        newRowRange.setValues([newRow]);
+        applyRowFormatting(sheet, dataStartRow, startColumn, headers);
         return { success: true, message: "Row added at row " + dataStartRow };
       }
 
-      // Find last row with data by checking column A
-      const dataRange = sheet.getRange(dataStartRow, 1, lastRow - headerRow, 1);
+      // Find last row with data by checking first column
+      const dataRange = sheet.getRange(
+        dataStartRow,
+        startColumn,
+        lastRow - headerRow,
+        1
+      );
       const dataValues = dataRange.getValues();
 
       let lastDataRow = headerRow;
@@ -264,7 +438,16 @@ function addRow(sheetName, rowData) {
       const insertRow = lastDataRow + 1;
 
       // Now set the values in the newly inserted row
-      sheet.getRange(insertRow, 1, 1, newRow.length).setValues([newRow]);
+      const newRowRange = sheet.getRange(
+        insertRow,
+        startColumn,
+        1,
+        newRow.length
+      );
+      newRowRange.setValues([newRow]);
+
+      // Apply formatting
+      applyRowFormatting(sheet, insertRow, startColumn, headers);
 
       return {
         success: true,
@@ -342,14 +525,31 @@ function deleteInvoice(sheetName, noPesanan) {
     const config = SHEET_CONFIG[sheetName] || { headerRow: 1 };
     const headerRow = config.headerRow;
 
-    // Find NO PESANAN column
+    // Find invoice/order number column - different sheets use different column names
     const headers = sheet
       .getRange(headerRow, 1, 1, sheet.getLastColumn())
       .getValues()[0];
-    const noPesananCol = headers.indexOf("NO PESANAN");
+
+    // Try multiple possible column names for invoice/order number
+    const possibleColumnNames = ["INVOICE", "NO'PESANAN", "NO PESANAN"];
+    let noPesananCol = -1;
+    let foundColumnName = "";
+
+    for (const colName of possibleColumnNames) {
+      const colIndex = headers.indexOf(colName);
+      if (colIndex !== -1) {
+        noPesananCol = colIndex;
+        foundColumnName = colName;
+        break;
+      }
+    }
 
     if (noPesananCol === -1) {
-      return { error: "Column NO PESANAN not found" };
+      return {
+        error:
+          "Column for order number not found. Tried: " +
+          possibleColumnNames.join(", "),
+      };
     }
 
     const lastRow = sheet.getLastRow();
@@ -368,22 +568,130 @@ function deleteInvoice(sheetName, noPesanan) {
     );
     const dataValues = dataRange.getValues();
 
-    // Collect rows to delete
-    // We process from bottom to top to handle index shifting
-    let rowsDeleted = 0;
+    // Find rows belonging to this invoice
+    // Logic: Find the row with matching NO PESANAN, then include all subsequent rows
+    // that have EMPTY NO PESANAN (until we hit a row with a different NO PESANAN)
+    const rowsToDelete = [];
+    let isInTargetInvoice = false;
 
-    for (let i = dataValues.length - 1; i >= 0; i--) {
-      const rowNoPesanan = String(dataValues[i][noPesananCol]);
-      if (rowNoPesanan === String(noPesanan)) {
-        // Row index in sheet is dataStartRow + i
-        sheet.deleteRow(dataStartRow + i);
-        rowsDeleted++;
+    for (let i = 0; i < dataValues.length; i++) {
+      const rowNoPesanan = String(dataValues[i][noPesananCol]).trim();
+
+      if (rowNoPesanan === String(noPesanan).trim()) {
+        // Found the start of target invoice
+        isInTargetInvoice = true;
+        rowsToDelete.push(dataStartRow + i);
+      } else if (isInTargetInvoice) {
+        // We're in the target invoice - check if this row belongs to it
+        if (rowNoPesanan === "" || rowNoPesanan === "undefined") {
+          // Empty NO PESANAN means it's a continuation of the previous invoice
+          rowsToDelete.push(dataStartRow + i);
+        } else {
+          // New invoice started, stop collecting
+          isInTargetInvoice = false;
+        }
       }
+    }
+
+    // Delete rows from bottom to top to avoid index shifting issues
+    rowsToDelete.sort((a, b) => b - a);
+
+    for (const rowIndex of rowsToDelete) {
+      sheet.deleteRow(rowIndex);
     }
 
     return {
       success: true,
-      message: `Deleted ${rowsDeleted} rows for invoice ${noPesanan}`,
+      message: `Deleted ${rowsToDelete.length} rows for invoice ${noPesanan}`,
+    };
+  } catch (error) {
+    return { error: error.toString() };
+  }
+}
+
+/**
+ * Increment customer transaction count by phone number
+ * @param {string} phoneNumber - Customer phone number
+ * @returns {object} - {success: boolean, message: string} or {error: string}
+ */
+function incrementCustomerTransaction(phoneNumber) {
+  try {
+    const sheetName = "KOSTUMER";
+    const config = SHEET_CONFIG[sheetName];
+    const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+    const sheet = spreadsheet.getSheetByName(sheetName);
+
+    if (!sheet) {
+      return { error: "KOSTUMER sheet not found" };
+    }
+
+    const headerRow = config.headerRow;
+    const headers = sheet
+      .getRange(headerRow, 1, 1, sheet.getLastColumn())
+      .getValues()[0];
+
+    // Find NO HP column (case-insensitive)
+    const phoneColIndex = headers.findIndex(
+      (h) =>
+        h && h.toString().toUpperCase().replace(/\n/g, " ").includes("NO HP")
+    );
+
+    if (phoneColIndex === -1) {
+      return { error: "NO HP column not found in KOSTUMER sheet" };
+    }
+
+    // Find JUMLAH TRANSAKSI column (case-insensitive)
+    const txColIndex = headers.findIndex(
+      (h) =>
+        h &&
+        h.toString().toUpperCase().replace(/\n/g, " ").includes("JUMLAH") &&
+        h.toString().toUpperCase().replace(/\n/g, " ").includes("TRANSAKSI")
+    );
+
+    if (txColIndex === -1) {
+      return { error: "JUMLAH TRANSAKSI column not found in KOSTUMER sheet" };
+    }
+
+    // Find customer row by phone number
+    const lastRow = sheet.getLastRow();
+    const dataStartRow = headerRow + 1;
+
+    if (lastRow < dataStartRow) {
+      return { error: "No customer data found" };
+    }
+
+    const phoneData = sheet
+      .getRange(dataStartRow, phoneColIndex + 1, lastRow - headerRow, 1)
+      .getValues();
+    const normalizedInput = String(phoneNumber).trim().toLowerCase();
+
+    let customerRowIndex = -1;
+    for (let i = 0; i < phoneData.length; i++) {
+      const cellValue = String(phoneData[i][0]).trim().toLowerCase();
+      if (cellValue === normalizedInput) {
+        customerRowIndex = dataStartRow + i;
+        break;
+      }
+    }
+
+    if (customerRowIndex === -1) {
+      return { error: "Customer with phone " + phoneNumber + " not found" };
+    }
+
+    // Get current transaction count and increment
+    const currentValue = sheet
+      .getRange(customerRowIndex, txColIndex + 1)
+      .getValue();
+    const currentCount = parseInt(currentValue) || 0;
+    const newCount = currentCount + 1;
+
+    // Update the cell
+    sheet.getRange(customerRowIndex, txColIndex + 1).setValue(newCount);
+
+    return {
+      success: true,
+      message: `Customer transaction count updated to ${newCount}`,
+      newCount: newCount,
     };
   } catch (error) {
     return { error: error.toString() };

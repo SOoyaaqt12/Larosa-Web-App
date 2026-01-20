@@ -125,6 +125,80 @@ body {
   z-index: 50;
 }
 
+/* Sidebar Dropdown */
+.menu-item {
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-item > a {
+  display: block;
+  padding: 15px 20px;
+  color: white;
+  text-decoration: none;
+  font-size: 16px;
+}
+
+.menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 30px;
+  color: #000 !important; /* Match nav-item color */
+  font-size: 18px; /* Match nav-item font size */
+  width: 100%;
+  box-sizing: border-box;
+  background-color: transparent;
+  border-bottom: 1px solid #c4a886; /* Match nav-item border */
+}
+
+/* Ensure hover effect matches other nav items */
+.menu-header:hover,
+.menu-item.open .menu-header {
+  background-color: #c4a886; /* Match nav-item hover */
+  color: #000 !important;
+  font-weight: bold; /* Match nav-item active/hover if needed */
+}
+
+.submenu {
+  display: none;
+  flex-direction: column;
+  background-color: #c4a886; /* Darker than sidebar or same? */
+  border-bottom: 2px solid #b39675; /* Visual separation */
+}
+
+.submenu a {
+  padding: 12px 20px 12px 40px;
+  color: #000; /* Black text for submenu too? Or white? Let's stick to black for consistency if bg is light */
+  text-decoration: none;
+  font-size: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.submenu a:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.submenu a.active {
+  background-color: rgba(255, 255, 255, 0.3);
+  font-weight: bold;
+}
+
+.menu-arrow {
+  transition: transform 0.3s ease;
+  font-size: 12px;
+}
+
+.menu-item.open .submenu {
+  display: flex;
+}
+
+.menu-item.open .menu-arrow {
+  transform: rotate(90deg);
+}
+
 /* Global Loader */
 .global-loader {
   position: fixed;
@@ -162,5 +236,28 @@ body {
   }
   100% {
     transform: rotate(360deg);
+  }
+}
+
+/* Print Styles - Hide layout elements when printing */
+@media print {
+  .sidebar,
+  .header,
+  .global-loader {
+    display: none !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .main-content {
+    margin-left: 0 !important;
+    padding-top: 0 !important;
+    width: 100% !important;
+  }
+
+  body {
+    background: white !important;
   }
 }

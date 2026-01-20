@@ -33,8 +33,15 @@ function renderInvoice(data) {
   };
 
   // Header Info
+  // Header Info
   setText("invNoPesanan", data.info.noPesanan);
-  setText("invTanggal", data.info.tanggal);
+  const dateObj = new Date(data.info.tanggal);
+  const options = { day: "2-digit", month: "short", year: "numeric" };
+  const formattedDate = !isNaN(dateObj)
+    ? dateObj.toLocaleDateString("id-ID", options).replace(/ /g, "-")
+    : data.info.tanggal;
+  // setText("invTanggal", formattedDate); // Removed from HTML
+  setText("invDibuat", formattedDate);
   setText("invKasir", data.info.kasir);
   setText("invTransaksi", data.info.transaksi); // "Online" or "Offline" (from button?) -> Usually logic from status
   // Logic: if button Lunas clicked -> Lunas.
@@ -53,14 +60,17 @@ function renderInvoice(data) {
   itemsBody.innerHTML = "";
 
   if (data.items && data.items.length > 0) {
-    data.items.forEach((item, index) => {
+    // Filter out empty items (rows without SKU or produk)
+    const validItems = data.items.filter((item) => item.sku || item.produk);
+
+    validItems.forEach((item, index) => {
       const row = document.createElement("tr");
       row.innerHTML = `
         <td>${index + 1}</td>
-        <td>${item.sku}</td>
-        <td>${item.produk}</td>
-        <td>${item.jumlah}</td>
-        <td>${item.satuan}</td>
+        <td>${item.sku || "-"}</td>
+        <td>${item.produk || "-"}</td>
+        <td>${item.jumlah || 0}</td>
+        <td>${item.satuan || "-"}</td>
         <td>${formatCurrency(item.harga)}</td>
         <td>${formatCurrency(item.total)}</td>
       `;
@@ -74,6 +84,9 @@ function renderInvoice(data) {
   setText("invPacking", formatCurrency(data.summary.packing));
   setText("invDiskon", formatCurrency(data.summary.diskon));
   setText("invTotalTagihan", formatCurrency(data.summary.totalTagihan));
+  setText("invDP1", formatCurrency(data.summary.dp1));
+  setText("invDP2", formatCurrency(data.summary.dp2));
+  setText("invSisaTagihan", formatCurrency(data.summary.sisaTagihan));
 }
 
 function setText(id, value) {

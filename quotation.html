@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quotation - LAROSAPOT</title>
+
+    <link rel="stylesheet" href="style/kasir.css">
+</head>
+<body>
+    <!-- Sidebar injected by script/layout.js -->
+
+    <div class="main-content">
+        <!-- Header injected by script/layout.js -->
+
+        <div class="content-area">
+            <div class="form-section">
+                <h2 class="section-title">Buat Quotation</h2>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>No Invoice</label>
+                        <input type="text" id="noPesanan" placeholder="Otomatis" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Tanggal Dibuat</label>
+                        <input type="date" id="tanggalDibuat" onchange="updateInvoiceNumber()">
+                    </div>
+                </div>
+
+                <h3 class="subsection-title">Informasi Pelanggan</h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>No Telepon Pelanggan</label>
+                        <div class="autocomplete-container">
+                            <input type="text" id="noTelepon" placeholder="Ketik no telepon..." autocomplete="off">
+                            <div id="suggestionList" class="suggestion-list"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Nama Pelanggan</label>
+                        <input type="text" id="namaPelanggan" placeholder="Otomatis dari pencarian" readonly>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Alamat</label>
+                        <input type="text" id="alamatPelanggan" placeholder="Otomatis dari pencarian" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Kasir</label>
+                        <input type="text" id="kasir" placeholder="Otomatis dari login" readonly>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Metode Pembayaran</label>
+                        <select id="paymen">
+                            <option value="Transfer" selected>Transfer</option>
+                            <option value="Tunai">Tunai</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Jenis Transaksi</label>
+                        <select id="jenisTransaksi">
+                            <option value="Online" selected>Online</option>
+                            <option value="Offline">Offline</option>
+                        </select>
+                    </div>
+                </div>
+
+                <h3 class="subsection-title">Keranjang</h3>
+                
+                <div class="keranjang-layout">
+                    <div class="form-group">
+                        <label>No SKU</label>
+                        <div class="autocomplete-container">
+                            <input type="text" id="noSku" placeholder="Ketik SKU..." autocomplete="off">
+                            <div id="skuSuggestionList" class="suggestion-list"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Jumlah</label>
+                        <input type="number" id="jumlah" placeholder="0" oninput="hitungTotalHarga()">
+                    </div>
+                    <div class="form-group">
+                        <label>Harga</label>
+                        <input type="number" id="harga" placeholder="Otomatis" readonly>
+                    </div>
+                </div>
+
+                <div class="keranjang-layout">
+                    <div class="form-group">
+                        <label>Nama Produk</label>
+                        <input type="text" id="namaProduk" placeholder="Otomatis dari SKU" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Satuan</label>
+                        <input type="text" id="satuan" placeholder="Otomatis" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Total Harga</label>
+                        <input type="number" id="totalHarga" placeholder="Rp. 0" readonly>
+                    </div>
+                </div>
+
+                <button class="btn-simpan" onclick="tambahKeKeranjang()">Simpan</button>
+
+
+                <div class="cart-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>SKU</th>
+                                <th>Produk</th>
+                                <th>Jumlah</th>
+                                <th>Satuan</th>
+                                <th>Harga</th>
+                                <th>Total</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="keranjangBody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="bottom-section">
+                    <div class="left-calc">
+                        <div class="calc-item">
+                            <label>Subtotal</label>
+                            <input type="number" id="subtotal" placeholder="Rp. 0" readonly>
+                        </div>
+                        <div class="calc-item">
+                            <label>Packing</label>
+                            <input type="text" id="packing" placeholder="Rp. 0 atau =rumus" onchange="hitungTotalTagihan()">
+                        </div>
+                    </div>
+                    <div class="right-calc">
+                        <div class="calc-item">
+                            <label>Ongkir</label>
+                            <input type="text" id="ongkir" placeholder="Rp. 0 atau =rumus" onchange="hitungTotalTagihan()">
+                        </div>
+                        <div class="calc-item">
+                            <label>Diskon</label>
+                            <input type="text" id="diskon" placeholder="Rp. 0 atau =rumus" onchange="hitungTotalTagihan()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bottom-section">
+                    <div class="calc-item full-width-calc">
+                        <label>Total Tagihan</label>
+                        <input type="number" id="totalTagihan" placeholder="Rp. 0" readonly>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn-lunas" onclick="saveQuotation()">Simpan Quotation</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script/config.js"></script>
+    <script src="script/auth.js"></script>
+    <script src="script/layout.js"></script>
+    <script src="script/sheets-api.js"></script>
+    <script src="script/quotation.js"></script>
+</body>
+</html>

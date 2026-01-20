@@ -1,0 +1,18 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:5500",
+  "loginUser": "daffarafdhan",
+  "loginPassword": "daffarafdhan212",
+  "executionArgs": {
+    "projectName": "LarosaWebApp",
+    "projectPath": "c:\\laragon\\www\\LarosaWebApp",
+    "testIds": [],
+    "additionalInstruction": "",
+    "envs": {
+      "API_KEY": "sk-user-zoWZ1tvfsCsWQ6vIwFOgf-7YmiodFMVORM-rhn27t4URENZyOXsT-zu-BjIqPf6kTd4T6ZisKKXzD-VSWCq4DbpagtVobcBWhVomBV3SQP2yOIqwSZyCamPXT-Gqb4upMG4"
+    }
+  },
+  "proxy": "http://2024554f-eccc-4d23-bf2c-3a6dd91d2f1e:BviqQbinQWu8JIehkEGrzfnjn75yPbw1@tun.testsprite.com:8080"
+}

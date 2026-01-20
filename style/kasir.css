@@ -306,3 +306,18 @@ tbody tr {
   background-color: #f0f0f0;
   color: #666;
 }
+
+/* Disabled button states for loading */
+.btn-dp:disabled,
+.btn-lunas:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-dp:disabled {
+  background-color: #d4a058;
+}
+
+.btn-lunas:disabled {
+  background-color: #8fb082;
+}

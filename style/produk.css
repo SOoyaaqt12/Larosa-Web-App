@@ -31,14 +31,41 @@ body {
 .content-area {
   padding: 25px 30px;
   flex: 1;
-  overflow-x: auto;
+  /* overflow-x: auto; REMOVED to prevent double scroll */
   margin-top: 85px;
 }
 
-.action-bar {
+/* Controls bar with search, filter, and add button */
+.controls-bar {
   display: flex;
-  justify-content: flex-end;
-  margin-bottom: 20px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.search-filter-group {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.search-filter-group input[type="text"] {
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  min-width: 250px;
+}
+
+.search-filter-group select {
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  background-color: white;
+  cursor: pointer;
 }
 
 .btn-tambah {
@@ -57,33 +84,104 @@ body {
   background-color: #6b8e5f;
 }
 
+.btn-reset {
+  padding: 10px 20px;
+  border: 1px solid #dc3545;
+  background-color: white;
+  color: #dc3545;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-reset:hover {
+  background-color: #dc3545;
+  color: white;
+}
+
+/* Pagination info */
+.pagination-info {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 10px;
+}
+
+/* Pagination controls */
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border-radius: 10px;
+}
+
+.pagination-controls button {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  background-color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.pagination-controls button:hover:not(:disabled) {
+  background-color: #7da869;
+  color: white;
+  border-color: #7da869;
+}
+
+.pagination-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-controls .page-btn {
+  min-width: 36px;
+}
+
+.pagination-controls .page-btn.active {
+  background-color: #6b8e5f;
+  color: white;
+  border-color: #6b8e5f;
+}
+
 .table-wrapper {
   background-color: white;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  min-width: 1700px;
+  /* min-width: 1700px; REMOVED to prevent outer scroll */
+  width: 100%; /* Ensure it takes full width but doesn't force overflow */
 }
 
 .table-scroll {
   overflow-x: auto;
   overflow-y: visible;
+  /* Smooth scrolling */
+  -webkit-overflow-scrolling: touch;
 }
 
 table {
-  width: 100%;
-  border-collapse: collapse;
+  width: max-content; /* Let table size naturally based on content */
+  min-width: 100%;
+  border-collapse: separate; /* Separate for better rendering */
+  border-spacing: 0;
 }
 
 thead {
   background-color: #6b8e5f;
-  color: white;
-  position: sticky;
-  top: 0;
-  z-index: 10;
 }
 
 th {
+  background-color: #6b8e5f;
+  color: white;
+  /* Sticky removed - causes desync on horizontal scroll */
+
   padding: 14px 10px;
   text-align: center;
   font-size: 11px;
@@ -185,6 +283,22 @@ tbody tr:last-child td {
 
 .btn-delete:hover {
   background-color: #b71c1c;
+}
+
+.btn-restock {
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.btn-restock:hover {
+  background-color: #1976d2;
 }
 
 /* Scrollbar styling */
@@ -290,4 +404,18 @@ tbody tr:last-child td {
   border-radius: 8px;
   cursor: pointer;
   font-size: 16px;
+}
+
+.modal-buttons .btn-simpan:disabled {
+  background-color: #9cb893;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.modal-buttons .btn-batal:hover {
+  background-color: #c82333;
+}
+
+.modal-buttons .btn-simpan:hover:not(:disabled) {
+  background-color: #6b9459;
 }

@@ -7,8 +7,6 @@
     <link rel="stylesheet" href="style/invoice.css">
 </head>
 <body>
-</head>
-<body>
     <!-- Sidebar injected by script/layout.js -->
 
     <div class="main-content">
@@ -35,130 +33,151 @@
                         <table class="info-table">
                             <tr>
                                 <td>No Pesanan</td>
-                                <td>: <span id="invNoPesanan"></span></td>
+                                <td><span id="invNoPesanan"></span></td>
                             </tr>
+                            <!-- Tanggal removed -->
                             <tr>
                                 <td>Tanggal Dibuat</td>
-                                <td>: <span id="invTanggal"></span></td>
+                                <td><span id="invDibuat"></span></td>
                             </tr>
                             <tr>
                                 <td>Rekening BCA</td>
-                                <td>: 6380209720<br>Yudhi Aprianto</td>
+                                <td>
+                                    <div style="margin-bottom: 5px;">6380209720</div>
+                                    <div>Yudhi Aprianto</div>
+                                </td>
                             </tr>
                         </table>
                     </div>
                 </div>
 
-        <hr class="divider">
+                <hr class="divider">
 
-        <!-- Customer & Transaction Info -->
-        <div class="info-section">
-            <div class="info-left">
-                <table class="details-table">
-                    <tr>
-                        <td width="120">Informasi Pelanggan:</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td colspan="2">
-                            <strong id="invNamaPelanggan"></strong><br>
-                            <span id="invNoHp"></span><br>
-                            <span id="invAlamat"></span>
-                        </td>
-                    </tr>
-                </table>
-            </div>
-            <div class="info-right">
-                <table class="details-table">
-                    <tr>
-                        <td width="100">Kasir</td>
-                        <td>: <span id="invKasir"></span></td>
-                    </tr>
-                    <tr>
-                        <td>Transaksi</td>
-                        <td>: <span id="invTransaksi"></span></td>
-                    </tr>
-                    <tr>
-                        <td>Payment</td>
-                        <td>: <span id="invPayment"></span></td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-
-        <hr class="divider">
-
-        <!-- Items Table -->
-        <div class="table-container">
-            <table class="items-table">
-                <thead>
-                    <tr>
-                        <th>No.</th>
-                        <th>SKU</th>
-                        <th>Produk</th>
-                        <th>Jumlah</th>
-                        <th>Satuan</th>
-                        <th>Harga</th>
-                        <th>Total</th>
-                    </tr>
-                </thead>
-                <tbody id="invoiceItems">
-                    <!-- Items will be injected here -->
-                </tbody>
-            </table>
-        </div>
-
-        <hr class="divider thick">
-
-        <!-- Footer Section -->
-        <div class="footer-section">
-            <div class="footer-left">
-                <div class="notes">
-                    <strong>Keterangan:</strong>
-                    <ul>
-                        <li>Transfer ke BCA 6380209720; Yudhi Aprianto</li>
-                        <li>Diameter yang digunakan bibir terluar</li>
-                        <li>Selisih ukuran 1-2cm karena pengerjaan manual</li>
-                    </ul>
+                <!-- Customer & Transaction Info -->
+                <div class="info-section">
+                    <div class="info-left">
+                        <table class="details-table">
+                            <tr>
+                                <td>Informasi Pelanggan:</td>
+                            </tr>
+                            <tr>
+                                <td id="invNamaPelanggan"></td>
+                                <!-- <td colspan="2">
+                                    <strong id="invNamaPelanggan"></strong><br>
+                                    <span id="invNoHp"></span><br>
+                                    <span id="invAlamat"></span>
+                                </td> -->
+                            </tr>
+                            <tr><td id="invNoHp"></td></tr>
+                            <tr><td id="invAlamat"></td></tr>
+                        </table>
+                    </div>
+                    <div class="info-right">
+                        <table class="details-table right-table">
+                            <tr>
+                                <td>Kasir</td>
+                                <td><span id="invKasir"></span></td>
+                            </tr>
+                            <tr>
+                                <td>Transaksi</td>
+                                <td><span id="invTransaksi"></span></td>
+                            </tr>
+                            <tr>
+                                <td>Payment</td>
+                                <td><span id="invPayment"></span></td>
+                            </tr>
+                        </table>
+                    </div>
                 </div>
-                <div class="terms">
-                    <strong>Syarat dan Ketentuan:</strong>
-                    <ul>
-                        <li>Barang yang sudah dikirim tidak dapat ditukar/dikembalikan</li>
-                        <li>Khusus item PO pengerjaan 7-31 hari kerja</li>
-                        <li>Kerusakan item akibat perjalanan bukan tanggung jawab Larosa</li>
-                    </ul>
+
+                <hr class="divider">
+
+                <!-- Items Table -->
+                <div class="table-container">
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th>NO.</th>
+                                <th>SKU</th>
+                                <th>PRODUK</th>
+                                <th>JUMLAH</th>
+                                <th>SATUAN</th>
+                                <th>HARGA</th>
+                                <th>TOTAL</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoiceItems">
+                            <!-- Items will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Footer Wrapper (Sticks to bottom) -->
+                <div class="footer-wrapper">
+                    <hr class="divider thick">
+
+                    <!-- Footer Section -->
+                    <div class="footer-section">
+                        <div class="footer-left">
+                            <div class="notes">
+                                <strong>Keterangan:</strong>
+                                <ul>
+                                    <li>Transfer ke BCA 6380209720; Yudhi Aprianto</li>
+                                    <li>Diameter yang digunakan bibir terluar</li>
+                                    <li>Selisih ukuran 1-2cm karena pengerjaan manual</li>
+                                </ul>
+                            </div>
+                            <div class="terms">
+                                <strong>Syarat dan Ketentuan:</strong>
+                                <ul>
+                                    <li>Barang yang sudah dikirim tidak dapat ditukar/dikembalikan</li>
+                                    <li>Khusus item PO pengerjaan 7-31 hari kerja</li>
+                                    <li>Kerusakan item akibat perjalanan bukan tanggung jawab Larosa</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="footer-right">
+                            <table class="summary-table">
+                                <tr>
+                                    <td>Sub Total</td>
+                                    <td><span id="invSubtotal"></span></td>
+                                </tr>
+                                <tr>
+                                    <td>Ongkir</td>
+                                    <td><span id="invOngkir"></span></td>
+                                </tr>
+                                <tr>
+                                    <td>Packing</td>
+                                    <td><span id="invPacking"></span></td>
+                                </tr>
+                                <tr>
+                                    <td>Diskon</td>
+                                    <td><span id="invDiskon"></span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Total Tagihan</strong></td>
+                                    <td><strong><span id="invTotalTagihan"></span></strong></td>
+                                </tr>
+                                <tr>
+                                    <td>DP 1</td>
+                                    <td><span id="invDP1"></span></td>
+                                </tr>
+                                <tr>
+                                    <td>DP 2</td>
+                                    <td><span id="invDP2"></span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Sisa Tagihan</strong></td>
+                                    <td><strong><span id="invSisaTagihan"></span></strong></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Bottom Bar (Green Footer) -->
+                    <div class="bottom-bar"></div>
                 </div>
             </div>
-            <div class="footer-right">
-                <table class="summary-table">
-                    <tr>
-                        <td>Sub Total</td>
-                        <td>: <span id="invSubtotal"></span></td>
-                    </tr>
-                    <tr>
-                        <td>Ongkir</td>
-                        <td>: <span id="invOngkir"></span></td>
-                    </tr>
-                    <tr>
-                        <td>Packing</td>
-                        <td>: <span id="invPacking"></span></td>
-                    </tr>
-                    <tr>
-                        <td>Diskon</td>
-                        <td>: <span id="invDiskon"></span></td>
-                    </tr>
-                    <tr>
-                        <td><strong>Total Tagihan</strong></td>
-                        <td>: <strong><span id="invTotalTagihan"></span></strong></td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-        
-        <!-- Bottom Bar (Green Footer) -->
-        <div class="bottom-bar"></div>
-    </div>
         </div>
     </div>
 
@@ -168,6 +187,7 @@
         <button onclick="goBack()" class="btn-back">Kembali ke Kasir</button>
     </div>
 
+    <script src="script/config.js"></script>
     <script src="script/auth.js"></script>
     <script src="script/layout.js"></script>
     <script src="script/invoice.js"></script>

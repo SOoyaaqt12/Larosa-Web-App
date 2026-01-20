@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Vendor - LAROSAPOT</title>
+
+    <link rel="stylesheet" href="style/kustomer.css">
+    <link rel="stylesheet" href="style/layout.css">
+</head>
+<body>
+    <!-- Sidebar injected by script/layout.js -->
+
+    <div class="main-content">
+        <!-- Header injected by script/layout.js -->
+
+        <div class="content-area">
+            <div class="action-bar">
+                <button class="btn-tambah">Tambah</button>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>NAMA VENDOR</th>
+                            <th>KATEGORI</th>
+                            <th>NO HP</th>
+                            <th>ALAMAT</th>
+                            <th>KOTA</th>
+                            <th>BANK</th>
+                            <th>ATAS NAMA</th>
+                            <th>REKENING</th>
+                            <th>AKSI</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vendorTableBody">
+                        <!-- Data injected by script -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script src="script/config.js"></script>
+    <script src="script/auth.js"></script>
+    <script src="script/layout.js"></script>
+    <script src="script/sheets-api.js"></script>
+    <script src="script/idb-cache.js"></script>
+    <script src="script/utils.js"></script>
+    <script src="script/data-service.js"></script>
+    <script src="script/vendor.js"></script>
+</body>
+</html>

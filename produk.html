@@ -15,8 +15,26 @@
         <!-- Header injected by script/layout.js -->
 
         <div class="content-area">
-            <div class="action-bar">
+            <div class="controls-bar">
+                <div class="search-filter-group">
+                    <input type="text" id="searchInput" placeholder="Cari SKU atau Nama Produk..." onkeyup="handleSearch()">
+                    <select id="categoryFilter" onchange="handleCategoryFilter()">
+                        <option value="">Semua Kategori</option>
+                        <!-- Options populated by JS -->
+                    </select>
+                    <select id="itemsPerPage" onchange="handleItemsPerPageChange()">
+                        <option value="10">10 per halaman</option>
+                        <option value="25">25 per halaman</option>
+                        <option value="50">50 per halaman</option>
+                        <option value="100">100 per halaman</option>
+                    </select>
+                    <button class="btn-reset" onclick="resetFilters()">Reset</button>
+                </div>
                 <button class="btn-tambah">Tambah</button>
+            </div>
+
+            <div class="pagination-info" id="paginationInfo">
+                Menampilkan 0 - 0 dari 0 data
             </div>
 
             <div class="table-wrapper">
@@ -420,11 +438,21 @@
                     </table>
                 </div>
             </div>
+
+            <div class="pagination-controls" id="paginationControls">
+                <button id="btnPrevPage" onclick="goToPage(currentPage - 1)" disabled>← Sebelumnya</button>
+                <span id="pageNumbers"></span>
+                <button id="btnNextPage" onclick="goToPage(currentPage + 1)">Berikutnya →</button>
+            </div>
         </div>
     </div>
+    <script src="script/config.js"></script>
     <script src="script/auth.js"></script>
     <script src="script/layout.js"></script>
     <script src="script/sheets-api.js"></script>
+    <script src="script/idb-cache.js"></script>
+    <script src="script/utils.js"></script>
+    <script src="script/data-service.js"></script>
     <script src="script/produk.js"></script>
 </body>
 </html>

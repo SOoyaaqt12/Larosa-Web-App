@@ -12,9 +12,8 @@
   document.head.appendChild(style);
 })();
 
-// Use the same API URL from sheets-api.js
-const AUTH_API_URL =
-  "https://script.google.com/macros/s/AKfycbxnTuRKmf7IhNxkZO4UCPWYT7GLcFDgPLAvvv39bzk77xuY9S7oKecMDMpGgqV4iVk7/exec";
+// Use centralized API URL from config.js
+const AUTH_API_URL = API_URL;
 
 const SESSION_KEY = "larosapot_user";
 

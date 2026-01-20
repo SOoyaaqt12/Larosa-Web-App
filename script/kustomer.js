@@ -1,11 +1,14 @@
 /**
  * Kustomer Page - Google Sheets Integration
  * Connects to KOSTUMER sheet
+ *
+ * Refactored to use shared utilities (utils.js, data-service.js)
  */
 
-const KUSTOMER_SHEET_NAME = "KOSTUMER";
-const CACHE_KEY = "kustomer_data_cache";
-const CACHE_TIMESTAMP_KEY = "kustomer_cache_timestamp";
+const customerService = DataServices.customer;
+
+// Store current customers data for editing
+let customersData = [];
 
 // Load customers when page loads
 document.addEventListener("DOMContentLoaded", () => {
@@ -17,129 +20,64 @@ async function loadCustomers() {
   const tbody = document.getElementById("kustomerTableBody");
   if (!tbody) return;
 
-  // Step 1: Immediately show cached data if available
-  const cachedData = getCachedData();
-  if (cachedData && cachedData.length > 0) {
-    console.log("Showing cached data instantly");
-    renderCustomerTable(cachedData);
-    // Show subtle indicator that we're refreshing
-    showRefreshIndicator();
-  } else {
-    tbody.innerHTML =
-      '<tr><td colspan="8" style="text-align: center;">Memuat data...</td></tr>';
-  }
-
-  // Step 2: Fetch fresh data in background
-  try {
-    const result = await fetchSheetData(KUSTOMER_SHEET_NAME);
-
-    if (result.data && result.data.length > 0) {
-      // Save to cache
-      setCachedData(result.data);
-      // Render fresh data
-      renderCustomerTable(result.data);
-    } else if (!cachedData || cachedData.length === 0) {
-      tbody.innerHTML =
-        '<tr><td colspan="8" style="text-align: center;">Tidak ada data pelanggan</td></tr>';
-    }
-    hideRefreshIndicator();
-  } catch (error) {
-    console.error("Error loading customers:", error);
-    hideRefreshIndicator();
-    // Only show error if no cached data
-    if (!cachedData || cachedData.length === 0) {
-      tbody.innerHTML =
-        '<tr><td colspan="8" style="text-align: center; color: red;">Gagal memuat data. Pastikan Google Apps Script sudah di-deploy.</td></tr>';
-    }
-  }
-}
-
-// Cache functions
-function getCachedData() {
-  try {
-    const cached = localStorage.getItem(CACHE_KEY);
-    if (cached) {
-      return JSON.parse(cached);
-    }
-  } catch (e) {
-    console.error("Error reading cache:", e);
-  }
-  return null;
-}
-
-function setCachedData(data) {
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-    localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
-  } catch (e) {
-    console.error("Error saving cache:", e);
-  }
-}
-
-function clearCache() {
-  localStorage.removeItem(CACHE_KEY);
-  localStorage.removeItem(CACHE_TIMESTAMP_KEY);
-}
-
-// Refresh indicator
-function showRefreshIndicator() {
-  const header = document.querySelector(".header h1");
-  if (header && !document.getElementById("refreshIndicator")) {
-    header.insertAdjacentHTML(
-      "afterend",
-      '<span id="refreshIndicator" style="font-size: 12px; color: #888; margin-left: 10px;">Memperbarui data...</span>'
-    );
-  }
-}
-
-function hideRefreshIndicator() {
-  const indicator = document.getElementById("refreshIndicator");
-  if (indicator) {
-    indicator.remove();
-  }
+  customersData = await customerService.loadData({
+    tbody: tbody,
+    onRender: renderCustomerTable,
+    onDataReady: (data) => {
+      customersData = data;
+    },
+  });
 }
 
 function renderCustomerTable(customers) {
   const tbody = document.getElementById("kustomerTableBody");
   if (!tbody) return;
 
-  // Store customers data for editing
   customersData = customers;
 
-  // Debug: log first customer to see actual keys
   if (customers.length > 0) {
     console.log("Customer data keys:", Object.keys(customers[0]));
-    console.log("First customer:", customers[0]);
   }
 
   tbody.innerHTML = customers
     .map(
       (customer) => `
         <tr data-row-index="${customer._rowIndex}">
-            <td>${formatDate(
-              customer["TANGGAL"] || customer["Tanggal"] || ""
+            <td class="text-left">${formatDisplayDate(
+              getValueFromKeys(customer, ["TANGGAL", "Tanggal"], "")
             )}</td>
-            <td>${
-              customer["NAMA PELANGGAN"] ||
-              customer["NAMA\nPELANGGAN"] ||
-              customer["Nama Pelanggan"] ||
-              customer["NAMA"] ||
-              getColumnValue(customer, "NAMA") ||
+            <td class="text-left">${getValueFromKeys(
+              customer,
+              ["NAMA PELANGGAN", "NAMA\nPELANGGAN", "Nama Pelanggan", "NAMA"],
               ""
-            }</td>
-            <td>${
-              customer["NO HP"] || customer["No HP"] || customer["NO\nHP"] || ""
-            }</td>
-            <td>${customer["ALAMAT"] || customer["Alamat"] || ""}</td>
-            <td>${customer["KOTA"] || customer["Kota"] || ""}</td>
-            <td>${customer["CHANNEL"] || customer["Channel"] || ""}</td>
-            <td>${
-              customer["JUMLAH TRANSAKSI"] ||
-              customer["JUMLAH\nTRANSAKSI"] ||
-              customer["Jumlah Transaksi"] ||
-              0
-            }</td>
-            <td>
+            )}</td>
+            <td class="text-left">${getValueFromKeys(
+              customer,
+              ["NO HP", "No HP", "NO\nHP"],
+              ""
+            )}</td>
+            <td class="text-left">${getValueFromKeys(
+              customer,
+              ["ALAMAT", "Alamat"],
+              ""
+            )}</td>
+            <td class="text-left">${getValueFromKeys(
+              customer,
+              ["KOTA", "Kota"],
+              ""
+            )}</td>
+            <td class="text-left">${getValueFromKeys(
+              customer,
+              ["CHANNEL", "Channel"],
+              ""
+            )}</td>
+            <td class="text-center">${getValueFromKeys(
+              customer,
+              ["JUMLAH TRANSAKSI", "JUMLAH\nTRANSAKSI", "Jumlah Transaksi"],
+              0,
+              true
+            )}</td>
+            <td class="text-center">
                 <div class="action-buttons">
                     <button class="btn-edit" onclick="editCustomer(${
                       customer._rowIndex
@@ -155,72 +93,7 @@ function renderCustomerTable(customers) {
     .join("");
 }
 
-// Helper function to find column value by partial match
-function getColumnValue(obj, searchKey) {
-  for (const key of Object.keys(obj)) {
-    if (key.toUpperCase().includes(searchKey.toUpperCase())) {
-      return obj[key];
-    }
-  }
-  return null;
-}
-
-function formatDate(dateValue) {
-  if (!dateValue) return "";
-
-  try {
-    const date = new Date(dateValue);
-    if (!isNaN(date.getTime())) {
-      const day = String(date.getDate()).padStart(2, "0");
-      const months = [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "Mei",
-        "Jun",
-        "Jul",
-        "Agu",
-        "Sep",
-        "Okt",
-        "Nov",
-        "Des",
-      ];
-      const month = months[date.getMonth()];
-      const year = date.getFullYear();
-      return `${day}-${month}-${year}`;
-    }
-  } catch (e) {
-    console.error("Date parse error:", e);
-  }
-
-  // If parsing failed, try to extract date from ISO string
-  if (typeof dateValue === "string" && dateValue.includes("T")) {
-    const parts = dateValue.split("T")[0].split("-");
-    if (parts.length === 3) {
-      const months = [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "Mei",
-        "Jun",
-        "Jul",
-        "Agu",
-        "Sep",
-        "Okt",
-        "Nov",
-        "Des",
-      ];
-      return `${parts[2]}-${months[parseInt(parts[1]) - 1]}-${parts[0]}`;
-    }
-  }
-
-  return dateValue;
-}
-
 function setupKustomerEventListeners() {
-  // Tambah button
   const btnTambah = document.querySelector(".btn-tambah");
   if (btnTambah) {
     btnTambah.addEventListener("click", showAddCustomerModal);
@@ -294,7 +167,6 @@ function showAddCustomerModal() {
 
   document.body.insertAdjacentHTML("beforeend", modalHTML);
 
-  // Set today's date as default
   const dateInput = document.querySelector(
     '#customerForm input[name="TANGGAL"]'
   );
@@ -309,107 +181,71 @@ function showAddCustomerModal() {
   });
 }
 
-// Helper function to format phone number (08xxx → 628xxx)
-function formatPhoneNumber(phone) {
-  if (!phone) return "";
-  phone = phone.toString().trim();
-
-  // Remove any existing +62 or 62 prefix
-  if (phone.startsWith("+62")) {
-    phone = phone.substring(3);
-  } else if (phone.startsWith("62")) {
-    phone = phone.substring(2);
-  }
-
-  // Remove leading 0 if present
-  if (phone.startsWith("0")) {
-    phone = phone.substring(1);
-  }
-
-  // Add 62 prefix
-  return "62" + phone;
-}
-
-// Helper function to format date (YYYY-MM-DD → DD-Mon-YYYY)
-function formatDateForSheet(dateString) {
-  if (!dateString) return "";
-
-  try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
-
-    const day = String(date.getDate()).padStart(2, "0");
-    const months = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
-    const month = months[date.getMonth()];
-    const year = date.getFullYear();
-
-    return `${day}-${month}-${year}`;
-  } catch (e) {
-    return dateString;
-  }
-}
-
 async function addCustomer(formData) {
-  // Build data object with the correct header names that match the spreadsheet
+  const newPhoneNumber = formatPhoneNumber(formData.get("NO_HP"));
+
+  // Frontend validation: Check for duplicate phone number
+  const existingCustomer = customersData.find((c) => {
+    const existingPhone = getValueFromKeys(
+      c,
+      ["NO HP", "NO\\nHP", "No HP"],
+      ""
+    );
+    return (
+      String(existingPhone).trim().toLowerCase() ===
+      String(newPhoneNumber).trim().toLowerCase()
+    );
+  });
+
+  if (existingCustomer) {
+    alert(
+      "Nomor HP '" + newPhoneNumber + "' sudah terdaftar untuk pelanggan lain!"
+    );
+    return;
+  }
+
   const data = {
     TANGGAL: formatDateForSheet(formData.get("TANGGAL")),
     "NAMA\nPELANGGAN": formData.get("NAMA_PELANGGAN"),
-    "NO HP": formatPhoneNumber(formData.get("NO_HP")),
+    "NO HP": newPhoneNumber,
     ALAMAT: formData.get("ALAMAT"),
     KOTA: formData.get("KOTA"),
     CHANNEL: formData.get("CHANNEL"),
     "JUMLAH\nTRANSAKSI": 0,
   };
 
-  // Optimistic update: add to cache immediately
-  const tempRowIndex = Date.now(); // Temporary ID
+  // Optimistic update
+  const tempRowIndex = Date.now();
   const newCustomer = { ...data, _rowIndex: tempRowIndex };
   customersData.push(newCustomer);
-  setCachedData(customersData);
+  await customerService.updateCache(customersData);
   renderCustomerTable(customersData);
   closeCustomerModal();
 
-  // Sync to Google Sheets in background
+  // Sync to Google Sheets
   try {
-    const result = await addSheetRow(KUSTOMER_SHEET_NAME, data);
+    const result = await addSheetRow(customerService.sheetName, data, "NO HP");
     if (result.success) {
       console.log("Customer synced to Google Sheets");
-      // Refresh to get actual row index
       loadCustomers();
     } else {
-      // Rollback on failure
-      customersData = customersData.filter((c) => c._rowIndex !== tempRowIndex);
-      setCachedData(customersData);
-      renderCustomerTable(customersData);
-      alert("Gagal menyimpan ke server. Data akan dimuat ulang.");
+      throw new Error(result.error);
     }
   } catch (error) {
     // Rollback on error
     customersData = customersData.filter((c) => c._rowIndex !== tempRowIndex);
-    setCachedData(customersData);
+    await customerService.updateCache(customersData);
     renderCustomerTable(customersData);
-    alert("Gagal menambahkan pelanggan: " + error.message);
+
+    let msg = error.message;
+    if (msg.includes("Duplicate entry")) {
+      msg = "Nomor HP sudah terdaftar!";
+    }
+    alert("Gagal menambahkan pelanggan: " + msg);
   }
 }
 
-// Store current customers data for editing
-let customersData = [];
-
 async function editCustomer(rowIndex) {
-  // Find the customer data from our cached data
   const customer = customersData.find((c) => c._rowIndex === rowIndex);
 
   if (!customer) {
@@ -417,26 +253,23 @@ async function editCustomer(rowIndex) {
     return;
   }
 
-  // Get values with fallbacks for different header formats
-  const tanggal = customer["TANGGAL"] || customer["Tanggal"] || "";
-  const nama =
-    customer["NAMA PELANGGAN"] ||
-    customer["NAMA\nPELANGGAN"] ||
-    customer["Nama Pelanggan"] ||
-    "";
-  const noHp =
-    customer["NO HP"] || customer["NO\nHP"] || customer["No HP"] || "";
-  const alamat = customer["ALAMAT"] || customer["Alamat"] || "";
-  const kota = customer["KOTA"] || customer["Kota"] || "";
-  const channel = customer["CHANNEL"] || customer["Channel"] || "";
+  const tanggal = getValueFromKeys(customer, ["TANGGAL", "Tanggal"], "");
+  const nama = getValueFromKeys(
+    customer,
+    ["NAMA PELANGGAN", "NAMA\nPELANGGAN", "Nama Pelanggan"],
+    ""
+  );
+  const noHp = getValueFromKeys(customer, ["NO HP", "NO\nHP", "No HP"], "");
+  const alamat = getValueFromKeys(customer, ["ALAMAT", "Alamat"], "");
+  const kota = getValueFromKeys(customer, ["KOTA", "Kota"], "");
+  const channel = getValueFromKeys(customer, ["CHANNEL", "Channel"], "");
 
-  // Format date for input (use local timezone to avoid off-by-one day issue)
+  // Format date for input
   let dateValue = "";
   if (tanggal) {
     try {
       const d = new Date(tanggal);
       if (!isNaN(d.getTime())) {
-        // Use local date components instead of toISOString (which uses UTC)
         const year = d.getFullYear();
         const month = String(d.getMonth() + 1).padStart(2, "0");
         const day = String(d.getDate()).padStart(2, "0");
@@ -444,6 +277,33 @@ async function editCustomer(rowIndex) {
       }
     } catch (e) {}
   }
+
+  const kotaOptions = [
+    "Bogor",
+    "Depok",
+    "Jakarta Pusat",
+    "Jakarta Barat",
+    "Jakarta Selatan",
+    "Jakarta Timur",
+    "Jakarta Utara",
+    "BSD/Serpong",
+    "Tangerang",
+    "Cibubur",
+    "Bekasi",
+    "Luar Kota",
+  ];
+  const channelOptions = [
+    "IG",
+    "Facebook",
+    "Google",
+    "Tiktok",
+    "Youtube",
+    "Referensi",
+    "Toko",
+    "Lainnya",
+    "Meta Ads",
+    "Existing",
+  ];
 
   const modalHTML = `
     <div id="customerModal" class="modal">
@@ -471,78 +331,28 @@ async function editCustomer(rowIndex) {
             <label>Kota</label>
             <select name="KOTA" required>
               <option value="">Pilih Kota</option>
-              <option value="Bogor" ${
-                kota === "Bogor" ? "selected" : ""
-              }>Bogor</option>
-              <option value="Depok" ${
-                kota === "Depok" ? "selected" : ""
-              }>Depok</option>
-              <option value="Jakarta Pusat" ${
-                kota === "Jakarta Pusat" ? "selected" : ""
-              }>Jakarta Pusat</option>
-              <option value="Jakarta Barat" ${
-                kota === "Jakarta Barat" ? "selected" : ""
-              }>Jakarta Barat</option>
-              <option value="Jakarta Selatan" ${
-                kota === "Jakarta Selatan" ? "selected" : ""
-              }>Jakarta Selatan</option>
-              <option value="Jakarta Timur" ${
-                kota === "Jakarta Timur" ? "selected" : ""
-              }>Jakarta Timur</option>
-              <option value="Jakarta Utara" ${
-                kota === "Jakarta Utara" ? "selected" : ""
-              }>Jakarta Utara</option>
-              <option value="BSD/Serpong" ${
-                kota === "BSD/Serpong" ? "selected" : ""
-              }>BSD/Serpong</option>
-              <option value="Tangerang" ${
-                kota === "Tangerang" ? "selected" : ""
-              }>Tangerang</option>
-              <option value="Cibubur" ${
-                kota === "Cibubur" ? "selected" : ""
-              }>Cibubur</option>
-              <option value="Bekasi" ${
-                kota === "Bekasi" ? "selected" : ""
-              }>Bekasi</option>
-              <option value="Luar Kota" ${
-                kota === "Luar Kota" ? "selected" : ""
-              }>Luar Kota</option>
+              ${kotaOptions
+                .map(
+                  (k) =>
+                    `<option value="${k}" ${
+                      kota === k ? "selected" : ""
+                    }>${k}</option>`
+                )
+                .join("")}
             </select>
           </div>
           <div class="form-group">
             <label>Channel</label>
             <select name="CHANNEL" required>
               <option value="">Pilih Channel</option>
-              <option value="IG" ${
-                channel === "IG" ? "selected" : ""
-              }>IG</option>
-              <option value="Facebook" ${
-                channel === "Facebook" ? "selected" : ""
-              }>Facebook</option>
-              <option value="Google" ${
-                channel === "Google" ? "selected" : ""
-              }>Google</option>
-              <option value="Tiktok" ${
-                channel === "Tiktok" ? "selected" : ""
-              }>Tiktok</option>
-              <option value="Youtube" ${
-                channel === "Youtube" ? "selected" : ""
-              }>Youtube</option>
-              <option value="Referensi" ${
-                channel === "Referensi" ? "selected" : ""
-              }>Referensi</option>
-              <option value="Toko" ${
-                channel === "Toko" ? "selected" : ""
-              }>Toko</option>
-              <option value="Lainnya" ${
-                channel === "Lainnya" ? "selected" : ""
-              }>Lainnya</option>
-              <option value="Meta Ads" ${
-                channel === "Meta Ads" ? "selected" : ""
-              }>Meta Ads</option>
-              <option value="Existing" ${
-                channel === "Existing" ? "selected" : ""
-              }>Existing</option>
+              ${channelOptions
+                .map(
+                  (c) =>
+                    `<option value="${c}" ${
+                      channel === c ? "selected" : ""
+                    }>${c}</option>`
+                )
+                .join("")}
             </select>
           </div>
           <div class="modal-buttons">
@@ -576,39 +386,37 @@ async function updateCustomer(formData) {
   };
 
   // Save original for rollback
-  const originalCustomer = customersData.find((c) => c._rowIndex === rowIndex);
-  const originalData = originalCustomer ? { ...originalCustomer } : null;
-
-  // Optimistic update: update cache immediately
   const customerIndex = customersData.findIndex(
     (c) => c._rowIndex === rowIndex
   );
+  const originalData =
+    customerIndex !== -1 ? { ...customersData[customerIndex] } : null;
+
+  // Optimistic update
   if (customerIndex !== -1) {
     customersData[customerIndex] = { ...customersData[customerIndex], ...data };
-    setCachedData(customersData);
+    await customerService.updateCache(customersData);
     renderCustomerTable(customersData);
   }
   closeCustomerModal();
 
-  // Sync to Google Sheets in background
+  // Sync to Google Sheets
   try {
-    const result = await updateSheetRow(KUSTOMER_SHEET_NAME, rowIndex, data);
+    const result = await updateSheetRow(
+      customerService.sheetName,
+      rowIndex,
+      data
+    );
     if (result.success) {
       console.log("Customer updated in Google Sheets");
     } else {
-      // Rollback on failure
-      if (originalData && customerIndex !== -1) {
-        customersData[customerIndex] = originalData;
-        setCachedData(customersData);
-        renderCustomerTable(customersData);
-      }
-      alert("Gagal menyimpan perubahan ke server.");
+      throw new Error("Update failed");
     }
   } catch (error) {
-    // Rollback on error
+    // Rollback
     if (originalData && customerIndex !== -1) {
       customersData[customerIndex] = originalData;
-      setCachedData(customersData);
+      await customerService.updateCache(customersData);
       renderCustomerTable(customersData);
     }
     alert("Gagal mengupdate pelanggan: " + error.message);
@@ -620,45 +428,41 @@ async function deleteCustomer(rowIndex) {
     return;
   }
 
-  // Save for rollback
-  const deletedCustomer = customersData.find((c) => c._rowIndex === rowIndex);
-  const deletedIndex = customersData.findIndex((c) => c._rowIndex === rowIndex);
+  // Show loading spinner
+  if (window.showGlobalLoader) window.showGlobalLoader();
 
-  // Optimistic update: remove from cache immediately
+  // Save for rollback
+  const deletedIndex = customersData.findIndex((c) => c._rowIndex === rowIndex);
+  const deletedCustomer = customersData[deletedIndex];
+
+  // Optimistic update
   customersData = customersData.filter((c) => c._rowIndex !== rowIndex);
-  setCachedData(customersData);
+  await customerService.updateCache(customersData);
   renderCustomerTable(customersData);
 
-  // Sync to Google Sheets in background
+  // Sync to Google Sheets
   try {
-    const result = await deleteSheetRow(KUSTOMER_SHEET_NAME, rowIndex);
+    const result = await deleteSheetRow(customerService.sheetName, rowIndex);
     if (result.success) {
       console.log("Customer deleted from Google Sheets");
-      // Refresh to update row indices
       loadCustomers();
     } else {
-      // Rollback on failure
-      if (deletedCustomer) {
-        customersData.splice(deletedIndex, 0, deletedCustomer);
-        setCachedData(customersData);
-        renderCustomerTable(customersData);
-      }
-      alert("Gagal menghapus dari server.");
+      throw new Error("Delete failed");
     }
   } catch (error) {
-    // Rollback on error
+    // Rollback
     if (deletedCustomer) {
       customersData.splice(deletedIndex, 0, deletedCustomer);
-      setCachedData(customersData);
+      await customerService.updateCache(customersData);
       renderCustomerTable(customersData);
     }
     alert("Gagal menghapus pelanggan: " + error.message);
+  } finally {
+    // Hide loading spinner
+    if (window.hideGlobalLoader) window.hideGlobalLoader();
   }
 }
 
 function closeCustomerModal() {
-  const modal = document.getElementById("customerModal");
-  if (modal) {
-    modal.remove();
-  }
+  closeModalById("customerModal");
 }

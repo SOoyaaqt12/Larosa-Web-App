@@ -56,18 +56,60 @@ function injectLayout() {
             <a href="dashboard.html"><div class="nav-item ${
               page === "dashboard.html" ? "active" : ""
             }">Dashboard</div></a>
-            <a href="kasir.html"><div class="nav-item ${
-              page === "kasir.html" ? "active" : ""
-            }">Kasir</div></a>
+            <!-- Transaksi Dropdown -->
+            <div class="menu-item ${
+              page === "kasir.html" || page === "quotation.html" ? "open" : ""
+            }">
+                <div class="menu-header" onclick="toggleSubmenu(this)">
+                    <div style="display:flex; align-items:center; gap:0;">
+                        Transaksi
+                    </div>
+                    <span class="menu-arrow">▶</span>
+                </div>
+                <div class="submenu">
+                    <a href="kasir.html" class="${
+                      page === "kasir.html" ? "active" : ""
+                    }">Kasir</a>
+                    <a href="quotation.html" class="${
+                      page === "quotation.html" ? "active" : ""
+                    }">Quotation</a>
+                </div>
+            </div>
             <a href="produk.html"><div class="nav-item ${
               page === "produk.html" ? "active" : ""
             }">Stok Produk</div></a>
-            <a href="riwayat.html"><div class="nav-item ${
-              page === "riwayat.html" ? "active" : ""
-            }">Riwayat</div></a>
+            <!-- Riwayat Dropdown -->
+            <div class="menu-item ${
+              page === "riwayat.html" ||
+              page === "pelunasan.html" ||
+              page === "data_quotation.html"
+                ? "open"
+                : ""
+            }">
+                <div class="menu-header" onclick="toggleSubmenu(this)">
+                    <div style="display:flex; align-items:center; gap:0;">
+                        Riwayat
+                    </div>
+                    <span class="menu-arrow">▶</span>
+                </div>
+                <div class="submenu">
+                    <a href="riwayat.html" class="${
+                      page === "riwayat.html" ? "active" : ""
+                    }">Transaksi</a>
+                    <a href="pelunasan.html" class="${
+                      page === "pelunasan.html" ? "active" : ""
+                    }">Pelunasan</a>
+                    <a href="data_quotation.html" class="${
+                      page === "data_quotation.html" ? "active" : ""
+                    }">Data Quotation</a>
+                </div>
+            </div>
             <a href="kustomer.html"><div class="nav-item ${
               page === "kustomer.html" ? "active" : ""
             }">Data Pelanggan</div></a>
+            <a href="vendor.html"><div class="nav-item ${
+              page === "vendor.html" ? "active" : ""
+            }">Data Vendor</div></a>
         </div>
 
         <div class="nav-bottom">
@@ -111,6 +153,12 @@ window.showGlobalLoader = function () {
   if (loader) loader.classList.add("visible");
 };
 
+// Sidebar Toggle Logic
+window.toggleSubmenu = function (header) {
+  const menuItem = header.parentElement;
+  menuItem.classList.toggle("open");
+};
+
 window.hideGlobalLoader = function () {
   const loader = document.querySelector(".global-loader");
   if (loader) loader.classList.remove("visible");
@@ -130,6 +178,16 @@ function getPageTitle(page) {
       return "Data Pelanggan";
     case "invoice.html":
       return "Invoice";
+    case "quotation.html":
+      return "Quotation";
+    case "data_quotation.html":
+      return "Data Quotation";
+    case "quotation_view.html":
+      return "Quotation View";
+    case "vendor.html":
+      return "Data Vendor";
+    case "pelunasan.html":
+      return "Pelunasan";
     default:
       return "Dashboard";
   }
