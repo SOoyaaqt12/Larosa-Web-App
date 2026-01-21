@@ -276,8 +276,10 @@ tbody tr {
   border-bottom: none;
 }
 
-.suggestion-item:hover {
+.suggestion-item:hover,
+.suggestion-item.active {
   background-color: #f0f7ff;
+  border-left: 4px solid #6b8e5f; /* Add border to make it distinct */
 }
 
 .suggestion-item .phone {

@@ -64,6 +64,7 @@ async function initQuotationPage() {
   setupAutocomplete();
   setupProductAutocomplete();
   setupCalculatorInputs();
+  setupEnterKeyListeners();
 
   // checkEditMode(); // Implement if needed later
 
@@ -110,7 +111,7 @@ function incrementQuotationCounter(dateString) {
       JSON.stringify({
         date: dateString,
         count: currentCount + 1,
-      })
+      }),
     );
   } catch (e) {
     console.error("Error saving quotation counter:", e);
@@ -191,7 +192,7 @@ function setupProductAutocomplete() {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(
       () => showProductSuggestions(e.target.value),
-      100
+      100,
     );
   });
   skuInput.addEventListener("focus", () => {
@@ -202,11 +203,54 @@ function setupProductAutocomplete() {
     if (!e.target.closest("#noSku") && !e.target.closest("#skuSuggestionList"))
       hideProductSuggestions();
   });
+
+  // Keyboard navigation for SKU
+  skuInput.addEventListener("keydown", function (e) {
+    let list = document.getElementById("skuSuggestionList");
+    if (!list || !list.classList.contains("show")) return;
+
+    let items = list.getElementsByClassName("suggestion-item");
+    if (e.key === "ArrowDown") {
+      currentProductFocus++;
+      addActiveProduct(items);
+    } else if (e.key === "ArrowUp") {
+      currentProductFocus--;
+      addActiveProduct(items);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (currentProductFocus > -1) {
+        if (items[currentProductFocus]) items[currentProductFocus].click();
+      }
+    }
+  });
+}
+
+let currentProductFocus = -1;
+
+function addActiveProduct(x) {
+  if (!x) return false;
+  removeActiveProduct(x);
+  if (currentProductFocus >= x.length) currentProductFocus = 0;
+  if (currentProductFocus < 0) currentProductFocus = x.length - 1;
+  x[currentProductFocus].classList.add("active");
+
+  // Scroll to active item
+  x[currentProductFocus].scrollIntoView({
+    behavior: "smooth",
+    block: "nearest",
+  });
+}
+
+function removeActiveProduct(x) {
+  for (let i = 0; i < x.length; i++) {
+    x[i].classList.remove("active");
+  }
 }
 
 function showProductSuggestions(query) {
   const suggestionList = document.getElementById("skuSuggestionList");
   if (!suggestionList) return;
+  currentProductFocus = -1; // Reset focus
   query = query.trim().toUpperCase();
   if (query.length < 1) {
     hideProductSuggestions();
@@ -230,10 +274,10 @@ function showProductSuggestions(query) {
       const item = document.createElement("div");
       item.className = "suggestion-item";
       item.innerHTML = `<div class="phone">${sku}</div><div class="name">${nama} - Rp${harga.toLocaleString(
-        "id-ID"
+        "id-ID",
       )}</div>`;
       item.addEventListener("click", () =>
-        selectProduct(sku, nama, satuan, harga, kategori)
+        selectProduct(sku, nama, satuan, harga, kategori),
       );
       suggestionList.appendChild(item);
     });
@@ -272,6 +316,48 @@ function setupAutocomplete() {
   document.addEventListener("click", (e) => {
     if (!e.target.closest(".autocomplete-container")) hideSuggestions();
   });
+
+  // Keyboard navigation for Customer
+  noTeleponInput.addEventListener("keydown", function (e) {
+    let list = document.getElementById("suggestionList");
+    if (!list || !list.classList.contains("show")) return;
+
+    let items = list.getElementsByClassName("suggestion-item");
+    if (e.key === "ArrowDown") {
+      currentFocus++;
+      addActive(items);
+    } else if (e.key === "ArrowUp") {
+      currentFocus--;
+      addActive(items);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (currentFocus > -1) {
+        if (items[currentFocus]) items[currentFocus].click();
+      }
+    }
+  });
+}
+
+let currentFocus = -1;
+
+function addActive(x) {
+  if (!x) return false;
+  removeActive(x);
+  if (currentFocus >= x.length) currentFocus = 0;
+  if (currentFocus < 0) currentFocus = x.length - 1;
+  x[currentFocus].classList.add("active");
+
+  // Scroll to active item
+  x[currentFocus].scrollIntoView({
+    behavior: "smooth",
+    block: "nearest",
+  });
+}
+
+function removeActive(x) {
+  for (let i = 0; i < x.length; i++) {
+    x[i].classList.remove("active");
+  }
 }
 
 function normalizePhone(phone) {
@@ -285,6 +371,7 @@ function normalizePhone(phone) {
 function showSuggestions(query) {
   const suggestionList = document.getElementById("suggestionList");
   if (!suggestionList) return;
+  currentFocus = -1; // Reset focus
   query = query.trim();
   if (query.length < 2) {
     hideSuggestions();
@@ -312,7 +399,7 @@ function showSuggestions(query) {
       item.className = "suggestion-item";
       item.innerHTML = `<div class="phone">${phone}</div><div class="name">${nama}</div>`;
       item.addEventListener("click", () =>
-        selectCustomer(phone, nama, alamat, city, channel)
+        selectCustomer(phone, nama, alamat, city, channel),
       );
       suggestionList.appendChild(item);
     });
@@ -338,6 +425,18 @@ function hitungTotalHarga() {
   const jumlah = parseFloat(document.getElementById("jumlah").value) || 0;
   const harga = parseFloat(document.getElementById("harga").value) || 0;
   document.getElementById("totalHarga").value = jumlah * harga;
+}
+
+function setupEnterKeyListeners() {
+  const jumlahInput = document.getElementById("jumlah");
+  if (jumlahInput) {
+    jumlahInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        tambahKeKeranjang();
+      }
+    });
+  }
 }
 
 function tambahKeKeranjang() {

@@ -81,6 +81,7 @@ async function initKasirPage() {
 
   // Setup calculator input validation
   setupCalculatorInputs();
+  setupEnterKeyListeners();
 
   // Apply edit data if available
   checkEditMode();
@@ -148,7 +149,7 @@ function incrementInvoiceCounter(dateString) {
       JSON.stringify({
         date: dateString,
         count: currentCount + 1,
-      })
+      }),
     );
   } catch (e) {
     console.error("Error saving invoice counter:", e);
@@ -202,7 +203,7 @@ async function loadCustomersForAutocomplete() {
       console.log(
         "Loaded",
         allCustomers.length,
-        "customers from cache (instant)"
+        "customers from cache (instant)",
       );
     }
   } catch (e) {
@@ -243,7 +244,7 @@ async function loadProductsForAutocomplete() {
       console.log(
         "Loaded",
         allProducts.length,
-        "products from cache (instant)"
+        "products from cache (instant)",
       );
     }
   } catch (e) {
@@ -299,6 +300,48 @@ function setupProductAutocomplete() {
       hideProductSuggestions();
     }
   });
+
+  // Keyboard navigation for SKU
+  skuInput.addEventListener("keydown", function (e) {
+    let list = document.getElementById("skuSuggestionList");
+    if (!list || !list.classList.contains("show")) return;
+
+    let items = list.getElementsByClassName("suggestion-item");
+    if (e.key === "ArrowDown") {
+      currentProductFocus++;
+      addActiveProduct(items);
+    } else if (e.key === "ArrowUp") {
+      currentProductFocus--;
+      addActiveProduct(items);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (currentProductFocus > -1) {
+        if (items[currentProductFocus]) items[currentProductFocus].click();
+      }
+    }
+  });
+}
+
+let currentProductFocus = -1;
+
+function addActiveProduct(x) {
+  if (!x) return false;
+  removeActiveProduct(x);
+  if (currentProductFocus >= x.length) currentProductFocus = 0;
+  if (currentProductFocus < 0) currentProductFocus = x.length - 1;
+  x[currentProductFocus].classList.add("active");
+
+  // Scroll to active item
+  x[currentProductFocus].scrollIntoView({
+    behavior: "smooth",
+    block: "nearest",
+  });
+}
+
+function removeActiveProduct(x) {
+  for (let i = 0; i < x.length; i++) {
+    x[i].classList.remove("active");
+  }
 }
 
 /**
@@ -308,6 +351,7 @@ function showProductSuggestions(query) {
   const suggestionList = document.getElementById("skuSuggestionList");
   if (!suggestionList) return;
 
+  currentProductFocus = -1; // Reset focus
   query = query.trim().toUpperCase();
 
   if (query.length < 1) {
@@ -414,12 +458,54 @@ function setupAutocomplete() {
     }
   });
 
+  // Keyboard navigation for Customer
+  noTeleponInput.addEventListener("keydown", function (e) {
+    let list = document.getElementById("suggestionList");
+    if (!list || !list.classList.contains("show")) return;
+
+    let items = list.getElementsByClassName("suggestion-item");
+    if (e.key === "ArrowDown") {
+      currentFocus++;
+      addActive(items);
+    } else if (e.key === "ArrowUp") {
+      currentFocus--;
+      addActive(items);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (currentFocus > -1) {
+        if (items[currentFocus]) items[currentFocus].click();
+      }
+    }
+  });
+
   // Hide suggestions when clicking outside
   document.addEventListener("click", (e) => {
     if (!e.target.closest(".autocomplete-container")) {
       hideSuggestions();
     }
   });
+}
+
+let currentFocus = -1;
+
+function addActive(x) {
+  if (!x) return false;
+  removeActive(x);
+  if (currentFocus >= x.length) currentFocus = 0;
+  if (currentFocus < 0) currentFocus = x.length - 1;
+  x[currentFocus].classList.add("active");
+
+  // Scroll to active item
+  x[currentFocus].scrollIntoView({
+    behavior: "smooth",
+    block: "nearest",
+  });
+}
+
+function removeActive(x) {
+  for (let i = 0; i < x.length; i++) {
+    x[i].classList.remove("active");
+  }
 }
 
 /**
@@ -451,6 +537,7 @@ function showSuggestions(query) {
   const suggestionList = document.getElementById("suggestionList");
   if (!suggestionList) return;
 
+  currentFocus = -1; // Reset focus
   query = query.trim();
 
   // Need at least 2 characters
@@ -544,6 +631,21 @@ function hitungTotalHarga() {
   const jumlah = parseFloat(document.getElementById("jumlah").value) || 0;
   const harga = parseFloat(document.getElementById("harga").value) || 0;
   document.getElementById("totalHarga").value = jumlah * harga;
+}
+
+/**
+ * Setup Enter key listener for adding items to cart
+ */
+function setupEnterKeyListeners() {
+  const jumlahInput = document.getElementById("jumlah");
+  if (jumlahInput) {
+    jumlahInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        tambahKeKeranjang();
+      }
+    });
+  }
 }
 
 /**
@@ -799,13 +901,13 @@ async function saveInvoice(status) {
       const deleteSheet = editOriginSheet || INVOICE_SHEET_NAME;
       const deleteResult = await deleteInvoice(
         deleteSheet,
-        editOriginalOrderNo
+        editOriginalOrderNo,
       );
 
       if (!deleteResult.success) {
         throw new Error(
           `Gagal menghapus invoice lama dari ${deleteSheet}: ` +
-            deleteResult.error
+            deleteResult.error,
         );
       }
     }
@@ -967,7 +1069,7 @@ async function saveInvoice(status) {
         console.log("Attempting to delete quotation:", checkoutQuotationNo);
         const deleteResult = await deleteInvoice(
           QUOTATION_SHEET_NAME,
-          checkoutQuotationNo
+          checkoutQuotationNo,
         );
         console.log("Delete result:", deleteResult);
         if (deleteResult.success) {
@@ -993,7 +1095,7 @@ async function saveInvoice(status) {
     }
 
     alert(
-      `Invoice ${noPesanan} berhasil disimpan dengan status ${status} di sheet ${targetSheetName}!`
+      `Invoice ${noPesanan} berhasil disimpan dengan status ${status} di sheet ${targetSheetName}!`,
     );
 
     // Prepare data for invoice page (use raw variables before reset)
@@ -1147,7 +1249,7 @@ function checkEditMode() {
 
     // Set Fields
     document.getElementById("tanggalDibuat").value = formatDateForInput(
-      editData.info.tanggal
+      editData.info.tanggal,
     ); // Need helper for DD-Mon-YYYY to YYYY-MM-DD
     // Or if saved as DD-Mon-YYYY, input type=date expects YYYY-MM-DD.
     // Our formatDateForInvoice makes it DD-Mon-YYYY.
@@ -1321,7 +1423,7 @@ function disableFieldsForPelunasanMode() {
 
   // Disable "Tambah" button for adding products
   const tambahBtn = document.querySelector(
-    'button[onclick*="tambahKeKeranjang"]'
+    'button[onclick*="tambahKeKeranjang"]',
   );
   if (tambahBtn) {
     tambahBtn.disabled = true;
