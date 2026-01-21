@@ -52,8 +52,21 @@ async function login(username, password) {
 
     return result;
   } catch (error) {
-    console.error("Login failed:", error);
-    return { success: false, message: "Gagal terhubung ke server" };
+    console.error("Login Error Details:", error);
+    // Cek apakah error karena masalah jaringan atau CORS
+    let errorMessage = "Gagal terhubung ke server";
+
+    if (
+      error.name === "TypeError" &&
+      error.message.includes("Failed to fetch")
+    ) {
+      errorMessage =
+        "Koneksi ditolak oleh server. Periksa URL API atau koneksi internet.";
+    } else {
+      errorMessage += ": " + error.message;
+    }
+
+    return { success: false, message: errorMessage };
   }
 }
 

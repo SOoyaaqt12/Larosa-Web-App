@@ -34,24 +34,19 @@ function createDataService(config) {
   async function loadData(options) {
     const { onRender, tbody, onDataReady } = options;
 
-    // Step 1: Immediately show cached data if available
+    // Step 1: Immediately show cached data if available (Stale-While-Revalidate)
     const cached = await window.IDBCache?.get(cacheKey);
     if (cached && cached.data && cached.data.length > 0) {
       console.log(`Showing cached ${cacheKey} data instantly`);
       onRender(cached.data);
-
-      // If cache still valid, skip server fetch
-      if (cached.valid) {
-        console.log(`${cacheKey} cache valid, skipping refresh`);
-        if (onDataReady) onDataReady(cached.data);
-        return cached.data;
-      }
+      // We do NOT return early here anymore. We proceed to fetch fresh data.
     }
 
-    // Show refresh indicator
+    // Show refresh indicator (if we didn't show cache, or even if we did, to show we are updating)
+    // Optional: You might want to be subtle if cache was shown, but user asked for "updates", so showing activity is good.
     showRefreshIndicator(indicatorId);
 
-    // Step 2: Fetch fresh data in background
+    // Step 2: Fetch fresh data in background (Always)
     try {
       const result = await fetchSheetData(sheetName);
 
@@ -64,19 +59,21 @@ function createDataService(config) {
         if (onDataReady) onDataReady(result.data);
         return result.data;
       } else if (!cached || !cached.data || cached.data.length === 0) {
+        // Only show empty message if we have NO cache and NO new data
         if (tbody) {
           showTableMessage(tbody, emptyMessage, colSpan);
         }
       }
     } catch (error) {
       console.error(`Error loading ${cacheKey}:`, error);
+      // Only show error in table if we have nothing to show at all
       if (!cached || !cached.data || cached.data.length === 0) {
         if (tbody) {
           showTableMessage(
             tbody,
             `${errorMessage}: ${error.message}`,
             colSpan,
-            true
+            true,
           );
         }
       }
@@ -84,7 +81,8 @@ function createDataService(config) {
       hideRefreshIndicator(indicatorId);
     }
 
-    return [];
+    // Return cached data if fetch failed, or empty array
+    return cached && cached.data ? cached.data : [];
   }
 
   /**
@@ -108,11 +106,7 @@ function createDataService(config) {
     ) {
       console.log(`Showing cached ${cacheKey} grouped data`);
       onRender(cached.data);
-
-      if (cached.valid) {
-        console.log(`${cacheKey} cache valid, skipping refresh`);
-        return cached.data;
-      }
+      // Proceed to fetch fresh data...
     }
 
     // Show refresh indicator
@@ -145,11 +139,11 @@ function createDataService(config) {
             tbody,
             `${errorMessage}: ${error.message}`,
             colSpan,
-            true
+            true,
           );
         }
       }
-      return { map: {}, order: [] };
+      return cached && cached.data ? cached.data : { map: {}, order: [] };
     } finally {
       hideRefreshIndicator(indicatorId);
     }

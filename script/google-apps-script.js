@@ -42,7 +42,16 @@ function doGet(e) {
 }
 
 function doPost(e) {
-  const data = JSON.parse(e.postData.contents);
+  // Parsing handling yang lebih aman
+  let data;
+  try {
+    data = JSON.parse(e.postData.contents);
+  } catch (err) {
+    return ContentService.createTextOutput(
+      JSON.stringify({ error: "Invalid JSON data", detail: err.toString() })
+    ).setMimeType(ContentService.MimeType.JSON);
+  }
+
   const sheet = data.sheet;
   const action = data.action;
   const rowData = data.data;
