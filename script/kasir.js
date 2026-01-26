@@ -14,6 +14,7 @@ let nomorUrut = 1;
 
 // Customer data cache for autocomplete
 let allCustomers = [];
+let isLoadingCustomers = false;
 let selectedCustomer = { kota: "", channel: "" };
 
 // LocalStorage cache keys
@@ -687,6 +688,9 @@ function tambahKeKeranjang() {
   document.getElementById("harga").value = "";
   document.getElementById("satuan").value = "";
   document.getElementById("totalHarga").value = "";
+
+  // Focus back to SKU for rapid entry
+  document.getElementById("noSku").focus();
 }
 
 /**

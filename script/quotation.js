@@ -474,6 +474,9 @@ function tambahKeKeranjang() {
   document.getElementById("harga").value = "";
   document.getElementById("satuan").value = "";
   document.getElementById("totalHarga").value = "";
+
+  // Focus back to SKU for rapid entry
+  document.getElementById("noSku").focus();
 }
 
 function updateTabelKeranjang() {
