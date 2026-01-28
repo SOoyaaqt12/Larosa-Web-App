@@ -1,0 +1,80 @@
+{
+  "tech_stack": [
+    "HTML",
+    "CSS",
+    "Vanilla JavaScript",
+    "IndexedDB",
+    "Google Apps Script"
+  ],
+  "features": [
+    {
+      "name": "Dashboard",
+      "description": "Main application dashboard showing statistics.",
+      "files": ["dashboard.html", "script/dashboard.js"]
+    },
+    {
+      "name": "Kasir (POS)",
+      "description": "Point of Sale interface for creating transactions.",
+      "files": ["kasir.html", "script/kasir.js"]
+    },
+    {
+      "name": "Customer Management",
+      "description": "Manage customer data.",
+      "files": ["kustomer.html", "script/kustomer.js"]
+    },
+    {
+      "name": "Vendor Management",
+      "description": "Manage vendor data.",
+      "files": ["vendor.html", "script/vendor.js"]
+    },
+    {
+      "name": "Product Management",
+      "description": "Manage product catalog.",
+      "files": ["produk.html", "script/produk.js"]
+    },
+    {
+      "name": "Invoice Management",
+      "description": "Generate and edit invoices.",
+      "files": [
+        "invoice.html",
+        "form_edit_invoice.html",
+        "script/invoice.js",
+        "script/form_edit_invoice.js"
+      ]
+    },
+    {
+      "name": "Repayment (Pelunasan)",
+      "description": "Manage transaction repayments and DP.",
+      "files": [
+        "pelunasan.html",
+        "form_pelunasan.html",
+        "script/pelunasan.js",
+        "script/form_pelunasan.js"
+      ]
+    },
+    {
+      "name": "Quotation Management",
+      "description": "Manage and view quotations.",
+      "files": [
+        "quotation.html",
+        "quotation_view.html",
+        "script/quotation.js",
+        "script/quotation_view.js"
+      ]
+    },
+    {
+      "name": "Data Services",
+      "description": "Core data handling and sync with Google Sheets.",
+      "files": [
+        "script/data-service.js",
+        "script/google-apps-script.js",
+        "script/idb-cache.js"
+      ]
+    },
+    {
+      "name": "Authentication",
+      "description": "User login and authentication logic.",
+      "files": ["script/auth.js", "style/login.css"]
+    }
+  ]
+}

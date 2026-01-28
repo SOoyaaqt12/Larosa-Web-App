@@ -1,0 +1,662 @@
+[
+  {
+    "id": "TC001",
+    "title": "User login with valid credentials",
+    "description": "Verify that a user can successfully log in with correct username and password, and the session persists.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the authentication page"
+      },
+      {
+        "type": "action",
+        "description": "Input valid username and password"
+      },
+      {
+        "type": "action",
+        "description": "Click the login button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user is redirected to the dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify session is created and persists on page reload"
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "User login fails with invalid credentials",
+    "description": "Verify that login fails when an invalid username or password is provided and an appropriate error message is shown.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the authentication page"
+      },
+      {
+        "type": "action",
+        "description": "Input invalid username and/or password"
+      },
+      {
+        "type": "action",
+        "description": "Click the login button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that login fails"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify appropriate error message is displayed"
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Dashboard metrics display accurate statistics",
+    "description": "Verify the dashboard shows correct and up-to-date business metrics and the sales trend charts load properly.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in with a valid user"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify dashboard cards display correct key metrics (sales, inventory levels, etc.)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify sales trend charts render with correct data"
+      },
+      {
+        "type": "assertion",
+        "description": "Refresh data and verify dashboard updates accordingly"
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Create new sale transaction with customer and product autocomplete",
+    "description": "Verify that new transactions can be created in Kasir with autocomplete functionality for customers and products working correctly.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Kasir (POS) module"
+      },
+      {
+        "type": "action",
+        "description": "Type in customer field to trigger autocomplete and select a customer"
+      },
+      {
+        "type": "action",
+        "description": "Type in product field to trigger autocomplete and select multiple products"
+      },
+      {
+        "type": "action",
+        "description": "Input quantities and verify formula-based calculations for totals"
+      },
+      {
+        "type": "action",
+        "description": "Save the transaction as a full payment"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the transaction is stored and reflected in the system"
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Create sale transaction with down payment (DP)",
+    "description": "Verify that a sale transaction can be saved with a down payment and reflects correct due amounts.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Kasir (POS) module"
+      },
+      {
+        "type": "action",
+        "description": "Create a new transaction with selected customer and products"
+      },
+      {
+        "type": "action",
+        "description": "Select the option to save as down payment (DP)"
+      },
+      {
+        "type": "action",
+        "description": "Input down payment amount"
+      },
+      {
+        "type": "action",
+        "description": "Save the transaction"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the transaction is recorded with correct DP and due balance"
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Edit and update existing invoice transaction",
+    "description": "Verify the user can edit an existing invoice's items and update the transaction correctly.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to transaction history"
+      },
+      {
+        "type": "action",
+        "description": "Select an invoice to edit"
+      },
+      {
+        "type": "action",
+        "description": "Modify product quantities or add/remove products"
+      },
+      {
+        "type": "action",
+        "description": "Save changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify updated transaction details are saved and reflected in the system"
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Delete an invoice transaction and verify related data cleanup",
+    "description": "Verify that deleting an invoice removes it and related records properly from the system.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to transaction history"
+      },
+      {
+        "type": "action",
+        "description": "Select an invoice to delete"
+      },
+      {
+        "type": "action",
+        "description": "Confirm the deletion"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the invoice and all related data (items, payments) are removed"
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Create and convert quotation to invoice",
+    "description": "Verify quotations can be created properly and converted into invoices for checkout.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Quotation module"
+      },
+      {
+        "type": "action",
+        "description": "Create a new quotation with products and customer details"
+      },
+      {
+        "type": "action",
+        "description": "Save the quotation"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify quotation is stored and can be viewed"
+      },
+      {
+        "type": "action",
+        "description": "Select the quotation and convert to invoice"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the invoice is generated correctly and saved"
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Product inventory search, filter, pagination and CRUD operations",
+    "description": "Verify product list supports search and filters, pagination works correctly, and products can be created, edited and deleted with appropriate feedback.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Product Management module"
+      },
+      {
+        "type": "action",
+        "description": "Use search to find a product by name"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify search results are filtered correctly"
+      },
+      {
+        "type": "action",
+        "description": "Apply filters (e.g. by category, stock levels)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify filtered results match criteria"
+      },
+      {
+        "type": "action",
+        "description": "Navigate pagination to switch pages"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify correct products show per page"
+      },
+      {
+        "type": "action",
+        "description": "Add a new product with required details"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify product is added and listed"
+      },
+      {
+        "type": "action",
+        "description": "Edit an existing product's fields"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify changes are saved and reflected"
+      },
+      {
+        "type": "action",
+        "description": "Delete a product"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify product is removed from list"
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Customer management CRUD with data update validation",
+    "description": "Verify customers can be added, edited, and deleted, and related transaction counts update accordingly.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Customer Management module"
+      },
+      {
+        "type": "action",
+        "description": "Add a new customer with valid data"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the customer appears in the customer list"
+      },
+      {
+        "type": "action",
+        "description": "Edit customer information"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify updated customer data is saved"
+      },
+      {
+        "type": "action",
+        "description": "Delete a customer who has no transactions"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the customer is removed from the list"
+      },
+      {
+        "type": "action",
+        "description": "Check transaction count for a customer"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify correct number of related transactions is shown"
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Vendor management CRUD and data verification",
+    "description": "Verify vendors can be created, updated, and deleted, and their related transaction counts are accurate.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Vendor Management module"
+      },
+      {
+        "type": "action",
+        "description": "Add a new vendor with required details"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify vendor appears in vendor list"
+      },
+      {
+        "type": "action",
+        "description": "Edit vendor information"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify updated vendor data is saved"
+      },
+      {
+        "type": "action",
+        "description": "Delete a vendor without active transactions"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify vendor is removed"
+      },
+      {
+        "type": "action",
+        "description": "Check related transaction counts for a vendor"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify transaction count is accurate"
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Payment settlement with full payment updates",
+    "description": "Verify that full payment settlements update invoice status correctly and payment records are saved.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Payment Settlement module"
+      },
+      {
+        "type": "action",
+        "description": "Select an unpaid invoice"
+      },
+      {
+        "type": "action",
+        "description": "Input full payment amount and select payment method"
+      },
+      {
+        "type": "action",
+        "description": "Submit the payment"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify invoice status updates to paid"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify payment record is created and saved"
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Payment settlement with down payment partial payment",
+    "description": "Verify payment settlements with down payments update invoice with correct partial payment and due amounts.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Payment Settlement module"
+      },
+      {
+        "type": "action",
+        "description": "Select an unpaid invoice"
+      },
+      {
+        "type": "action",
+        "description": "Input partial payment amount as down payment"
+      },
+      {
+        "type": "action",
+        "description": "Select payment method and submit"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify invoice status updates appropriately for partial payment"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify payment record reflects partial payment details"
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Edit existing payment record and verify updates",
+    "description": "Verify users can edit previously saved payment records and changes are reflected correctly.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Payment Settlement module"
+      },
+      {
+        "type": "action",
+        "description": "Select an existing payment record to edit"
+      },
+      {
+        "type": "action",
+        "description": "Modify payment amount or method"
+      },
+      {
+        "type": "action",
+        "description": "Save the payment record"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify updated payment data is stored and reflected in invoice status"
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Invoice generation and printing for full payment",
+    "description": "Verify invoices generated from completed transactions with full payment have correct format and printable layout.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Complete a transaction with full payment"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to Invoice Management module"
+      },
+      {
+        "type": "action",
+        "description": "Generate invoice from completed transaction"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify invoice displays correct transaction information and full payment status"
+      },
+      {
+        "type": "action",
+        "description": "Print the invoice"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify printed layout is correct and complete"
+      }
+    ]
+  },
+  {
+    "id": "TC016",
+    "title": "Invoice generation and printing for down payment (DP) transaction",
+    "description": "Verify invoices generated for transactions with down payments show correct amounts, balances and printable format.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Complete a transaction with down payment"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to Invoice Management module"
+      },
+      {
+        "type": "action",
+        "description": "Generate invoice from DP transaction"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify invoice displays amounts paid, outstanding balance, and status"
+      },
+      {
+        "type": "action",
+        "description": "Print the invoice"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify printed layout is correct and complete"
+      }
+    ]
+  },
+  {
+    "id": "TC017",
+    "title": "Data synchronization success between local IndexedDB and Google Sheets",
+    "description": "Verify that local cache using IndexedDB syncs properly with Google Sheets backend, maintaining data consistency.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Perform data CRUD operations locally"
+      },
+      {
+        "type": "action",
+        "description": "Trigger data synchronization to Google Sheets"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify changes are reflected in Google Sheets data"
+      },
+      {
+        "type": "action",
+        "description": "Modify Google Sheets data externally"
+      },
+      {
+        "type": "action",
+        "description": "Perform sync to update local IndexedDB"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify local IndexedDB cache reflects Google Sheets changes accurately"
+      }
+    ]
+  },
+  {
+    "id": "TC018",
+    "title": "Display loading states and error messages during CRUD operations",
+    "description": "Verify that loading indicators appear during data fetching or updates, and error messages display on failures.",
+    "category": "ui",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Trigger a data fetch or submit action in any module (e.g., product addition)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify loading indicator is visible during operation"
+      },
+      {
+        "type": "action",
+        "description": "Simulate a failure in backend (e.g., network disconnect)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify error message is displayed with meaningful text to user"
+      }
+    ]
+  },
+  {
+    "id": "TC019",
+    "title": "Session timeout and automatic logout",
+    "description": "Verify that when user session expires, the application logs out the user and redirects to login page with notifications.",
+    "category": "security",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in successfully"
+      },
+      {
+        "type": "action",
+        "description": "Wait until session timeout expires or simulate timeout"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user is automatically logged out"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user is redirected to login page with session expired notification"
+      }
+    ]
+  },
+  {
+    "id": "TC020",
+    "title": "Invalid input handling in forms",
+    "description": "Verify all forms validate inputs correctly and display proper validation messages for incorrect or missing data.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open forms in modules such as product addition, customer creation, quotation creation"
+      },
+      {
+        "type": "action",
+        "description": "Input invalid or incomplete data in required fields"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to submit the form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify appropriate validation error messages appear"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify form submission is blocked until errors are corrected"
+      }
+    ]
+  }
+]

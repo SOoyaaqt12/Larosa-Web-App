@@ -1,7 +1,18 @@
 {
-  "status": "init",
-  "scope": "codebase",
+  "status": "commited",
   "type": "frontend",
-  "localEndpoint": "http://localhost:80/LarosaWebApp/",
-  "serverPort": 58407
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:8081",
+  "loginUser": "daffarafdhan",
+  "loginPassword": "daffarafdhan212",
+  "executionArgs": {
+    "projectName": "LarosaWebApp",
+    "projectPath": "c:\\laragon\\www\\LarosaWebApp",
+    "testIds": [],
+    "additionalInstruction": "Project is served at http://localhost:8081. DO NOT use main.html. The application entry point is index.html. The login username is 'daffarafdhan' and password is 'daffarafdhan212'. Ensure navigation starts from index.html. Assets like logo are in /asset/image/larosa-logo.png. Verify basic functionality across Dashboard, POS (Kasir), and Customer modules.",
+    "envs": {
+      "API_KEY": "sk-user-l3hqGy5XHKo9adUnqGQk3n4vdtnhshxJbGPa56pHBXdJJJXn5y9jT2fBRz0fr9jtJpWR3f8s2ASSmhNAdhWjHMoZlq1t-goGlSTx6BlDmdytU_qTKujubLtTc-GPDp9xEbQ"
+    }
+  },
+  "proxy": "http://57851019-fac0-4131-8fff-633d11cb3c06:LyZoabQDdUbfNtVT2U8cCe6U1laR2imv@tun.testsprite.com:8080"
 }
