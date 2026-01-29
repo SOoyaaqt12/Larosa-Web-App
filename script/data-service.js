@@ -36,10 +36,14 @@ function createDataService(config) {
 
     // Step 1: Immediately show cached data if available (Stale-While-Revalidate)
     const cached = await window.IDBCache?.get(cacheKey);
-    if (cached && cached.data && cached.data.length > 0) {
+    const hasCache = cached && cached.data && cached.data.length > 0;
+
+    if (hasCache) {
       console.log(`Showing cached ${cacheKey} data instantly`);
       onRender(cached.data);
-      // We do NOT return early here anymore. We proceed to fetch fresh data.
+    } else if (tbody) {
+      // If no cache, show "Loading..." in the table so it doesn't look dead
+      showTableMessage(tbody, "Sedang mengambil data dari server...", colSpan);
     }
 
     // Show refresh indicator (if we didn't show cache, or even if we did, to show we are updating)
@@ -98,15 +102,17 @@ function createDataService(config) {
 
     // Step 1: Show cached data immediately
     const cached = await window.IDBCache?.get(cacheKey);
-    if (
+    const hasCache =
       cached &&
       cached.data &&
       cached.data.map &&
-      Object.keys(cached.data.map).length > 0
-    ) {
+      Object.keys(cached.data.map).length > 0;
+
+    if (hasCache) {
       console.log(`Showing cached ${cacheKey} grouped data`);
       onRender(cached.data);
-      // Proceed to fetch fresh data...
+    } else if (tbody) {
+      showTableMessage(tbody, "Sedang mengambil data dari server...", colSpan);
     }
 
     // Show refresh indicator
@@ -218,6 +224,13 @@ const DataServices = {
     cacheKey: "pelunasan_data_cache",
     colSpan: 6,
     emptyMessage: "Tidak ada data pelunasan",
+  }),
+
+  quotation: createDataService({
+    sheetName: "QUOTATION",
+    cacheKey: "quotation_data_cache",
+    colSpan: 5,
+    emptyMessage: "Belum ada data quotation",
   }),
 };
 

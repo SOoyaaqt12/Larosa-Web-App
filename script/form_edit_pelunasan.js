@@ -23,8 +23,6 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 async function initEditPage() {
-  if (window.showGlobalLoader) window.showGlobalLoader();
-
   // Check data
   const editDataString = sessionStorage.getItem("editInvoiceData");
   if (!editDataString) {
@@ -33,23 +31,130 @@ async function initEditPage() {
     return;
   }
 
+  const editData = JSON.parse(editDataString);
+
+  // Step 1: Load cached data IMMEDIATELY (non-blocking sync operations)
+  loadCachedCustomers();
+  loadCachedProducts();
+  loadCachedKasir(editData.info.kasir);
+
+  // Step 2: Setup and Populate UI immediately
+  setupAutocomplete();
+  setupProductAutocomplete();
+  setupCalculatorInputs();
+  setupEnterKeyListeners();
+
+  populateForm(editData);
+
+  // Step 3: Refresh data in background (non-blocking)
+  refreshDataInBackground(editData.info.kasir);
+}
+
+/**
+ * Load customers from cache synchronously
+ */
+function loadCachedCustomers() {
   try {
-    await Promise.all([
-      loadCustomersForAutocomplete(),
-      loadProductsForAutocomplete(),
-    ]);
+    const cached = localStorage.getItem("larosapot_customer_cache");
+    if (cached) {
+      allCustomers = JSON.parse(cached);
+    }
+  } catch (e) {}
+}
 
-    setupAutocomplete();
-    setupProductAutocomplete();
-    setupCalculatorInputs();
+/**
+ * Load products from cache synchronously
+ */
+function loadCachedProducts() {
+  try {
+    const cached = localStorage.getItem("larosapot_product_cache");
+    if (cached) {
+      allProducts = JSON.parse(cached);
+    }
+  } catch (e) {}
+}
 
-    const editData = JSON.parse(editDataString);
-    populateForm(editData);
+/**
+ * Load kasir dropdown from cache synchronously
+ */
+function loadCachedKasir(defaultKasir) {
+  const select = document.getElementById("kasir");
+  if (!select) return;
+
+  try {
+    const cached = localStorage.getItem("larosapot_users_cache");
+    if (cached) {
+      const users = JSON.parse(cached);
+      select.innerHTML = "";
+      users.forEach((user) => {
+        const username = user.USERNAME || user.username || user.Username;
+        if (username) {
+          const option = document.createElement("option");
+          option.value = username;
+          option.textContent = username;
+          if (
+            defaultKasir &&
+            username.toLowerCase() === defaultKasir.toLowerCase()
+          ) {
+            option.selected = true;
+          }
+          select.appendChild(option);
+        }
+      });
+    } else if (defaultKasir) {
+      select.innerHTML = `<option value="${defaultKasir}" selected>${defaultKasir}</option>`;
+    }
   } catch (e) {
-    console.error("Init Error", e);
-    alert("Gagal memuat halaman: " + (e.message || e));
-  } finally {
-    if (window.hideGlobalLoader) window.hideGlobalLoader();
+    if (defaultKasir) {
+      select.innerHTML = `<option value="${defaultKasir}" selected>${defaultKasir}</option>`;
+    }
+  }
+}
+
+/**
+ * Refresh all data in background without blocking UI
+ */
+function refreshDataInBackground(defaultKasir) {
+  Promise.all([
+    loadCustomersForAutocomplete(),
+    loadProductsForAutocomplete(),
+    refreshKasirDropdown(defaultKasir),
+  ]).catch((err) => console.warn("Background refresh error:", err));
+}
+
+/**
+ * Refresh kasir dropdown in background
+ */
+async function refreshKasirDropdown(defaultKasir) {
+  const select = document.getElementById("kasir");
+  if (!select) return;
+
+  try {
+    const result = await fetchSheetData("USERS");
+    if (result && result.data && result.data.length > 0) {
+      localStorage.setItem(
+        "larosapot_users_cache",
+        JSON.stringify(result.data),
+      );
+      select.innerHTML = "";
+      result.data.forEach((user) => {
+        const username = user.USERNAME || user.username || user.Username;
+        if (username) {
+          const option = document.createElement("option");
+          option.value = username;
+          option.textContent = username;
+          if (
+            defaultKasir &&
+            username.toLowerCase() === defaultKasir.toLowerCase()
+          ) {
+            option.selected = true;
+          }
+          select.appendChild(option);
+        }
+      });
+    }
+  } catch (error) {
+    console.warn("Error refreshing kasir:", error);
   }
 }
 
@@ -58,7 +163,7 @@ function populateForm(editData) {
 
   // Core fields
   document.getElementById("tanggalDibuat").value = formatDateForInput(
-    editData.info.tanggal
+    editData.info.tanggal,
   );
   document.getElementById("noPesanan").value = editData.info.noPesanan;
   document.getElementById("kasir").value = editData.info.kasir;
@@ -177,7 +282,7 @@ function setupAutocomplete() {
           String(c["NO HP"] || "").includes(val) ||
           String(c["NAMA PELANGGAN"] || "")
             .toLowerCase()
-            .includes(val.toLowerCase())
+            .includes(val.toLowerCase()),
       )
       .slice(0, 10);
 
@@ -185,7 +290,10 @@ function setupAutocomplete() {
     matches.forEach((c) => {
       const div = document.createElement("div");
       div.className = "suggestion-item";
-      div.innerHTML = `${c["NAMA PELANGGAN"]} - ${c["NO HP"]}`;
+      div.innerHTML = `
+        <div class="phone">${c["NO HP"]}</div>
+        <div class="name">${c["NAMA PELANGGAN"]}</div>
+      `;
       div.onclick = () => {
         document.getElementById("namaPelanggan").value = c["NAMA PELANGGAN"];
         document.getElementById("noTelepon").value = c["NO HP"];
@@ -200,10 +308,43 @@ function setupAutocomplete() {
     else list.classList.remove("show");
   });
 
+  input.addEventListener("keydown", (e) => {
+    const items = list.getElementsByClassName("suggestion-item");
+    if (!list.classList.contains("show")) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      currentFocus++;
+      addActive(items);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      currentFocus--;
+      addActive(items);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (currentFocus > -1 && items[currentFocus]) {
+        items[currentFocus].click();
+      }
+    }
+  });
+
   document.addEventListener("click", (e) => {
     if (!e.target.closest(".autocomplete-container"))
       list.classList.remove("show");
   });
+}
+
+let currentFocus = -1;
+function addActive(x) {
+  if (!x) return false;
+  removeActive(x);
+  if (currentFocus >= x.length) currentFocus = 0;
+  if (currentFocus < 0) currentFocus = x.length - 1;
+  x[currentFocus].classList.add("active");
+  x[currentFocus].scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+function removeActive(x) {
+  for (let i = 0; i < x.length; i++) x[i].classList.remove("active");
 }
 
 function setupProductAutocomplete() {
@@ -224,7 +365,7 @@ function setupProductAutocomplete() {
           String(p["SKU"] || "").includes(val) ||
           String(p["NAMA PRODUK"] || "")
             .toUpperCase()
-            .includes(val)
+            .includes(val),
       )
       .slice(0, 10);
 
@@ -232,7 +373,12 @@ function setupProductAutocomplete() {
     matches.forEach((p) => {
       const div = document.createElement("div");
       div.className = "suggestion-item";
-      div.innerHTML = `${p["SKU"]} - ${p["NAMA PRODUK"]}`;
+      div.innerHTML = `
+        <div class="phone">${p["SKU"]}</div>
+        <div class="name">${p["NAMA PRODUK"]} - Rp${(
+          parseFloat(p["HARGA JUAL"]) || 0
+        ).toLocaleString("id-ID")}</div>
+      `;
       div.onclick = () => {
         document.getElementById("noSku").value = p["SKU"];
         document.getElementById("namaProduk").value = p["NAMA PRODUK"];
@@ -248,10 +394,58 @@ function setupProductAutocomplete() {
     if (matches.length > 0) list.classList.add("show");
   });
 
+  input.addEventListener("keydown", (e) => {
+    const items = list.getElementsByClassName("suggestion-item");
+    if (!list.classList.contains("show")) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      currentProductFocus++;
+      addActiveProduct(items);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      currentFocus--;
+      addActiveProduct(items);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (currentProductFocus > -1 && items[currentProductFocus]) {
+        items[currentProductFocus].click();
+      }
+    }
+  });
+
   document.addEventListener("click", (e) => {
     if (!e.target.closest(".autocomplete-container"))
       list.classList.remove("show");
   });
+}
+
+let currentProductFocus = -1;
+function addActiveProduct(x) {
+  if (!x) return false;
+  removeActiveProduct(x);
+  if (currentProductFocus >= x.length) currentProductFocus = 0;
+  if (currentProductFocus < 0) currentProductFocus = x.length - 1;
+  x[currentProductFocus].classList.add("active");
+  x[currentProductFocus].scrollIntoView({
+    behavior: "smooth",
+    block: "nearest",
+  });
+}
+function removeActiveProduct(x) {
+  for (let i = 0; i < x.length; i++) x[i].classList.remove("active");
+}
+
+function setupEnterKeyListeners() {
+  const jumlahInput = document.getElementById("jumlah");
+  if (jumlahInput) {
+    jumlahInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        tambahKeKeranjang();
+      }
+    });
+  }
 }
 
 function hitungTotalHarga() {
@@ -306,13 +500,35 @@ function updateTabelKeranjang() {
             <td>${item.no}</td>
             <td>${item.sku}</td>
             <td>${item.produk}</td>
-            <td>${item.jumlah}</td>
+            <td>
+                <input type="number" 
+                       value="${item.jumlah}" 
+                       min="1" 
+                       style="width: 60px; padding: 2px 5px; border: 1px solid #ccc; border-radius: 4px;" 
+                       onchange="ubahJumlahItem(${idx}, this.value)">
+            </td>
             <td>${item.satuan}</td>
             <td>Rp${item.harga.toLocaleString()}</td>
             <td>Rp${item.total.toLocaleString()}</td>
             <td><button class="btn-remove" onclick="hapusItem(${idx})">Hapus</button></td>
         `;
   });
+}
+
+function ubahJumlahItem(index, newQty) {
+  const qty = parseFloat(newQty) || 0;
+  if (qty <= 0) {
+    alert("Jumlah harus lebih dari 0!");
+    updateTabelKeranjang();
+    return;
+  }
+
+  const item = keranjangData[index];
+  item.jumlah = qty;
+  item.total = item.jumlah * item.harga;
+
+  updateTabelKeranjang();
+  hitungSubtotal();
 }
 
 function hapusItem(idx) {
@@ -402,7 +618,7 @@ async function saveEditPelunasan() {
     // 1. Delete Old Entry from Pelunasan
     const deleteRes = await deleteInvoice(
       PELUNASAN_SHEET_NAME,
-      editOriginalOrderNo
+      editOriginalOrderNo,
     );
     if (!deleteRes.success)
       throw new Error("Gagal menghapus data lama: " + deleteRes.error);
@@ -494,6 +710,15 @@ async function saveEditPelunasan() {
 
     alert("Perubahan berhasil disimpan!");
     sessionStorage.removeItem("editInvoiceData");
+
+    // Clear cache
+    if (window.DataServices) {
+      if (window.DataServices.invoice)
+        await window.DataServices.invoice.clearCache();
+      if (window.DataServices.pelunasan)
+        await window.DataServices.pelunasan.clearCache();
+    }
+
     window.location.href = "pelunasan.html";
   } catch (e) {
     console.error("Save Error", e);
@@ -504,14 +729,35 @@ async function saveEditPelunasan() {
   }
 }
 
-function formatDateForInput(dateString) {
-  if (!dateString) return new Date().toISOString().split("T")[0];
-  if (
-    dateString.includes("-") &&
-    dateString.length === 10 &&
-    !isNaN(dateString.substring(0, 4))
-  )
-    return dateString;
+function formatDateForInput(dateVal) {
+  const toLocalISO = (d) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  if (!dateVal) return toLocalISO(new Date());
+
+  if (dateVal instanceof Date) {
+    return isNaN(dateVal.getTime())
+      ? toLocalISO(new Date())
+      : toLocalISO(dateVal);
+  }
+
+  const str = String(dateVal).trim();
+
+  if (str.includes("T")) {
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) return toLocalISO(d);
+  }
+
+  const ym = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (ym) return `${ym[1]}-${ym[2].padStart(2, "0")}-${ym[3].padStart(2, "0")}`;
+
+  const dm = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (dm) return `${dm[3]}-${dm[2].padStart(2, "0")}-${dm[1].padStart(2, "0")}`;
+
   const months = {
     Jan: "01",
     Feb: "02",
@@ -526,10 +772,14 @@ function formatDateForInput(dateString) {
     Nov: "11",
     Dec: "12",
   };
-  const parts = dateString.split("-");
-  if (parts.length === 3)
-    return `${parts[2]}-${months[parts[1]] || "01"}-${parts[0]}`;
-  return dateString;
+  const dmon = str.match(/^(\d{1,2})[-/ ]([a-zA-Z]{3})[-/ ](\d{4})/);
+  if (dmon && months[dmon[2]])
+    return `${dmon[3]}-${months[dmon[2]]}-${dmon[1].padStart(2, "0")}`;
+
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) return toLocalISO(d);
+
+  return toLocalISO(new Date());
 }
 
 function formatDateForInvoice(dateString) {

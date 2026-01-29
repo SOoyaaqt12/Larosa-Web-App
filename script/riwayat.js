@@ -23,6 +23,43 @@ async function loadRiwayatData() {
     onRender: renderTable,
     groupFn: groupDataByOrder,
   });
+
+  setupSearch();
+}
+
+function setupSearch() {
+  const searchInput = document.getElementById("searchInput");
+  if (!searchInput) return;
+
+  searchInput.addEventListener("input", (e) => {
+    const searchTerm = e.target.value.toLowerCase().trim();
+    if (!searchTerm) {
+      renderTable({ map: groupedInvoices.map, order: groupedInvoices.order });
+      return;
+    }
+
+    const keywords = searchTerm.split(/\s+/);
+    const filteredOrder = groupedInvoices.order.filter((noPesanan) => {
+      const rows = groupedInvoices.map[noPesanan];
+      const mainRow = rows[0];
+      const nama = getValueFromKeys(
+        mainRow,
+        ["NAMA PELANGGAN", "Nama Pelanggan"],
+        "",
+      ).toLowerCase();
+      const kota = getValueFromKeys(
+        mainRow,
+        ["Kota", "KOTA"],
+        "",
+      ).toLowerCase();
+      const searchSource = `${noPesanan.toLowerCase()} ${nama} ${kota}`;
+
+      // All keywords must be found in the combined source string (AND logic)
+      return keywords.every((kw) => searchSource.includes(kw));
+    });
+
+    renderTable({ map: groupedInvoices.map, order: filteredOrder });
+  });
 }
 
 function groupDataByOrder(data) {
@@ -95,7 +132,7 @@ function renderTable(groupedData) {
     const nama = getValueFromKeys(
       mainRow,
       ["NAMA PELANGGAN", "Nama Pelanggan"],
-      ""
+      "",
     );
     const itemsCount = invoiceRows.length;
     let totalTagihan = mainRow["TOTAL TAGIHAN"] || 0;
@@ -109,7 +146,7 @@ function renderTable(groupedData) {
       <td>
         <div style="font-weight:bold;">${nama}</div>
         <div style="font-size: 0.8em; color: gray;">${formatDisplayDate(
-          tanggal
+          tanggal,
         )}</div>
       </td>
       <td>
@@ -228,7 +265,7 @@ function editInvoice(noPesanan) {
 async function deleteInvoiceAction(noPesanan) {
   if (
     !confirm(
-      `Yakin ingin menghapus invoice ${noPesanan}? Data yang dihapus tidak bisa dikembalikan.`
+      `Yakin ingin menghapus invoice ${noPesanan}? Data yang dihapus tidak bisa dikembalikan.`,
     )
   ) {
     return;

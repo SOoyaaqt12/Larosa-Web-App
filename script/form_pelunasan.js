@@ -55,17 +55,17 @@ function renderInvoiceData(data) {
 
   // Totals
   document.getElementById("subtotal").value = formatRupiah(
-    data.summary.subtotal
+    data.summary.subtotal,
   );
   document.getElementById("ongkir").value = formatRupiah(data.summary.ongkir);
   document.getElementById("diskon").value = formatRupiah(data.summary.diskon);
   document.getElementById("totalTagihan").value = formatRupiah(
-    data.summary.totalTagihan
+    data.summary.totalTagihan,
   );
 
   // Payment Info
   document.getElementById("totalBayarAwal").value = formatRupiah(
-    data.totalBayar
+    data.totalBayar,
   );
 
   // Calculate current remaining
@@ -108,7 +108,7 @@ async function prosesPelunasan() {
 
   const jumlahBayar =
     parseFloat(
-      document.getElementById("jumlahPelunasan").value.replace(/[^\d.-]/g, "")
+      document.getElementById("jumlahPelunasan").value.replace(/[^\d.-]/g, ""),
     ) || 0;
   const sisaAwal =
     currentInvoiceData.summary.totalTagihan - currentInvoiceData.totalBayar;
@@ -177,7 +177,7 @@ async function prosesPelunasan() {
       targetSheet,
       dp1Obj,
       dp2Obj,
-      document.getElementById("paymen").value // Pass payment method
+      document.getElementById("paymen").value, // Pass payment method
     );
 
     // 4. Save to Target Sheet
@@ -193,7 +193,7 @@ async function prosesPelunasan() {
     alert(
       `Berhasil menyimpan transaksi! Data disimpan di ${
         isFullPayment ? "Riwayat" : "Pelunasan"
-      } (${status}).`
+      } (${status}).`,
     );
     // Ensure we don't double submit by redirecting immediately
     // Wait for redirect, don't re-enable button immediately
@@ -218,7 +218,7 @@ function buildInvoiceRows(
   targetSheet,
   dp1Val,
   dp2Val,
-  paymentMethod
+  paymentMethod,
 ) {
   const rows = [];
   const isInvoiceSheet = targetSheet === INVOICE_SHEET_NAME;
@@ -260,15 +260,15 @@ function buildInvoiceRows(
         PACKING: data.summary.packing,
         DISKON: data.summary.diskon,
         "TOTAL TAGIHAN": data.summary.totalTagihan,
+        "DP 1": dp1Val,
+        "DP 2": dp2Val,
+        Pelunasan: isLunas ? dp2Val : "",
+        "SISA TAGIHAN": sisa,
       };
 
+      // Ensure city is included for Riwayat sheet
       if (isInvoiceSheet) {
-        rowData[kotaKey] = data.customer.city || "";
-      } else {
-        rowData["DP 1"] = dp1Val;
-        rowData["DP 2"] = dp2Val;
-        rowData["Pelunasan"] = "";
-        rowData["SISA TAGIHAN"] = sisa;
+        rowData["Kota"] = data.customer.city || "";
       }
     } else {
       // Subsequent rows

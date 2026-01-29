@@ -1,13 +1,10 @@
 /**
- * Edit Invoice Logic
- * Duplicate of kasir.js but stripped down for dedicated editing page
+ * Edit Quotation Logic
  */
 
-const INVOICE_SHEET_NAME = "INVOICE";
-const PELUNASAN_SHEET_NAME = "DP/Pelunasan";
+const QUOTATION_SHEET_NAME = "QUOTATION";
 const KUSTOMER_SHEET_NAME = "KOSTUMER";
 const PRODUK_SHEET_NAME = "PERSEDIAAN BARANG";
-const INVOICE_COUNTER_KEY = "larosapot_invoice_counter";
 
 // State
 let keranjangData = [];
@@ -15,18 +12,18 @@ let nomorUrut = 1;
 let allCustomers = [];
 let allProducts = [];
 let selectedCustomer = { kota: "", channel: "" };
-
 let editOriginalOrderNo = "";
-let editOriginSheet = "";
-let originalStatus = "";
+
+// LocalStorage cache keys
+const CUSTOMER_CACHE_KEY = "larosapot_customer_cache";
+const PRODUCT_CACHE_KEY = "larosapot_product_cache";
 
 document.addEventListener("DOMContentLoaded", () => {
   initEditPage();
 });
 
 async function initEditPage() {
-  // Check data
-  const editDataString = sessionStorage.getItem("editInvoiceData");
+  const editDataString = sessionStorage.getItem("editQuotationData");
   if (!editDataString) {
     alert("Data edit tidak ditemukan!");
     window.history.back();
@@ -41,7 +38,6 @@ async function initEditPage() {
   loadCachedKasir(editData.info.kasir);
 
   // Step 2: Setup and Populate UI immediately
-  // Form data is already in sessionStorage, so no reason to wait!
   setupAutocomplete();
   setupProductAutocomplete();
   setupCalculatorInputs();
@@ -58,7 +54,7 @@ async function initEditPage() {
  */
 function loadCachedCustomers() {
   try {
-    const cached = localStorage.getItem("larosapot_customer_cache");
+    const cached = localStorage.getItem(CUSTOMER_CACHE_KEY);
     if (cached) {
       allCustomers = JSON.parse(cached);
     }
@@ -70,7 +66,7 @@ function loadCachedCustomers() {
  */
 function loadCachedProducts() {
   try {
-    const cached = localStorage.getItem("larosapot_product_cache");
+    const cached = localStorage.getItem(PRODUCT_CACHE_KEY);
     if (cached) {
       allProducts = JSON.parse(cached);
     }
@@ -118,7 +114,6 @@ function loadCachedKasir(defaultKasir) {
  * Refresh all data in background without blocking UI
  */
 function refreshDataInBackground(defaultKasir) {
-  // Fire all requests in parallel, don't await individually
   Promise.all([
     loadCustomersForAutocomplete(),
     loadProductsForAutocomplete(),
@@ -164,19 +159,15 @@ async function refreshKasirDropdown(defaultKasir) {
 
 function populateForm(editData) {
   editOriginalOrderNo = editData.info.noPesanan;
-  originalStatus = editData.info.transaksi;
 
-  // Capture origin
-  const urlParams = new URLSearchParams(window.location.search);
-  editOriginSheet = urlParams.get("origin") || INVOICE_SHEET_NAME;
-
-  // Core fields
   document.getElementById("tanggalDibuat").value = formatDateForInput(
     editData.info.tanggal,
   );
   document.getElementById("noPesanan").value = editData.info.noPesanan;
   document.getElementById("kasir").value = editData.info.kasir;
-  document.getElementById("paymen").value = editData.info.payment || "";
+  document.getElementById("paymen").value = editData.info.payment || "Transfer";
+  document.getElementById("jenisTransaksi").value =
+    editData.info.transaksi || "Online";
 
   // Customer
   document.getElementById("namaPelanggan").value = editData.customer.nama;
@@ -197,7 +188,7 @@ function populateForm(editData) {
       satuan: item.satuan,
       harga: item.harga,
       total: item.total,
-      kategori: item.kategori,
+      kategori: item.kategori || "",
     });
   });
   updateTabelKeranjang();
@@ -207,52 +198,20 @@ function populateForm(editData) {
   document.getElementById("ongkir").value = editData.summary.ongkir;
   document.getElementById("packing").value = editData.summary.packing;
   document.getElementById("diskon").value = editData.summary.diskon;
-
-  // Payments
-  // Map totalBayar to DP1
-  const totalBayar = editData.totalBayar || 0;
-  // Check if originally DP or Lunas
-  // If we are editing, we are likely making adjustments.
-  // If it was LUNAS, totalBayar usually equals totalTagihan.
-  // We display totalBayar in DP1 (ReadOnly) and allow adjustments in DP2?
-  // User requested "Simpan dan Batal".
-  // Let's verify how kasir.js populates this.
-  // kasir.js checkEditMode: if totalBayar > 0, set DP1 = totalBayar, readonly.
-
-  // Logic:
-  // If I edit the items (add more), the total goes up.
-  // DP1 stays fixed. Remaining goes to Sisa.
-  // If I want to pay the rest, I use DP2.
-  // If I reduce items, Sisa might become negative (overpaid).
-
-  const dp1El = document.getElementById("dp1");
-  dp1El.value = totalBayar;
-
-  hitungTotalTagihan();
+  document.getElementById("totalTagihan").value = editData.summary.totalTagihan;
 }
 
-// ... Autocomplete, Calculator, Table functions (copied/shared from kasir.js) ...
-// Ideally we should have a shared util file, but for now duplicating essential logic.
-
-// LocalStorage cache keys (shared with kasir.js)
-const CUSTOMER_CACHE_KEY = "larosapot_customer_cache";
-const PRODUCT_CACHE_KEY = "larosapot_product_cache";
-
 async function loadCustomersForAutocomplete() {
-  // Load from cache first for instant UI
   try {
     const cached = localStorage.getItem(CUSTOMER_CACHE_KEY);
     if (cached) allCustomers = JSON.parse(cached);
   } catch (e) {}
 
-  // Fetch fresh data
   try {
     const result = await fetchSheetData(KUSTOMER_SHEET_NAME);
     if (result.data) {
       allCustomers = result.data;
-      try {
-        localStorage.setItem(CUSTOMER_CACHE_KEY, JSON.stringify(result.data));
-      } catch (e) {}
+      localStorage.setItem(CUSTOMER_CACHE_KEY, JSON.stringify(result.data));
     }
   } catch (e) {
     console.error(e);
@@ -260,20 +219,16 @@ async function loadCustomersForAutocomplete() {
 }
 
 async function loadProductsForAutocomplete() {
-  // Load from cache first
   try {
     const cached = localStorage.getItem(PRODUCT_CACHE_KEY);
     if (cached) allProducts = JSON.parse(cached);
   } catch (e) {}
 
-  // Fetch fresh data
   try {
     const result = await fetchSheetData(PRODUK_SHEET_NAME);
     if (result.data) {
       allProducts = result.data;
-      try {
-        localStorage.setItem(PRODUCT_CACHE_KEY, JSON.stringify(result.data));
-      } catch (e) {}
+      localStorage.setItem(PRODUCT_CACHE_KEY, JSON.stringify(result.data));
     }
   } catch (e) {
     console.error(e);
@@ -306,10 +261,7 @@ function setupAutocomplete() {
     matches.forEach((c) => {
       const div = document.createElement("div");
       div.className = "suggestion-item";
-      div.innerHTML = `
-        <div class="phone">${c["NO HP"]}</div>
-        <div class="name">${c["NAMA PELANGGAN"]}</div>
-      `;
+      div.innerHTML = `<div class="phone">${c["NO HP"]}</div><div class="name">${c["NAMA PELANGGAN"]}</div>`;
       div.onclick = () => {
         document.getElementById("namaPelanggan").value = c["NAMA PELANGGAN"];
         document.getElementById("noTelepon").value = c["NO HP"];
@@ -320,7 +272,6 @@ function setupAutocomplete() {
       };
       list.appendChild(div);
     });
-
     if (matches.length > 0) list.classList.add("show");
     else list.classList.remove("show");
   });
@@ -390,12 +341,7 @@ function setupProductAutocomplete() {
     matches.forEach((p) => {
       const div = document.createElement("div");
       div.className = "suggestion-item";
-      div.innerHTML = `
-        <div class="phone">${p["SKU"]}</div>
-        <div class="name">${p["NAMA PRODUK"]} - Rp${(
-          parseFloat(p["HARGA JUAL"]) || 0
-        ).toLocaleString("id-ID")}</div>
-      `;
+      div.innerHTML = `<div class="phone">${p["SKU"]}</div><div class="name">${p["NAMA PRODUK"]} - Rp${(parseFloat(p["HARGA JUAL"]) || 0).toLocaleString("id-ID")}</div>`;
       div.onclick = () => {
         document.getElementById("noSku").value = p["SKU"];
         document.getElementById("namaProduk").value = p["NAMA PRODUK"];
@@ -506,6 +452,7 @@ function tambahKeKeranjang() {
   document.getElementById("harga").value = "";
   document.getElementById("totalHarga").value = "";
   document.getElementById("satuan").value = "";
+  document.getElementById("noSku").focus();
 }
 
 function updateTabelKeranjang() {
@@ -570,19 +517,9 @@ function hitungTotalTagihan() {
 
   const total = sub + ongkir + packing - diskon;
   document.getElementById("totalTagihan").value = total;
-  hitungSisaTagihan();
-}
-
-function hitungSisaTagihan() {
-  const total = parseFloat(document.getElementById("totalTagihan").value) || 0;
-  const dp1 = evaluateExpression(document.getElementById("dp1"));
-  const dp2 = evaluateExpression(document.getElementById("dp2"));
-
-  document.getElementById("sisaTagihan").value = total - (dp1 + dp2);
 }
 
 function evaluateExpression(input) {
-  // Basic calculator logic reused
   const val = input.value.trim();
   if (val.startsWith("=")) {
     try {
@@ -594,7 +531,7 @@ function evaluateExpression(input) {
 }
 
 function setupCalculatorInputs() {
-  ["packing", "ongkir", "diskon", "dp2"].forEach((id) => {
+  ["packing", "ongkir", "diskon"].forEach((id) => {
     const el = document.getElementById(id);
     if (el)
       el.addEventListener("input", (e) => {
@@ -604,67 +541,38 @@ function setupCalculatorInputs() {
 }
 
 function cancelEdit() {
-  sessionStorage.removeItem("editInvoiceData");
+  sessionStorage.removeItem("editQuotationData");
   window.history.back();
 }
 
-async function saveEdit(forceLunas = false) {
+let isProcessing = false;
+async function saveEditQuotation() {
+  if (isProcessing) return;
+
   if (keranjangData.length === 0) {
     alert("Keranjang kosong!");
     return;
   }
 
-  let sisa = parseFloat(document.getElementById("sisaTagihan").value) || 0;
-  let dp1 = parseFloat(document.getElementById("dp1").value) || 0;
-  let dp2 = parseFloat(document.getElementById("dp2").value) || 0;
-
-  let totalPaid = dp1 + dp2;
-
-  // Determine Status
-  // forceLunas=true means "SIMPAN (TETAP LUNAS)" button was clicked
-  // forceLunas=false means "UBAH KE DP" button was clicked
-  let status;
-  if (forceLunas) {
-    // User wants to keep it LUNAS - force sisa to 0 and set status to LUNAS
-    if (sisa > 0) {
-      dp2 += sisa;
-      sisa = 0;
-      document.getElementById("dp2").value = dp2;
-      document.getElementById("sisaTagihan").value = 0;
-    }
-    status = "LUNAS";
-  } else {
-    // User wants to change to DP - sisa tagihan should equal total tagihan
-    // (since we're converting from LUNAS, no DP payments are recorded yet)
-    const totalTagihan =
-      parseFloat(document.getElementById("totalTagihan").value) || 0;
-    sisa = totalTagihan; // Full amount is still owed
-    dp1 = 0; // No DP1 payment yet
-    dp2 = 0; // No DP2 payment yet
-    status = "DP";
-  }
-
+  isProcessing = true;
   if (window.showGlobalLoader) window.showGlobalLoader();
 
   try {
-    // 1. Delete Old
-    const deleteRes = await deleteInvoice(editOriginSheet, editOriginalOrderNo);
+    // 1. Delete Old Entry
+    const deleteRes = await deleteInvoice(
+      QUOTATION_SHEET_NAME,
+      editOriginalOrderNo,
+    );
     if (!deleteRes.success)
       throw new Error("Gagal menghapus data lama: " + deleteRes.error);
 
-    // 2. Determine Target
-    const targetSheet =
-      status === "LUNAS" ? INVOICE_SHEET_NAME : PELUNASAN_SHEET_NAME;
-
-    // 3. Build Rows
-    // Re-use logic for row building.
-    // We use the same format as kasir.js and form_pelunasan.js
+    // 2. Build New Rows
     const rows = [];
     const info = {
       noPesanan: document.getElementById("noPesanan").value,
-      tanggal: document.getElementById("tanggalDibuat").value, // YYYY-MM-DD
+      tanggal: document.getElementById("tanggalDibuat").value,
       kasir: document.getElementById("kasir").value,
-      transaction: status,
+      transaksi: document.getElementById("jenisTransaksi").value,
       payment: document.getElementById("paymen").value,
     };
     const cust = {
@@ -682,101 +590,73 @@ async function saveEdit(forceLunas = false) {
       tot: parseFloat(document.getElementById("totalTagihan").value) || 0,
     };
 
-    const formattedDate = formatDateForInvoice(info.tanggal); // DD-Mon-YYYY
+    const formattedDate = formatDateForInvoice(info.tanggal);
 
     keranjangData.forEach((item, idx) => {
       let rowData = {};
-      const isInvoiceSheet = targetSheet === INVOICE_SHEET_NAME;
-
-      // Kedua sheet menggunakan nama kolom yang sama
-      const invoiceKey = "INVOICE";
-      const subtotalKey = "SUB TOTAL";
-      const hargaKey = "HARGA";
-      const totalKey = "TOTAL";
-      const ongkirKey = "ONGKIR";
-      const kotaKey = isInvoiceSheet ? "Kota" : "";
-
       if (idx === 0) {
         rowData = {
           TANGGAL: formattedDate,
-          [invoiceKey]: info.noPesanan,
+          "NO PESANAN": info.noPesanan,
           KASIR: info.kasir,
-          TRANSAKSI: status,
+          TRANSAKSI: info.transaksi,
           PAYMENT: info.payment,
-          "NAMA PELANGGAN": cust.nama,
+          PELANGGAN: cust.nama,
           "NO HP": cust.hp,
           ALAMAT: cust.alamat,
-          CHANNEL: cust.channel || "",
-          KATEGORI: item.kategori || "",
           SKU: item.sku,
           PRODUK: item.produk,
           JUMLAH: item.jumlah,
           SATUAN: item.satuan,
-          [hargaKey]: item.harga,
-          [totalKey]: item.total,
-          [subtotalKey]: sum.sub,
-          [ongkirKey]: sum.ong,
+          HARGA: item.harga,
+          TOTAL: item.total,
+          "SUB TOTAL": sum.sub,
+          ONGKIR: sum.ong,
           PACKING: sum.pack,
           DISKON: sum.disc,
           "TOTAL TAGIHAN": sum.tot,
         };
-        if (isInvoiceSheet) rowData[kotaKey] = cust.kota || "";
-        else {
-          rowData["DP 1"] = dp1;
-          rowData["DP 2"] = dp2;
-          rowData["Pelunasan"] = "";
-          rowData["SISA TAGIHAN"] = sisa;
-        }
       } else {
         rowData = {
           TANGGAL: "",
-          [invoiceKey]: "",
+          "NO PESANAN": "",
+          KASIR: "",
+          TRANSAKSI: "",
+          PAYMENT: "",
+          PELANGGAN: "",
+          "NO HP": "",
+          ALAMAT: "",
           SKU: item.sku,
           PRODUK: item.produk,
           JUMLAH: item.jumlah,
           SATUAN: item.satuan,
-          [hargaKey]: item.harga,
-          [totalKey]: item.total,
+          HARGA: item.harga,
+          TOTAL: item.total,
         };
       }
       rows.push(rowData);
     });
 
-    // 4. Save
-    // Loop through rows and save each one using addSheetRow
-    // Reverse to maintain order if addSheetRow appends to top?
-    // kasir.js uses .reverse() but usually append goes to bottom.
-    // If rows are [Header, Item1, Item2], generally we want Header first.
-    // If Google Sheet appends to bottom, we want [Header, Item1, Item2].
-    // kasir.js reversing might be due to prepend logic or just legacy.
-    // Let's stick to standard order unless proven otherwise.
-    // Update: checked kasir.js, it REVERSES. Maybe inserts at top?
-    // Let's follow kasir.js pattern to be safe: rows.reverse()
-
+    // 3. Save
     for (const row of rows.reverse()) {
-      const saveRes = await addSheetRow(targetSheet, row);
+      const saveRes = await addSheetRow(QUOTATION_SHEET_NAME, row);
       if (!saveRes.success)
         throw new Error(saveRes.error || "Gagal menyimpan data");
     }
 
-    alert("Perubahan berhasil disimpan!");
-    sessionStorage.removeItem("editInvoiceData");
+    alert("Perubahan quotation berhasil disimpan!");
+    sessionStorage.removeItem("editQuotationData");
 
-    // Force clear cache so list pages show fresh data
-    if (window.DataServices) {
-      if (window.DataServices.invoice)
-        await window.DataServices.invoice.clearCache();
-      if (window.DataServices.pelunasan)
-        await window.DataServices.pelunasan.clearCache();
+    // Clear cache so the list page shows fresh data
+    if (window.IDBCache) {
+      await window.IDBCache.clear("quotation_data_cache");
     }
 
-    // Redirect logic
-    if (targetSheet === INVOICE_SHEET_NAME)
-      window.location.href = "riwayat.html";
-    else window.location.href = "pelunasan.html";
+    window.location.href = "data_quotation.html";
   } catch (e) {
     console.error("Save Error", e);
     alert("Gagal menyimpan: " + e.message);
+    isProcessing = false;
   } finally {
     if (window.hideGlobalLoader) window.hideGlobalLoader();
   }
@@ -792,7 +672,6 @@ function formatDateForInput(dateVal) {
 
   if (!dateVal) return toLocalISO(new Date());
 
-  // If already a Date object
   if (dateVal instanceof Date) {
     return isNaN(dateVal.getTime())
       ? toLocalISO(new Date())
@@ -801,22 +680,17 @@ function formatDateForInput(dateVal) {
 
   const str = String(dateVal).trim();
 
-  // Robust Parsing
-  // 1. Check for ISO strings (contains T) - parse to local before formatting
   if (str.includes("T")) {
     const d = new Date(str);
     if (!isNaN(d.getTime())) return toLocalISO(d);
   }
 
-  // 2. Simple YYYY-MM-DD
   const ym = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
   if (ym) return `${ym[1]}-${ym[2].padStart(2, "0")}-${ym[3].padStart(2, "0")}`;
 
-  // 3. Simple DD-MM-YYYY or DD/MM/YYYY
   const dm = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
   if (dm) return `${dm[3]}-${dm[2].padStart(2, "0")}-${dm[1].padStart(2, "0")}`;
 
-  // 4. DD-Mon-YYYY (e.g. 29-Jan-2026)
   const months = {
     Jan: "01",
     Feb: "02",
@@ -835,7 +709,6 @@ function formatDateForInput(dateVal) {
   if (dmon && months[dmon[2]])
     return `${dmon[3]}-${months[dmon[2]]}-${dmon[1].padStart(2, "0")}`;
 
-  // Last resort: native parser
   const d = new Date(str);
   if (!isNaN(d.getTime())) return toLocalISO(d);
 

@@ -43,6 +43,16 @@ function renderInvoice(data) {
   setText("invNoHp", data.customer.noHp);
   setText("invAlamat", data.customer.alamat);
 
+  // Smart City Lookup Fallback
+  let city = data.customer.city;
+  if (!city && window.Utils && window.Utils.getCityForCustomer) {
+    city = window.Utils.getCityForCustomer(
+      data.customer.nama,
+      data.customer.noHp,
+    );
+  }
+  setText("invKota", city);
+
   // Items
   const itemsBody = document.getElementById("invoiceItems");
   itemsBody.innerHTML = "";
@@ -67,6 +77,12 @@ function renderInvoice(data) {
   }
 
   // Summary
+  const totalItemCount = (data.items || []).reduce(
+    (acc, item) => acc + (parseFloat(item.jumlah) || 0),
+    0,
+  );
+  setText("invTotalItem", totalItemCount);
+
   setText("invSubtotal", formatCurrency(data.summary.subtotal));
   setText("invOngkir", formatCurrency(data.summary.ongkir));
   setText("invPacking", formatCurrency(data.summary.packing));

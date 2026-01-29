@@ -1,45 +1,60 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Data Quotation - LAROSAPOT</title>
 
-    <link rel="stylesheet" href="/style/riwayat.css">
-    <link rel="stylesheet" href="style/layout.css">
-</head>
-<body>
+    <link rel="stylesheet" href="/style/riwayat.css" />
+    <link rel="stylesheet" href="style/layout.css" />
+  </head>
+  <body>
     <!-- Sidebar injected by script/layout.js -->
 
     <div class="main-content">
-        <!-- Header injected by script/layout.js -->
+      <!-- Header injected by script/layout.js -->
 
-        <div class="content-area">
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th width="5%">No.</th>
-                            <th width="20%">No Quotation</th>
-                            <th width="30%">Nama Pelanggan</th>
-                            <th width="25%">Total</th>
-                            <th width="20%">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="riwayatTableBody">
-                        <!-- Data injected by script -->
-                    </tbody>
-                </table>
-            </div>
+      <div class="content-area">
+        <div class="search-container" style="margin-bottom: 20px">
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Cari nomor quotation atau nama pelanggan..."
+            style="
+              width: 100%;
+              padding: 12px 15px;
+              border-radius: 8px;
+              border: 1px solid #ddd;
+              outline: none;
+            "
+          />
         </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th width="5%">No.</th>
+                <th width="20%">No Quotation</th>
+                <th width="30%">Nama Pelanggan</th>
+                <th width="25%">Total</th>
+                <th width="20%">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="riwayatTableBody">
+              <!-- Data injected by script -->
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
-
 
     <script src="script/config.js"></script>
     <script src="script/auth.js"></script>
     <script src="script/layout.js"></script>
     <script src="script/sheets-api.js"></script>
     <script src="script/idb-cache.js"></script>
+    <script src="script/utils.js"></script>
+    <script src="script/data-service.js"></script>
     <script src="script/data_quotation.js"></script>
-</body>
+  </body>
 </html>

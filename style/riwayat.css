@@ -110,7 +110,6 @@ tbody tr:last-child td {
 }
 
 .btn-edit {
-  background-color: #fceabb; /* Fallback */
   background-color: #ff9800;
   color: white;
   border: none;
@@ -124,4 +123,20 @@ tbody tr:last-child td {
 
 .btn-edit:hover {
   background-color: #f57c00;
+}
+
+.btn-checkout {
+  background-color: #ffb300;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.btn-checkout:hover {
+  background-color: #ffa000;
 }

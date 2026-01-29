@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Quotation - LAROSAPOT</title>
+    <title>Edit Quotation - LAROSAPOT</title>
 
     <link rel="stylesheet" href="style/kasir.css" />
   </head>
@@ -15,7 +15,7 @@
 
       <div class="content-area">
         <div class="form-section">
-          <h2 class="section-title">Buat Quotation</h2>
+          <h2 class="section-title">Edit Quotation</h2>
 
           <div class="form-row">
             <div class="form-group">
@@ -32,7 +32,8 @@
               <input
                 type="date"
                 id="tanggalDibuat"
-                onchange="updateInvoiceNumber()"
+                readonly
+                style="background-color: #eee"
               />
             </div>
           </div>
@@ -231,8 +232,15 @@
           </div>
 
           <div class="action-buttons">
-            <button class="btn-lunas" onclick="saveQuotation()">
-              Simpan Quotation
+            <button
+              class="btn-hapus"
+              style="background-color: #666"
+              onclick="cancelEdit()"
+            >
+              Batalkan
+            </button>
+            <button class="btn-lunas" onclick="saveEditQuotation()">
+              Simpan Perubahan
             </button>
           </div>
         </div>
@@ -242,10 +250,10 @@
     <script src="script/config.js"></script>
     <script src="script/auth.js"></script>
     <script src="script/layout.js"></script>
-    <script src="script/sheets-api.js"></script>
     <script src="script/idb-cache.js"></script>
-    <script src="script/utils.js"></script>
     <script src="script/data-service.js"></script>
-    <script src="script/quotation.js"></script>
+    <script src="script/sheets-api.js"></script>
+    <script src="script/utils.js"></script>
+    <script src="script/form_edit_quotation.js"></script>
   </body>
 </html>

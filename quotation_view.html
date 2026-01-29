@@ -70,6 +70,9 @@
                 <tr>
                   <td id="invAlamat"></td>
                 </tr>
+                <tr>
+                  <td id="invKota"></td>
+                </tr>
               </table>
             </div>
             <div class="info-right">
@@ -144,8 +147,15 @@
               <div class="footer-right">
                 <table class="summary-table">
                   <tr>
-                    <td>Sub Total</td>
-                    <td>: <span id="invSubtotal"></span></td>
+                    <td>
+                      <strong
+                        >Sub Total (<span id="invTotalItem">0</span>
+                        Item)</strong
+                      >
+                    </td>
+                    <td>
+                      : <strong><span id="invSubtotal"></span></strong>
+                    </td>
                   </tr>
                   <tr>
                     <td>Ongkir</td>
@@ -187,6 +197,9 @@
     <script src="script/config.js"></script>
     <script src="script/auth.js"></script>
     <script src="script/layout.js"></script>
+    <script src="script/idb-cache.js"></script>
+    <script src="script/utils.js"></script>
+    <script src="script/data-service.js"></script>
     <script src="script/quotation_view.js"></script>
   </body>
 </html>

@@ -128,7 +128,7 @@ function showRefreshIndicator(indicatorId, message = "Memperbarui data...") {
   if (header && !document.getElementById(indicatorId)) {
     header.insertAdjacentHTML(
       "afterend",
-      `<span id="${indicatorId}" style="font-size: 12px; color: #888; margin-left: 10px;">${message}</span>`
+      `<span id="${indicatorId}" style="font-size: 12px; color: #888; margin-left: 10px;">${message}</span>`,
     );
   }
 }
@@ -185,7 +185,7 @@ function getValueFromKeys(
   obj,
   keys,
   defaultValue = "",
-  treatEmptyAsDefault = false
+  treatEmptyAsDefault = false,
 ) {
   for (const key of keys) {
     if (obj[key] !== undefined && obj[key] !== null) {
@@ -202,6 +202,58 @@ function getValueFromKeys(
 // ==================== TABLE HELPERS ====================
 
 /**
+ * Resolves a customer's city from the customer database if missing
+ * @param {string} name - Customer name
+ * @param {string} phone - Customer phone
+ * @returns {string} Customer city or empty string
+ */
+function getCityForCustomer(name, phone) {
+  if (!name && !phone) return "";
+
+  try {
+    let customers = [];
+    const cacheKeys = ["larosapot_customer_cache", "kustomer_data_cache"];
+    for (const key of cacheKeys) {
+      const cached = localStorage.getItem(key);
+      if (cached) {
+        try {
+          customers = JSON.parse(cached);
+          if (Array.isArray(customers) && customers.length > 0) break;
+        } catch (e) {}
+      }
+    }
+
+    if (!Array.isArray(customers) || customers.length === 0) return "";
+
+    const searchName = (name || "").toString().toLowerCase().trim();
+    const searchPhone = (phone || "").toString().trim();
+
+    const match = customers.find((c) => {
+      const cName = getValueFromKeys(
+        c,
+        ["NAMA PELANGGAN", "NAMA\nPELANGGAN", "Nama Pelanggan"],
+        "",
+      )
+        .toString()
+        .toLowerCase()
+        .trim();
+      const cPhone = getValueFromKeys(c, ["NO HP", "NO\nHP", "No HP"], "")
+        .toString()
+        .trim();
+      return (
+        (searchName && cName === searchName) ||
+        (searchPhone && cPhone === searchPhone)
+      );
+    });
+
+    if (match) return getValueFromKeys(match, ["KOTA", "Kota"], "");
+  } catch (e) {
+    console.warn("City lookup error:", e);
+  }
+  return "";
+}
+
+/**
  * Show empty table message
  * @param {HTMLElement} tbody - Table body element
  * @param {string} message - Message to display
@@ -213,6 +265,76 @@ function showTableMessage(tbody, message, colSpan = 8, isError = false) {
     ? "text-align: center; color: red;"
     : "text-align: center;";
   tbody.innerHTML = `<tr><td colspan="${colSpan}" style="${style}">${message}</td></tr>`;
+}
+
+const USERS_CACHE_KEY = "larosapot_users_cache";
+
+/**
+ * Load kasir list from USERS sheet and populate a select element
+ * Uses cache-first strategy for instant loading
+ * @param {string} elementId - ID of the select element
+ * @param {string} [defaultValue] - Optional default value to select
+ */
+async function loadKasirDropdown(elementId, defaultValue) {
+  const select = document.getElementById(elementId);
+  if (!select) return;
+
+  // If defaultValue is not provided, try to get current user
+  if (!defaultValue && typeof getCurrentUser === "function") {
+    const user = getCurrentUser();
+    if (user) defaultValue = user.username;
+  }
+
+  // Step 1: Populate from cache IMMEDIATELY (non-blocking)
+  try {
+    const cached = localStorage.getItem(USERS_CACHE_KEY);
+    if (cached) {
+      const users = JSON.parse(cached);
+      populateKasirSelect(select, users, defaultValue);
+    } else if (defaultValue) {
+      // No cache, but we have a default - show it immediately
+      select.innerHTML = `<option value="${defaultValue}" selected>${defaultValue}</option>`;
+    }
+  } catch (e) {
+    console.warn("Error loading kasir cache:", e);
+    if (defaultValue) {
+      select.innerHTML = `<option value="${defaultValue}" selected>${defaultValue}</option>`;
+    }
+  }
+
+  // Step 2: Fetch fresh data in background and update cache
+  try {
+    const result = await fetchSheetData("USERS");
+    if (result && result.data && result.data.length > 0) {
+      localStorage.setItem(USERS_CACHE_KEY, JSON.stringify(result.data));
+      populateKasirSelect(select, result.data, defaultValue);
+    }
+  } catch (error) {
+    console.error("Error refreshing kasir dropdown:", error);
+    // Cache already shown, so no action needed
+  }
+}
+
+/**
+ * Populate select element with kasir options
+ */
+function populateKasirSelect(select, users, defaultValue) {
+  select.innerHTML = "";
+  users.forEach((user) => {
+    const username = user.USERNAME || user.username || user.Username;
+    if (username) {
+      const option = document.createElement("option");
+      option.value = username;
+      option.textContent = username;
+      if (
+        defaultValue &&
+        username.toLowerCase() === defaultValue.toLowerCase()
+      ) {
+        option.selected = true;
+      }
+      select.appendChild(option);
+    }
+  });
 }
 
 // Export for global use
@@ -227,4 +349,6 @@ window.Utils = {
   getColumnValue,
   getValueFromKeys,
   showTableMessage,
+  getCityForCustomer,
+  loadKasirDropdown,
 };

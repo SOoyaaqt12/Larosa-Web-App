@@ -1,191 +1,297 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Edit Pelunasan (DP)</title>
-    <link rel="stylesheet" href="style/kasir.css">
+    <link rel="stylesheet" href="style/kasir.css" />
     <style>
-        .page-title-edit-dp {
-            color: #ff9800; /* Orange for DP/Warning/Pending vibe */
-        }
+      .page-title-edit-dp {
+        color: #ff9800; /* Orange for DP/Warning/Pending vibe */
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <!-- Sidebar injected by script/layout.js -->
 
     <div class="main-content">
-        <!-- Header injected by script/layout.js -->
+      <!-- Header injected by script/layout.js -->
 
-        <div class="content-area">
-            <div class="form-section">
-                <h2 class="section-title page-title-edit-dp">Edit Data Pelunasan (DP)</h2>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>No Invoice</label>
-                        <input type="text" id="noPesanan" placeholder="Otomatis" readonly style="background-color: #eee;">
-                    </div>
-                    <div class="form-group">
-                        <label>Tanggal Dibuat</label>
-                        <input type="date" id="tanggalDibuat" readonly style="background-color: #eee;">
-                    </div>
-                </div>
+      <div class="content-area">
+        <div class="form-section">
+          <h2 class="section-title page-title-edit-dp">
+            Edit Data Pelunasan (DP)
+          </h2>
 
-                <h3 class="subsection-title">Informasi Pelanggan</h3>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>No Telepon Pelanggan</label>
-                        <div class="autocomplete-container">
-                            <input type="text" id="noTelepon" placeholder="Ketik no telepon..." autocomplete="off">
-                            <div id="suggestionList" class="suggestion-list"></div>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Nama Pelanggan</label>
-                        <input type="text" id="namaPelanggan" placeholder="Otomatis dari pencarian" readonly>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Alamat</label>
-                        <input type="text" id="alamatPelanggan" placeholder="Otomatis dari pencarian" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Kasir</label>
-                        <input type="text" id="kasir" placeholder="Otomatis dari login" readonly>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Metode Pembayaran</label>
-                        <select id="paymen">
-                            <option value="Transfer" selected>Transfer</option>
-                            <option value="Tunai">Tunai</option>
-                        </select>
-                    </div>
-                </div>
-
-                <h3 class="subsection-title">Keranjang</h3>
-                
-                <div class="keranjang-layout">
-                    <div class="form-group">
-                        <label>No SKU</label>
-                        <div class="autocomplete-container">
-                            <input type="text" id="noSku" placeholder="Ketik SKU..." autocomplete="off">
-                            <div id="skuSuggestionList" class="suggestion-list"></div>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Jumlah</label>
-                        <input type="number" id="jumlah" placeholder="0" oninput="hitungTotalHarga()">
-                    </div>
-                    <div class="form-group">
-                        <label>Harga</label>
-                        <input type="number" id="harga" placeholder="Otomatis" readonly>
-                    </div>
-                </div>
-
-                <div class="keranjang-layout">
-                    <div class="form-group">
-                        <label>Nama Produk</label>
-                        <input type="text" id="namaProduk" placeholder="Otomatis dari SKU" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Satuan</label>
-                        <input type="text" id="satuan" placeholder="Otomatis" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Total Harga</label>
-                        <input type="number" id="totalHarga" placeholder="Rp. 0" readonly>
-                    </div>
-                </div>
-
-                <button class="btn-simpan" onclick="tambahKeKeranjang()">Tambah Item</button>
-
-
-                <div class="cart-table">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>No.</th>
-                                <th>SKU</th>
-                                <th>Produk</th>
-                                <th>Jumlah</th>
-                                <th>Satuan</th>
-                                <th>Harga</th>
-                                <th>Total</th>
-                                <th>Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="keranjangBody">
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="bottom-section">
-                    <div class="left-calc">
-                        <div class="calc-item">
-                            <label>Subtotal</label>
-                            <input type="number" id="subtotal" placeholder="Rp. 0" readonly>
-                        </div>
-                        <div class="calc-item">
-                            <label>Packing</label>
-                            <input type="text" id="packing" placeholder="Rp. 0 atau =rumus" onchange="hitungTotalTagihan()">
-                        </div>
-                    </div>
-                    <div class="right-calc">
-                        <div class="calc-item">
-                            <label>Ongkir</label>
-                            <input type="text" id="ongkir" placeholder="Rp. 0 atau =rumus" onchange="hitungTotalTagihan()">
-                        </div>
-                        <div class="calc-item">
-                            <label>Diskon</label>
-                            <input type="text" id="diskon" placeholder="Rp. 0 atau =rumus" onchange="hitungTotalTagihan()">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bottom-section">
-                    <div class="calc-item full-width-calc">
-                        <label>Total Tagihan</label>
-                        <input type="number" id="totalTagihan" placeholder="Rp. 0" readonly>
-                    </div>
-                </div>
-
-                <div class="bottom-section">
-                    <div class="calc-item">
-                        <label>DP 1 (History)</label>
-                        <input type="text" id="dp1" placeholder="Rp. 0" readonly style="background-color: #eee;">
-                    </div>
-                    <div class="calc-item">
-                        <label>DP 2 / Tambahan</label>
-                        <input type="text" id="dp2" placeholder="Rp. 0 atau =rumus" onchange="hitungSisaTagihan()">
-                    </div>
-                </div>
-
-                <div class="bottom-section">
-                    <div class="calc-item full-width-calc">
-                        <label>Sisa Tagihan (Akan jadi Utang)</label>
-                        <input type="number" id="sisaTagihan" placeholder="Rp. 0" readonly>
-                    </div>
-                </div>
-
-                <div class="action-buttons">
-                    <button class="btn-simpan" onclick="saveEditPelunasan()" style="background-color: #ff9800;">SIMPAN PERUBAHAN</button>
-                    <button class="btn-dp" onclick="cancelEdit()" style="background-color: #f44336;">BATAL</button>
-                </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>No Invoice</label>
+              <input
+                type="text"
+                id="noPesanan"
+                placeholder="Otomatis"
+                readonly
+                style="background-color: #eee"
+              />
             </div>
+            <div class="form-group">
+              <label>Tanggal Dibuat</label>
+              <input
+                type="date"
+                id="tanggalDibuat"
+                readonly
+                style="background-color: #eee"
+              />
+            </div>
+          </div>
+
+          <h3 class="subsection-title">Informasi Pelanggan</h3>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>No Telepon Pelanggan</label>
+              <div class="autocomplete-container">
+                <input
+                  type="text"
+                  id="noTelepon"
+                  placeholder="Ketik no telepon..."
+                  autocomplete="off"
+                />
+                <div id="suggestionList" class="suggestion-list"></div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Nama Pelanggan</label>
+              <input
+                type="text"
+                id="namaPelanggan"
+                placeholder="Otomatis dari pencarian"
+                readonly
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Alamat</label>
+              <input
+                type="text"
+                id="alamatPelanggan"
+                placeholder="Otomatis dari pencarian"
+                readonly
+              />
+            </div>
+            <div class="form-group">
+              <label>Kasir</label>
+              <select id="kasir">
+                <!-- Options populated by JS -->
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Metode Pembayaran</label>
+              <select id="paymen">
+                <option value="Transfer" selected>Transfer</option>
+                <option value="Tunai">Tunai</option>
+              </select>
+            </div>
+          </div>
+
+          <h3 class="subsection-title">Keranjang</h3>
+
+          <div class="keranjang-layout">
+            <div class="form-group">
+              <label>No SKU</label>
+              <div class="autocomplete-container">
+                <input
+                  type="text"
+                  id="noSku"
+                  placeholder="Ketik SKU..."
+                  autocomplete="off"
+                />
+                <div id="skuSuggestionList" class="suggestion-list"></div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Jumlah</label>
+              <input
+                type="number"
+                id="jumlah"
+                placeholder="0"
+                oninput="hitungTotalHarga()"
+              />
+            </div>
+            <div class="form-group">
+              <label>Harga</label>
+              <input type="number" id="harga" placeholder="Otomatis" readonly />
+            </div>
+          </div>
+
+          <div class="keranjang-layout">
+            <div class="form-group">
+              <label>Nama Produk</label>
+              <input
+                type="text"
+                id="namaProduk"
+                placeholder="Otomatis dari SKU"
+                readonly
+              />
+            </div>
+            <div class="form-group">
+              <label>Satuan</label>
+              <input type="text" id="satuan" placeholder="Otomatis" readonly />
+            </div>
+            <div class="form-group">
+              <label>Total Harga</label>
+              <input
+                type="number"
+                id="totalHarga"
+                placeholder="Rp. 0"
+                readonly
+              />
+            </div>
+          </div>
+
+          <button class="btn-simpan" onclick="tambahKeKeranjang()">
+            Tambah Item
+          </button>
+
+          <div class="cart-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>No.</th>
+                  <th>SKU</th>
+                  <th>Produk</th>
+                  <th>Jumlah</th>
+                  <th>Satuan</th>
+                  <th>Harga</th>
+                  <th>Total</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="keranjangBody"></tbody>
+            </table>
+          </div>
+
+          <div class="bottom-section">
+            <div class="left-calc">
+              <div class="calc-item">
+                <label>Subtotal</label>
+                <input
+                  type="number"
+                  id="subtotal"
+                  placeholder="Rp. 0"
+                  readonly
+                />
+              </div>
+              <div class="calc-item">
+                <label>Packing</label>
+                <input
+                  type="text"
+                  id="packing"
+                  placeholder="Rp. 0 atau =rumus"
+                  onchange="hitungTotalTagihan()"
+                />
+              </div>
+            </div>
+            <div class="right-calc">
+              <div class="calc-item">
+                <label>Ongkir</label>
+                <input
+                  type="text"
+                  id="ongkir"
+                  placeholder="Rp. 0 atau =rumus"
+                  onchange="hitungTotalTagihan()"
+                />
+              </div>
+              <div class="calc-item">
+                <label>Diskon</label>
+                <input
+                  type="text"
+                  id="diskon"
+                  placeholder="Rp. 0 atau =rumus"
+                  onchange="hitungTotalTagihan()"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="bottom-section">
+            <div class="calc-item full-width-calc">
+              <label>Total Tagihan</label>
+              <input
+                type="number"
+                id="totalTagihan"
+                placeholder="Rp. 0"
+                readonly
+              />
+            </div>
+          </div>
+
+          <div class="bottom-section">
+            <div class="calc-item">
+              <label>DP 1 (History)</label>
+              <input
+                type="text"
+                id="dp1"
+                placeholder="Rp. 0"
+                readonly
+                style="background-color: #eee"
+              />
+            </div>
+            <div class="calc-item">
+              <label>DP 2 / Tambahan</label>
+              <input
+                type="text"
+                id="dp2"
+                placeholder="Rp. 0 atau =rumus"
+                onchange="hitungSisaTagihan()"
+              />
+            </div>
+          </div>
+
+          <div class="bottom-section">
+            <div class="calc-item full-width-calc">
+              <label>Sisa Tagihan (Akan jadi Utang)</label>
+              <input
+                type="number"
+                id="sisaTagihan"
+                placeholder="Rp. 0"
+                readonly
+              />
+            </div>
+          </div>
+
+          <div class="action-buttons">
+            <button
+              class="btn-simpan"
+              onclick="saveEditPelunasan()"
+              style="background-color: #ff9800"
+            >
+              SIMPAN PERUBAHAN
+            </button>
+            <button
+              class="btn-dp"
+              onclick="cancelEdit()"
+              style="background-color: #f44336"
+            >
+              BATAL
+            </button>
+          </div>
         </div>
+      </div>
     </div>
 
     <script src="script/config.js"></script>
     <script src="script/auth.js"></script>
     <script src="script/layout.js"></script>
+    <script src="script/idb-cache.js"></script>
+    <script src="script/data-service.js"></script>
     <script src="script/sheets-api.js"></script>
+    <script src="script/utils.js"></script>
     <script src="script/form_edit_pelunasan.js"></script>
-</body>
+  </body>
 </html>

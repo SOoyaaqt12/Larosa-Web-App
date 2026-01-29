@@ -36,7 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
  * Initialize quotation page
  */
 async function initQuotationPage() {
-  const editData = sessionStorage.getItem("editQuotationData"); // Use distinct key if needed, or share? Let's assume share for now but clearer to separate.
+  const editData = sessionStorage.getItem("editQuotationData");
 
   const isEditMode = !!editData;
   if (isEditMode && window.showGlobalLoader) {
@@ -45,31 +45,152 @@ async function initQuotationPage() {
 
   const tanggalInput = document.getElementById("tanggalDibuat");
   if (tanggalInput) {
-    tanggalInput.valueAsDate = new Date();
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    tanggalInput.value = `${year}-${month}-${day}`;
   }
 
   updateQuotationNumber();
 
-  const kasirInput = document.getElementById("kasir");
-  if (kasirInput && typeof getCurrentUser === "function") {
-    const user = getCurrentUser();
-    if (user && user.username) {
-      kasirInput.value = user.username;
-    }
-  }
+  // Load cached data IMMEDIATELY (non-blocking sync operations)
+  loadCachedCustomers();
+  loadCachedProducts();
+  loadCachedKasir();
 
-  await loadCustomersForAutocomplete();
-  await loadProductsForAutocomplete();
-
+  // Setup UI immediately - it will use cached data
   setupAutocomplete();
   setupProductAutocomplete();
   setupCalculatorInputs();
   setupEnterKeyListeners();
 
-  // checkEditMode(); // Implement if needed later
+  // Now refresh data in background (non-blocking)
+  refreshDataInBackground();
 
   if (isEditMode && window.hideGlobalLoader) {
     window.hideGlobalLoader();
+  }
+}
+
+/**
+ * Load customers from cache synchronously
+ */
+function loadCachedCustomers() {
+  try {
+    const cached = localStorage.getItem(CUSTOMER_CACHE_KEY);
+    if (cached) {
+      allCustomers = JSON.parse(cached);
+    }
+  } catch (e) {}
+}
+
+/**
+ * Load products from cache synchronously
+ */
+function loadCachedProducts() {
+  try {
+    const cached = localStorage.getItem(PRODUCT_CACHE_KEY);
+    if (cached) {
+      allProducts = JSON.parse(cached);
+    }
+  } catch (e) {}
+}
+
+/**
+ * Load kasir dropdown from cache synchronously
+ */
+function loadCachedKasir() {
+  const select = document.getElementById("kasir");
+  if (!select) return;
+
+  let defaultValue = "";
+  if (typeof getCurrentUser === "function") {
+    const user = getCurrentUser();
+    if (user) defaultValue = user.username;
+  }
+
+  try {
+    const cached = localStorage.getItem("larosapot_users_cache");
+    if (cached) {
+      const users = JSON.parse(cached);
+      select.innerHTML = "";
+      users.forEach((user) => {
+        const username = user.USERNAME || user.username || user.Username;
+        if (username) {
+          const option = document.createElement("option");
+          option.value = username;
+          option.textContent = username;
+          if (
+            defaultValue &&
+            username.toLowerCase() === defaultValue.toLowerCase()
+          ) {
+            option.selected = true;
+          }
+          select.appendChild(option);
+        }
+      });
+    } else if (defaultValue) {
+      select.innerHTML = `<option value="${defaultValue}" selected>${defaultValue}</option>`;
+    }
+  } catch (e) {
+    if (defaultValue) {
+      select.innerHTML = `<option value="${defaultValue}" selected>${defaultValue}</option>`;
+    }
+  }
+}
+
+/**
+ * Refresh all data in background without blocking UI
+ */
+async function refreshDataInBackground() {
+  // Fire all requests in parallel, don't await individually
+  Promise.all([
+    loadCustomersForAutocomplete(),
+    loadProductsForAutocomplete(),
+    refreshKasirDropdown(),
+  ]).catch((err) => console.warn("Background refresh error:", err));
+}
+
+/**
+ * Refresh kasir dropdown in background
+ */
+async function refreshKasirDropdown() {
+  const select = document.getElementById("kasir");
+  if (!select) return;
+
+  let defaultValue = select.value || "";
+  if (!defaultValue && typeof getCurrentUser === "function") {
+    const user = getCurrentUser();
+    if (user) defaultValue = user.username;
+  }
+
+  try {
+    const result = await fetchSheetData("USERS");
+    if (result && result.data && result.data.length > 0) {
+      localStorage.setItem(
+        "larosapot_users_cache",
+        JSON.stringify(result.data),
+      );
+      select.innerHTML = "";
+      result.data.forEach((user) => {
+        const username = user.USERNAME || user.username || user.Username;
+        if (username) {
+          const option = document.createElement("option");
+          option.value = username;
+          option.textContent = username;
+          if (
+            defaultValue &&
+            username.toLowerCase() === defaultValue.toLowerCase()
+          ) {
+            option.selected = true;
+          }
+          select.appendChild(option);
+        }
+      });
+    }
+  } catch (error) {
+    console.warn("Error refreshing kasir:", error);
   }
 }
 
@@ -142,6 +263,7 @@ function updateQuotationNumber() {
 }
 
 async function loadCustomersForAutocomplete() {
+  // Step 1: Load from cache immediately
   try {
     const cached = localStorage.getItem(CUSTOMER_CACHE_KEY);
     if (cached) {
@@ -149,6 +271,7 @@ async function loadCustomersForAutocomplete() {
     }
   } catch (e) {}
 
+  // Step 2: Fetch fresh data in background
   try {
     const result = await fetchSheetData(KUSTOMER_SHEET_NAME);
     if (result.data && result.data.length > 0) {
@@ -161,6 +284,7 @@ async function loadCustomersForAutocomplete() {
 }
 
 async function loadProductsForAutocomplete() {
+  // Step 1: Load from cache immediately
   try {
     const cached = localStorage.getItem(PRODUCT_CACHE_KEY);
     if (cached) {
@@ -168,6 +292,7 @@ async function loadProductsForAutocomplete() {
     }
   } catch (e) {}
 
+  // Step 2: Fetch fresh data in background
   try {
     const result = await fetchSheetData(PRODUK_SHEET_NAME);
     if (result.data && result.data.length > 0) {
@@ -489,13 +614,35 @@ function updateTabelKeranjang() {
       <td>${item.no}</td>
       <td>${item.sku}</td>
       <td>${item.produk}</td>
-      <td>${item.jumlah}</td>
+      <td>
+        <input type="number" 
+               value="${item.jumlah}" 
+               min="1" 
+               style="width: 60px; padding: 2px 5px; border: 1px solid #ccc; border-radius: 4px;" 
+               onchange="ubahJumlahItem(${index}, this.value)">
+      </td>
       <td>${item.satuan}</td>
       <td>Rp${item.harga.toLocaleString("id-ID")}</td>
       <td>Rp${item.total.toLocaleString("id-ID")}</td>
       <td><button class="btn-remove" onclick="hapusItem(${index})">Hapus</button></td>
     `;
   });
+}
+
+function ubahJumlahItem(index, newQty) {
+  const qty = parseFloat(newQty) || 0;
+  if (qty <= 0) {
+    alert("Jumlah harus lebih dari 0!");
+    updateTabelKeranjang();
+    return;
+  }
+
+  const item = keranjangData[index];
+  item.jumlah = qty;
+  item.total = item.jumlah * item.harga;
+
+  updateTabelKeranjang();
+  hitungSubtotal();
 }
 
 function hapusItem(index) {

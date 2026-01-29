@@ -22,6 +22,34 @@ async function loadPelunasanData() {
     onRender: renderTable,
     groupFn: groupDataByOrder,
   });
+
+  setupSearch();
+}
+
+function setupSearch() {
+  const searchInput = document.getElementById("searchInput");
+  if (!searchInput) return;
+
+  searchInput.addEventListener("input", (e) => {
+    const searchTerm = e.target.value.toLowerCase().trim();
+    if (!searchTerm) {
+      renderTable({ map: groupedInvoices.map, order: groupedInvoices.order });
+      return;
+    }
+
+    const keywords = searchTerm.split(/\s+/);
+    const filteredOrder = groupedInvoices.order.filter((noPesanan) => {
+      const rows = groupedInvoices.map[noPesanan];
+      const mainRow = rows[0];
+      const nama = (mainRow["NAMA PELANGGAN"] || "").toLowerCase();
+      const kota = (mainRow["KOTA"] || "").toLowerCase();
+      const searchSource = `${noPesanan.toLowerCase()} ${nama} ${kota}`;
+
+      return keywords.every((kw) => searchSource.includes(kw));
+    });
+
+    renderTable({ map: groupedInvoices.map, order: filteredOrder });
+  });
 }
 
 function groupDataByOrder(data) {
@@ -273,7 +301,7 @@ function editInvoicePelunasan(noPesanan) {
 async function deleteInvoiceAction(noPesanan) {
   if (
     !confirm(
-      `Yakin ingin menghapus invoice ${noPesanan} dari daftar Pelunasan? Data yang dihapus tidak bisa dikembalikan.`
+      `Yakin ingin menghapus invoice ${noPesanan} dari daftar Pelunasan? Data yang dihapus tidak bisa dikembalikan.`,
     )
   ) {
     return;

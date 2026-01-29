@@ -1,3 +1,5 @@
+const ITEMS_PER_PAGE = 20;
+
 document.addEventListener("DOMContentLoaded", () => {
   loadInvoiceData();
 });
@@ -6,96 +8,183 @@ function loadInvoiceData() {
   const dataString = sessionStorage.getItem("invoiceData");
   if (!dataString) {
     alert("Data invoice tidak ditemukan!");
-    // window.location.href = 'kasir.html';
     return;
   }
 
   try {
     const data = JSON.parse(dataString);
-    renderInvoice(data);
+    renderMultiPageInvoice(data);
   } catch (e) {
     console.error("Error parsing invoice data:", e);
     alert("Terjadi kesalahan saat memuat data invoice.");
   }
 }
 
-function renderInvoice(data) {
+function renderMultiPageInvoice(data) {
+  const pagesContainer = document.getElementById("pagesContainer");
+  pagesContainer.innerHTML = "";
+
+  const validItems = (data.items || []).filter(
+    (item) => item.sku || item.produk,
+  );
+  const totalItems = validItems.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
+
   // Helpers
-  const formatCurrency = (val) => {
-    return "Rp" + (parseFloat(val) || 0).toLocaleString("id-ID");
+  const formatCurrency = (val) =>
+    "Rp" + (parseFloat(val) || 0).toLocaleString("id-ID");
+  const formatDate = (dateVal) => {
+    const d = new Date(dateVal);
+    const options = { day: "2-digit", month: "short", year: "numeric" };
+    return !isNaN(d)
+      ? d.toLocaleDateString("id-ID", options).replace(/ /g, "-")
+      : dateVal;
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "";
-    // Expecting DD-Mon-YYYY from kasir.js, or adjust if needed
-    // The sheet format is already nice (e.g. 16-Dec-2025)
-    return dateString;
-  };
+  for (let i = 0; i < totalPages; i++) {
+    const isFirstPage = i === 0;
+    const isLastPage = i === totalPages - 1;
+    const startIndex = i * ITEMS_PER_PAGE;
+    const pageItems = validItems.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-  // Header Info
-  // Header Info
-  setText("invNoPesanan", data.info.noPesanan);
-  const dateObj = new Date(data.info.tanggal);
-  const options = { day: "2-digit", month: "short", year: "numeric" };
-  const formattedDate = !isNaN(dateObj)
-    ? dateObj.toLocaleDateString("id-ID", options).replace(/ /g, "-")
-    : data.info.tanggal;
-  // setText("invTanggal", formattedDate); // Removed from HTML
-  setText("invDibuat", formattedDate);
-  setText("invKasir", data.info.kasir);
-  setText("invTransaksi", data.info.transaksi); // "Online" or "Offline" (from button?) -> Usually logic from status
-  // Logic: if button Lunas clicked -> Lunas.
-  // We might need to pass transaction type or payment method more clearly
-  setText("invPayment", data.info.payment);
+    const pageEl = document.createElement("div");
+    pageEl.className = "invoice-container";
+    if (i < totalPages - 1) pageEl.classList.add("page-break");
 
-  // Customer Info
-  setText("invNamaPelanggan", data.customer.nama);
-  setText("invNoHp", data.customer.noHp);
-  setText("invAlamat", data.customer.alamat);
-  // Note: Kota/Channel not always displayed in invoice body based on design,
-  // but address usually includes city.
+    const totalQty = validItems.reduce(
+      (acc, item) => acc + (parseFloat(item.jumlah) || 0),
+      0,
+    );
 
-  // Items
-  const itemsBody = document.getElementById("invoiceItems");
-  itemsBody.innerHTML = "";
+    // Build Page HTML
+    let pageHTML = `
+      <!-- Header Content -->
+      <div class="header-section">
+        <div class="header-left">
+          <div class="invoice-box">INVOICE</div>
+          <div class="company-info">
+            <strong>LAROSAPOT</strong><br />
+            Jl. Perikanan Darat No 51, Kedung Waringin, Tanah Sareal, Bogor<br />
+            Jawa Barat, 16164, Indonesia<br />
+            081237798282<br />
+            Larosapot@gmail.com
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="header-logo">
+            <img src="asset/image/larosa-logo.png" alt="Larosa Logo" />
+          </div>
+          <table class="info-table">
+            <tr><td>No Pesanan</td><td>${data.info.noPesanan || "-"}</td></tr>
+            <tr><td>Tanggal Dibuat</td><td>${formatDate(data.info.tanggal)}</td></tr>
+            <tr><td>Rekening BCA</td><td><div style="margin-bottom: 5px">6380209720</div><div>Yudhi Aprianto</div></td></tr>
+          </table>
+        </div>
+      </div>
 
-  if (data.items && data.items.length > 0) {
-    // Filter out empty items (rows without SKU or produk)
-    const validItems = data.items.filter((item) => item.sku || item.produk);
+      <hr class="divider" />
 
-    validItems.forEach((item, index) => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${index + 1}</td>
-        <td>${item.sku || "-"}</td>
-        <td>${item.produk || "-"}</td>
-        <td>${item.jumlah || 0}</td>
-        <td>${item.satuan || "-"}</td>
-        <td>${formatCurrency(item.harga)}</td>
-        <td>${formatCurrency(item.total)}</td>
-      `;
-      itemsBody.appendChild(row);
-    });
-  }
+      <!-- Customer & Transaction Info -->
+      <div class="info-section">
+        <div class="info-left">
+          <table class="details-table">
+            <tr><td>Informasi Pelanggan:</td></tr>
+            <tr><td style="font-weight:bold;">${data.customer.nama || "-"}</td></tr>
+            <tr><td>${data.customer.noHp || "-"}</td></tr>
+            <tr><td>${data.customer.alamat || "-"}</td></tr>
+            <tr><td>${data.customer.city || (window.Utils && window.Utils.getCityForCustomer ? window.Utils.getCityForCustomer(data.customer.nama, data.customer.noHp) : "-")}</td></tr>
+          </table>
+        </div>
+        <div class="info-right">
+          <table class="details-table right-table">
+            <tr><td>Kasir</td><td>${data.info.kasir || "-"}</td></tr>
+            <tr><td>Transaksi</td><td>${data.info.transaksi || "-"}</td></tr>
+            <tr><td>Payment</td><td>${data.info.payment || "-"}</td></tr>
+          </table>
+        </div>
+      </div>
 
-  // Summary
-  setText("invSubtotal", formatCurrency(data.summary.subtotal));
-  setText("invOngkir", formatCurrency(data.summary.ongkir));
-  setText("invPacking", formatCurrency(data.summary.packing));
-  setText("invDiskon", formatCurrency(data.summary.diskon));
-  setText("invTotalTagihan", formatCurrency(data.summary.totalTagihan));
-  setText("invDP1", formatCurrency(data.summary.dp1));
-  setText("invDP2", formatCurrency(data.summary.dp2));
-  setText("invSisaTagihan", formatCurrency(data.summary.sisaTagihan));
-}
+      <hr class="divider" />
 
-function setText(id, value) {
-  const el = document.getElementById(id);
-  if (el) {
-    el.textContent = value || "-";
+      <!-- Items Table -->
+      <div class="table-container">
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th>NO.</th>
+              <th>SKU</th>
+              <th>PRODUK</th>
+              <th>JUMLAH</th>
+              <th>SATUAN</th>
+              <th>HARGA</th>
+              <th>TOTAL</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${pageItems
+              .map(
+                (item, idx) => `
+              <tr>
+                <td>${startIndex + idx + 1}</td>
+                <td>${item.sku || "-"}</td>
+                <td>${item.produk || "-"}</td>
+                <td>${item.jumlah || 0}</td>
+                <td>${item.satuan || "-"}</td>
+                <td>${formatCurrency(item.harga)}</td>
+                <td>${formatCurrency(item.total)}</td>
+              </tr>
+            `,
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+
+
+      <!-- Footer Wrapper (Only on last page) -->
+      <div class="footer-wrapper" style="${isLastPage ? "" : "display:none;"}">
+        <hr class="divider thick" />
+        <div class="footer-section">
+          <div class="footer-left">
+            <div class="notes">
+              <strong>Keterangan:</strong>
+              <ul>
+                <li>Transfer ke BCA 6380209720; Yudhi Aprianto</li>
+                <li>Diameter yang digunakan bibir terluar</li>
+                <li>Selisih ukuran 1-2cm karena pengerjaan manual</li>
+              </ul>
+            </div>
+            <div class="terms">
+              <strong>Syarat dan Ketentuan:</strong>
+              <ul>
+                <li>Barang yang sudah dikirim tidak dapat ditukar/dikembalikan</li>
+                <li>Khusus item PO pengerjaan 7-21 hari kerja</li>
+                <li>Kerusakan item akibat perjalanan bukan tanggung jawab Larosa</li>
+              </ul>
+            </div>
+          </div>
+          <div class="footer-right">
+            <table class="summary-table">
+              <tr><td><strong>Sub Total (${totalQty} Item)</strong></td><td><strong>${formatCurrency(data.summary.subtotal)}</strong></td></tr>
+              <tr><td>Ongkir</td><td>${formatCurrency(data.summary.ongkir)}</td></tr>
+              <tr><td>Packing</td><td>${formatCurrency(data.summary.packing)}</td></tr>
+              <tr><td>Diskon</td><td>${formatCurrency(data.summary.diskon)}</td></tr>
+              <tr><td><strong>Total Tagihan</strong></td><td><strong>${formatCurrency(data.summary.totalTagihan)}</strong></td></tr>
+              <tr><td>DP 1</td><td>${formatCurrency(data.summary.dp1)}</td></tr>
+              <tr><td>DP 2</td><td>${formatCurrency(data.summary.dp2)}</td></tr>
+              <tr><td><strong>Sisa Tagihan</strong></td><td><strong>${formatCurrency(data.summary.sisaTagihan)}</strong></td></tr>
+            </table>
+          </div>
+        </div>
+        <div class="bottom-bar"></div>
+      </div>
+    `;
+
+    pageEl.innerHTML = pageHTML;
+    pagesContainer.appendChild(pageEl);
   }
 }
 
 function goBack() {
-  window.location.href = "kasir.html";
+  window.history.back();
 }
