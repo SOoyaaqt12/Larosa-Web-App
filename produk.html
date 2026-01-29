@@ -1,450 +1,459 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Stok Produk - Larosapot</title>
 
-    <link rel="stylesheet" href="style/produk.css">
-    <link rel="stylesheet" href="style/layout.css">
-</head>
-<body>
+    <link rel="stylesheet" href="style/produk.css" />
+    <link rel="stylesheet" href="style/layout.css" />
+  </head>
+  <body>
     <!-- Sidebar injected by script/layout.js -->
 
     <div class="main-content">
-        <!-- Header injected by script/layout.js -->
+      <!-- Header injected by script/layout.js -->
 
-        <div class="content-area">
-            <div class="controls-bar">
-                <div class="search-filter-group">
-                    <input type="text" id="searchInput" placeholder="Cari SKU atau Nama Produk..." onkeyup="handleSearch()">
-                    <select id="categoryFilter" onchange="handleCategoryFilter()">
-                        <option value="">Semua Kategori</option>
-                        <!-- Options populated by JS -->
-                    </select>
-                    <select id="itemsPerPage" onchange="handleItemsPerPageChange()">
-                        <option value="10">10 per halaman</option>
-                        <option value="25">25 per halaman</option>
-                        <option value="50">50 per halaman</option>
-                        <option value="100">100 per halaman</option>
-                    </select>
-                    <button class="btn-reset" onclick="resetFilters()">Reset</button>
-                </div>
-                <button class="btn-tambah">Tambah</button>
-            </div>
-
-            <div class="pagination-info" id="paginationInfo">
-                Menampilkan 0 - 0 dari 0 data
-            </div>
-
-            <div class="table-wrapper">
-                <div class="table-scroll">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th class="col-sku">SKU</th>
-                                <th class="col-nama">NAMA PRODUK</th>
-                                <th class="col-ketagori">KETAGORI</th>
-                                <th class="col-satuan">SATUAN</th>
-                                <th class="col-number">STOK SISTEM</th>
-                                <th class="col-number">RESTOCK</th>
-                                <th class="col-number">TERJUAL</th>
-                                <th class="col-number">STOK AKHIR SISTEM</th>
-                                <th class="col-number">STOK LAPANGAN</th>
-                                <th class="col-number">SELISIH</th>
-                                <th class="col-number">STOK MINIMUM</th>
-                                <th class="col-number">KEKURANGAN STOK</th>
-                                <th class="col-harga">HPP</th>
-                                <th class="col-harga">HARGA JUAL</th>
-                                <th class="col-aksi">AKSI</th>
-                            </tr>
-                        </thead>
-                        <tbody id="produkTableBody">
-                            <tr>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD</td>
-                                <td>Pcs</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>Rp20.000</td>
-                                <td>Rp20.000</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn-edit">Edit</button>
-                                        <button class="btn-delete">Delete</button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD</td>
-                                <td>Pcs</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>Rp20.000</td>
-                                <td>Rp20.000</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn-edit">Edit</button>
-                                        <button class="btn-delete">Delete</button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD</td>
-                                <td>Pcs</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>Rp20.000</td>
-                                <td>Rp20.000</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn-edit">Edit</button>
-                                        <button class="btn-delete">Delete</button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD</td>
-                                <td>Pcs</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>Rp20.000</td>
-                                <td>Rp20.000</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn-edit">Edit</button>
-                                        <button class="btn-delete">Delete</button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD</td>
-                                <td>Pcs</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>Rp20.000</td>
-                                <td>Rp20.000</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn-edit">Edit</button>
-                                        <button class="btn-delete">Delete</button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD</td>
-                                <td>Pcs</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>Rp20.000</td>
-                                <td>Rp20.000</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn-edit">Edit</button>
-                                        <button class="btn-delete">Delete</button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD</td>
-                                <td>Pcs</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>Rp20.000</td>
-                                <td>Rp20.000</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn-edit">Edit</button>
-                                        <button class="btn-delete">Delete</button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD</td>
-                                <td>Pcs</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>Rp20.000</td>
-                                <td>Rp20.000</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn-edit">Edit</button>
-                                        <button class="btn-delete">Delete</button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD</td>
-                                <td>Pcs</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>Rp20.000</td>
-                                <td>Rp20.000</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn-edit">Edit</button>
-                                        <button class="btn-delete">Delete</button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD</td>
-                                <td>Pcs</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>Rp20.000</td>
-                                <td>Rp20.000</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn-edit">Edit</button>
-                                        <button class="btn-delete">Delete</button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD</td>
-                                <td>Pcs</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>Rp20.000</td>
-                                <td>Rp20.000</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn-edit">Edit</button>
-                                        <button class="btn-delete">Delete</button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD</td>
-                                <td>Pcs</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>Rp20.000</td>
-                                <td>Rp20.000</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn-edit">Edit</button>
-                                        <button class="btn-delete">Delete</button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD</td>
-                                <td>Pcs</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>Rp20.000</td>
-                                <td>Rp20.000</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn-edit">Edit</button>
-                                        <button class="btn-delete">Delete</button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD</td>
-                                <td>Pcs</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>Rp20.000</td>
-                                <td>Rp20.000</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn-edit">Edit</button>
-                                        <button class="btn-delete">Delete</button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD</td>
-                                <td>Pcs</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>Rp20.000</td>
-                                <td>Rp20.000</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn-edit">Edit</button>
-                                        <button class="btn-delete">Delete</button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD</td>
-                                <td>Pcs</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>Rp20.000</td>
-                                <td>Rp20.000</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn-edit">Edit</button>
-                                        <button class="btn-delete">Delete</button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD Batu Hitam BAK>1lt</td>
-                                <td>ADD</td>
-                                <td>Pcs</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>Rp20.000</td>
-                                <td>Rp20.000</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn-edit">Edit</button>
-                                        <button class="btn-delete">Delete</button>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="pagination-controls" id="paginationControls">
-                <button id="btnPrevPage" onclick="goToPage(currentPage - 1)" disabled>← Sebelumnya</button>
-                <span id="pageNumbers"></span>
-                <button id="btnNextPage" onclick="goToPage(currentPage + 1)">Berikutnya →</button>
-            </div>
+      <div class="content-area">
+        <div class="controls-bar">
+          <div class="search-filter-group">
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Cari SKU atau Nama Produk..."
+              onkeyup="handleSearch()"
+            />
+            <select id="categoryFilter" onchange="handleCategoryFilter()">
+              <option value="">Semua Kategori</option>
+              <!-- Options populated by JS -->
+            </select>
+            <select id="itemsPerPage" onchange="handleItemsPerPageChange()">
+              <option value="10">10 per halaman</option>
+              <option value="25">25 per halaman</option>
+              <option value="50">50 per halaman</option>
+              <option value="100">100 per halaman</option>
+            </select>
+            <button class="btn-reset" onclick="resetFilters()">Reset</button>
+          </div>
+          <button class="btn-tambah">Tambah</button>
         </div>
+
+        <div class="pagination-info" id="paginationInfo">
+          Menampilkan 0 - 0 dari 0 data
+        </div>
+
+        <div class="table-wrapper">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th class="col-sku">SKU</th>
+                  <th class="col-nama">NAMA PRODUK</th>
+                  <th class="col-ketagori">KATEGORI</th>
+                  <th class="col-satuan">SATUAN</th>
+                  <th class="col-number">STOK SISTEM</th>
+                  <th class="col-number">RESTOCK</th>
+                  <th class="col-number">TERJUAL</th>
+                  <th class="col-number">STOK AKHIR SISTEM</th>
+                  <th class="col-number">STOK LAPANGAN</th>
+                  <th class="col-number">SELISIH</th>
+                  <th class="col-number">STOK MINIMUM</th>
+                  <th class="col-number">KEKURANGAN STOK</th>
+                  <th class="col-harga">HPP</th>
+                  <th class="col-harga">HARGA JUAL</th>
+                  <th class="col-aksi">AKSI</th>
+                </tr>
+              </thead>
+              <tbody id="produkTableBody">
+                <tr>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD</td>
+                  <td>Pcs</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>Rp20.000</td>
+                  <td>Rp20.000</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-edit">Edit</button>
+                      <button class="btn-delete">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD</td>
+                  <td>Pcs</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>Rp20.000</td>
+                  <td>Rp20.000</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-edit">Edit</button>
+                      <button class="btn-delete">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD</td>
+                  <td>Pcs</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>Rp20.000</td>
+                  <td>Rp20.000</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-edit">Edit</button>
+                      <button class="btn-delete">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD</td>
+                  <td>Pcs</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>Rp20.000</td>
+                  <td>Rp20.000</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-edit">Edit</button>
+                      <button class="btn-delete">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD</td>
+                  <td>Pcs</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>Rp20.000</td>
+                  <td>Rp20.000</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-edit">Edit</button>
+                      <button class="btn-delete">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD</td>
+                  <td>Pcs</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>Rp20.000</td>
+                  <td>Rp20.000</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-edit">Edit</button>
+                      <button class="btn-delete">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD</td>
+                  <td>Pcs</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>Rp20.000</td>
+                  <td>Rp20.000</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-edit">Edit</button>
+                      <button class="btn-delete">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD</td>
+                  <td>Pcs</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>Rp20.000</td>
+                  <td>Rp20.000</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-edit">Edit</button>
+                      <button class="btn-delete">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD</td>
+                  <td>Pcs</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>Rp20.000</td>
+                  <td>Rp20.000</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-edit">Edit</button>
+                      <button class="btn-delete">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD</td>
+                  <td>Pcs</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>Rp20.000</td>
+                  <td>Rp20.000</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-edit">Edit</button>
+                      <button class="btn-delete">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD</td>
+                  <td>Pcs</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>Rp20.000</td>
+                  <td>Rp20.000</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-edit">Edit</button>
+                      <button class="btn-delete">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD</td>
+                  <td>Pcs</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>Rp20.000</td>
+                  <td>Rp20.000</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-edit">Edit</button>
+                      <button class="btn-delete">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD</td>
+                  <td>Pcs</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>Rp20.000</td>
+                  <td>Rp20.000</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-edit">Edit</button>
+                      <button class="btn-delete">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD</td>
+                  <td>Pcs</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>Rp20.000</td>
+                  <td>Rp20.000</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-edit">Edit</button>
+                      <button class="btn-delete">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD</td>
+                  <td>Pcs</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>Rp20.000</td>
+                  <td>Rp20.000</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-edit">Edit</button>
+                      <button class="btn-delete">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD</td>
+                  <td>Pcs</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>Rp20.000</td>
+                  <td>Rp20.000</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-edit">Edit</button>
+                      <button class="btn-delete">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD Batu Hitam BAK>1lt</td>
+                  <td>ADD</td>
+                  <td>Pcs</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>Rp20.000</td>
+                  <td>Rp20.000</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-edit">Edit</button>
+                      <button class="btn-delete">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="pagination-controls" id="paginationControls">
+          <button id="btnPrevPage" onclick="goToPage(currentPage - 1)" disabled>
+            ← Sebelumnya
+          </button>
+          <span id="pageNumbers"></span>
+          <button id="btnNextPage" onclick="goToPage(currentPage + 1)">
+            Berikutnya →
+          </button>
+        </div>
+      </div>
     </div>
     <script src="script/config.js"></script>
     <script src="script/auth.js"></script>
@@ -454,5 +463,5 @@
     <script src="script/utils.js"></script>
     <script src="script/data-service.js"></script>
     <script src="script/produk.js"></script>
-</body>
+  </body>
 </html>
