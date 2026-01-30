@@ -27,12 +27,12 @@ body {
 /* Header styles removed - using style/layout.css */
 
 .dashboard-content {
-  padding: 30px 40px;
+  padding: var(--container-padding);
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 20px;
   margin-bottom: 30px;
 }
@@ -40,28 +40,33 @@ body {
 .stat-card {
   background: linear-gradient(135deg, #7da869 0%, #6b8e5f 100%);
   border-radius: 20px;
-  padding: 25px 30px;
+  padding: clamp(15px, 2.5vw, 25px) clamp(20px, 3vw, 30px);
   color: #000;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
 }
 
 .stat-info h3 {
-  font-size: 22px;
+  font-size: clamp(16px, 1.5vw, 22px);
   font-weight: bold;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .stat-info p {
-  font-size: 32px;
+  font-size: clamp(24px, 2.5vw, 32px);
   font-weight: bold;
 }
 
 .stat-icon {
-  font-size: 48px;
-  opacity: 0.7;
+  font-size: clamp(32px, 4vw, 48px);
+  opacity: 0.5;
 }
 
 /* Analytics Card */

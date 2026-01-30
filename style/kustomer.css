@@ -57,13 +57,15 @@ body {
 .table-container {
   background-color: white;
   border-radius: 15px;
-  overflow: hidden;
+  overflow-x: auto; /* Enable horizontal scroll on small screens */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  -webkit-overflow-scrolling: touch;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 800px; /* Force minimum width to prevent squashing */
 }
 
 thead {
@@ -72,11 +74,12 @@ thead {
 }
 
 th {
-  padding: 18px 15px;
+  padding: 12px 10px;
   text-align: left;
-  font-size: 14px;
+  font-size: clamp(12px, 1vw, 14px);
   font-weight: bold;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 /* Text alignment utilities */

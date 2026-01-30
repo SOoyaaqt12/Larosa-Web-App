@@ -1,14 +1,44 @@
 /* Shared Layout Styles (Sidebar & Header) */
+:root {
+  --sidebar-width: 268px;
+  --header-height: 86px;
+  --base-font-size: 16px;
+  --nav-font-size: 18px;
+  --h1-font-size: 36px;
+  --container-padding: 30px 40px;
+  --transition-speed: 0.3s;
+}
+
+/* Responsiveness Tuning for Medium Screens (Laptops) */
+@media (max-width: 1440px) {
+  :root {
+    --sidebar-width: 240px;
+    --nav-font-size: 16px;
+    --h1-font-size: 28px;
+    --container-padding: 20px 30px;
+  }
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --sidebar-width: 210px;
+    --nav-font-size: 15px;
+    --h1-font-size: 24px;
+    --container-padding: 15px 20px;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
 
 body {
-  display: block !important; /* Override flex on body which causes issues with fixed sidebar */
+  display: block !important;
+  font-size: var(--base-font-size);
 }
 
 .sidebar {
-  width: 268px !important;
+  width: var(--sidebar-width) !important;
   background-color: #d4b896;
   display: flex;
   flex-direction: column;
@@ -16,19 +46,20 @@ body {
   height: 100vh;
   left: 0;
   top: 0;
-  z-index: 1000; /* Ensure it stays on top */
+  z-index: 1000;
+  transition: width var(--transition-speed);
 }
 
 .logo-section {
-  padding: 30px 20px;
+  padding: 20px 15px;
   text-align: center;
   border-bottom: 2px solid #c4a886;
 }
 
 .logo {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto 15px;
+  width: clamp(50px, 8vh, 80px);
+  height: clamp(50px, 8vh, 80px);
+  margin: 0 auto 10px;
   background-color: white;
   border-radius: 50%;
   display: flex;
@@ -36,37 +67,25 @@ body {
   justify-content: center;
 }
 
-.logo-inner {
-  width: 60px;
-  height: 60px;
-  background: linear-gradient(135deg, #d97757 0%, #c95f44 100%);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 8px;
-  font-weight: bold;
-}
-
 .brand-name {
-  font-size: 28px;
+  font-size: clamp(18px, 2.5vh, 28px);
   font-weight: bold;
   color: #000;
 }
 
 .nav-menu {
   flex: 1;
-  padding: 20px 0;
+  padding: 10px 0;
+  overflow-y: auto;
 }
 
 .nav-item {
-  padding: 18px 30px;
-  font-size: 18px;
+  padding: 15px 25px;
+  font-size: var(--nav-font-size);
   color: #000;
   cursor: pointer;
   border-bottom: 1px solid #c4a886;
-  transition: background-color 0.3s;
+  transition: background-color var(--transition-speed);
 }
 
 .nav-item:hover {
@@ -78,45 +97,35 @@ body {
   font-weight: bold;
 }
 
-.nav-bottom {
-  border-top: 2px solid #c4a886;
-}
-
-.nav-item.logout,
-.nav-item.settings {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 /* Header Styles */
 .header {
   background-color: white;
-  padding: 25px 40px;
+  padding: var(--container-padding);
+  min-height: var(--header-height);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  /* Fixed position logic might differ per page, but ideally it should be consistent */
 }
 
 .header h1 {
-  font-size: 36px;
+  font-size: var(--h1-font-size);
   font-weight: bold;
 }
 
 .user-avatar {
-  width: 50px;
-  height: 50px;
+  width: clamp(35px, 5vh, 50px);
+  height: clamp(35px, 5vh, 50px);
   background-color: #d4b896;
   border-radius: 50%;
 }
 
 /* Fix Main Content Margin to match Sidebar */
 .main-content {
-  margin-left: 268px !important;
+  margin-left: var(--sidebar-width) !important;
   width: auto !important;
-  overflow-x: hidden; /* Prevent horizontal scroll */
+  overflow-x: hidden;
+  transition: margin-left var(--transition-speed);
 }
 
 /* Ensure header fixed positioning matches if used */
