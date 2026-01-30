@@ -232,6 +232,29 @@ const DataServices = {
     colSpan: 5,
     emptyMessage: "Belum ada data quotation",
   }),
+
+  /**
+   * Fetch the next sequential ID from the server
+   * @param {string} type - 'INV' or 'QT'
+   * @param {string} date - YYYY-MM-DD format
+   */
+  async getNextId(type, date) {
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "get-next-id",
+          type: type,
+          date: date,
+        }),
+      });
+      const result = await response.json();
+      return result;
+    } catch (e) {
+      console.error("Error fetching next ID:", e);
+      return { error: e.toString() };
+    }
+  },
 };
 
 // Export for global use

@@ -177,7 +177,8 @@ async function prosesPelunasan() {
       targetSheet,
       dp1Obj,
       dp2Obj,
-      document.getElementById("paymen").value, // Pass payment method
+      document.getElementById("paymen").value ||
+        currentInvoiceData.info.payment,
     );
 
     // 4. Save to Target Sheet

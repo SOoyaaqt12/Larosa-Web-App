@@ -56,6 +56,9 @@ function injectLayout() {
             <a href="dashboard.html"><div class="nav-item ${
               page === "dashboard.html" ? "active" : ""
             }">Dashboard</div></a>
+            <a href="kustomer.html"><div class="nav-item ${
+              page === "kustomer.html" ? "active" : ""
+            }">Data Pelanggan</div></a>
             <!-- Transaksi Dropdown -->
             <div class="menu-item ${
               page === "kasir.html" || page === "quotation.html" ? "open" : ""
@@ -75,9 +78,6 @@ function injectLayout() {
                     }">Quotation</a>
                 </div>
             </div>
-            <a href="produk.html"><div class="nav-item ${
-              page === "produk.html" ? "active" : ""
-            }">Stok Produk</div></a>
             <!-- Riwayat Dropdown -->
             <div class="menu-item ${
               page === "riwayat.html" ||
@@ -104,9 +104,9 @@ function injectLayout() {
                     }">Data Quotation</a>
                 </div>
             </div>
-            <a href="kustomer.html"><div class="nav-item ${
-              page === "kustomer.html" ? "active" : ""
-            }">Data Pelanggan</div></a>
+            <a href="produk.html"><div class="nav-item ${
+              page === "produk.html" ? "active" : ""
+            }">Stok Produk</div></a>
             <a href="vendor.html"><div class="nav-item ${
               page === "vendor.html" ? "active" : ""
             }">Data Vendor</div></a>
@@ -142,7 +142,7 @@ function injectLayout() {
   if (!document.querySelector(".global-loader")) {
     document.body.insertAdjacentHTML(
       "beforeend",
-      `<div class="global-loader"><div class="spinner"></div></div>`
+      `<div class="global-loader"><div class="spinner"></div></div>`,
     );
   }
 }

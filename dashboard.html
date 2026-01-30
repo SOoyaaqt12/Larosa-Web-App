@@ -1,89 +1,124 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard</title>
-    <link rel="stylesheet" href="style/dashboard.css">
-    <link rel="stylesheet" href="style/layout.css">
-    
+    <link rel="stylesheet" href="style/dashboard.css" />
+    <link rel="stylesheet" href="style/layout.css" />
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
+  </head>
+  <body>
     <!-- Sidebar injected by script/layout.js -->
 
     <div class="main-content">
-        <!-- Header injected by script/layout.js -->
+      <!-- Header injected by script/layout.js -->
 
-        <div class="dashboard-content">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-info">
-                        <h3>Jumlah Pelanggan</h3>
-                        <p id="statPelanggan">Loading...</p>
-                    </div>
-                    <div class="stat-icon">👤</div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-info">
-                        <h3>Jumlah Vendor</h3>
-                        <p id="statVendor">-</p>
-                    </div>
-                    <div class="stat-icon">👥</div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-info">
-                        <h3>Barang Tersedia</h3>
-                        <p id="statBarang">Loading...</p>
-                    </div>
-                    <div class="stat-icon">📦</div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-info">
-                        <h3>Produk Terjual</h3>
-                        <p id="statTerjual">Loading...</p>
-                    </div>
-                    <div class="stat-icon">🛒</div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-info">
-                        <h3>Penjualan</h3>
-                        <p id="statPenjualan">Loading...</p>
-                    </div>
-                    <div class="stat-icon">💰</div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-info">
-                        <h3>Pendapatan Diterima Dimuka</h3>
-                        <p id="statDP">Loading...</p>
-                    </div>
-                    <div class="stat-icon">💵</div>
-                </div>
+      <div class="dashboard-content">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-info">
+              <h3>Jumlah Pelanggan</h3>
+              <p id="statPelanggan">Loading...</p>
             </div>
+            <div class="stat-icon">👤</div>
+          </div>
 
-
-
-            <div class="charts-grid">
-                <div class="chart-card">
-                    <h2>Sales Trend</h2>
-                    <div class="chart-container">
-                        <canvas id="salesChart"></canvas>
-                    </div>
-                </div>
-
-                <div class="chart-card">
-                    <h2>Kategori Produk</h2>
-                    <div class="chart-container">
-                        <canvas id="categoryChart"></canvas>
-                    </div>
-                </div>
+          <div class="stat-card">
+            <div class="stat-info">
+              <h3>Omset</h3>
+              <p id="statOmset">Loading...</p>
             </div>
+            <div class="stat-icon">💰</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-info">
+              <h3>Pendapatan</h3>
+              <p id="statPendapatan">Loading...</p>
+            </div>
+            <div class="stat-icon">💵</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-info">
+              <h3>Barang Tersedia</h3>
+              <p id="statBarang">Loading...</p>
+            </div>
+            <div class="stat-icon">📦</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-info">
+              <h3>Barang Terjual</h3>
+              <p id="statTerjual">Loading...</p>
+            </div>
+            <div class="stat-icon">🛒</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-info">
+              <h3>Jumlah Vendor</h3>
+              <p id="statVendor">-</p>
+            </div>
+            <div class="stat-icon">👥</div>
+          </div>
         </div>
+
+        <div class="analytics-card">
+          <div class="analytics-header">
+            <h2>Analytics Center</h2>
+            <div class="analytics-filters">
+              <select id="filterYear">
+                <option value="all">Semua Tahun</option>
+              </select>
+              <select id="filterMonth">
+                <option value="all">Semua Bulan</option>
+                <option value="0">Januari</option>
+                <option value="1">Februari</option>
+                <option value="2">Maret</option>
+                <option value="3">April</option>
+                <option value="4">Mei</option>
+                <option value="5">Juni</option>
+                <option value="6">Juli</option>
+                <option value="7">Agustus</option>
+                <option value="8">September</option>
+                <option value="9">Oktober</option>
+                <option value="10">November</option>
+                <option value="11">Desember</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="analytics-tabs">
+            <button class="tab-btn active" onclick="switchChart('omsetHarian')">
+              Omset Harian
+            </button>
+            <button class="tab-btn" onclick="switchChart('omsetSales')">
+              Omset per Sales
+            </button>
+            <button class="tab-btn" onclick="switchChart('omsetProduk')">
+              Omset per Produk
+            </button>
+            <button class="tab-btn" onclick="switchChart('qtyProduk')">
+              Qty Terjual
+            </button>
+            <button class="tab-btn" onclick="switchChart('biayaProduk')">
+              Biaya Produk (HPP)
+            </button>
+            <button class="tab-btn" onclick="switchChart('kotaCust')">
+              Kota Pelanggan
+            </button>
+          </div>
+
+          <div class="analytics-body">
+            <div class="chart-container">
+              <canvas id="mainChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="script/config.js"></script>
@@ -92,5 +127,5 @@
     <script src="script/auth.js"></script>
     <script src="script/layout.js"></script>
     <script src="script/dashboard.js"></script>
-</body>
+  </body>
 </html>

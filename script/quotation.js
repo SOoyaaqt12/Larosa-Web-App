@@ -209,57 +209,38 @@ function setupCalculatorInputs() {
   });
 }
 
-function getQuotationCounter(dateString) {
-  try {
-    const stored = localStorage.getItem(QUOTATION_COUNTER_KEY);
-    if (stored) {
-      const data = JSON.parse(stored);
-      if (data.date === dateString) {
-        return data.count;
-      }
-    }
-  } catch (e) {
-    console.error("Error reading quotation counter:", e);
-  }
-  return 1;
-}
-
-function incrementQuotationCounter(dateString) {
-  const currentCount = getQuotationCounter(dateString);
-  try {
-    localStorage.setItem(
-      QUOTATION_COUNTER_KEY,
-      JSON.stringify({
-        date: dateString,
-        count: currentCount + 1,
-      }),
-    );
-  } catch (e) {
-    console.error("Error saving quotation counter:", e);
-  }
-}
-
-function generateQuotationNumber(date) {
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = String(date.getFullYear()).slice(-2);
-
-  const dateString = `${date.getFullYear()}-${month}-${day}`;
-  const orderNum = getQuotationCounter(dateString);
-  const orderNumPadded = String(orderNum).padStart(2, "0");
-
-  return `LRTQT/${orderNumPadded}/${day}${month}${year}`;
-}
-
-function updateQuotationNumber() {
+/**
+ * Update quotation number when date changes - Fetches from Server
+ */
+async function updateQuotationNumber() {
   const tanggalInput = document.getElementById("tanggalDibuat");
   const noPesananInput = document.getElementById("noPesanan");
 
   if (!tanggalInput || !noPesananInput) return;
 
-  const selectedDate = tanggalInput.valueAsDate || new Date();
-  const quotationNumber = generateQuotationNumber(selectedDate);
-  noPesananInput.value = quotationNumber;
+  // Show loading state
+  const originalValue = noPesananInput.value;
+  noPesananInput.value = "Syncing...";
+  noPesananInput.disabled = true;
+
+  const selectedDate =
+    tanggalInput.value || new Date().toISOString().split("T")[0];
+
+  try {
+    const result = await DataServices.getNextId("QT", selectedDate);
+    if (result.success) {
+      noPesananInput.value = result.id;
+    } else {
+      console.error("Failed to fetch quotation number:", result.error);
+      noPesananInput.value = originalValue;
+      alert("Gagal mendapatkan nomor quotation otomatis. Silakan coba lagi.");
+    }
+  } catch (e) {
+    console.error("Error updating quotation number:", e);
+    noPesananInput.value = originalValue;
+  } finally {
+    noPesananInput.disabled = false;
+  }
 }
 
 async function loadCustomersForAutocomplete() {
@@ -707,6 +688,11 @@ async function saveQuotation() {
 
   const tanggal = document.getElementById("tanggalDibuat").value;
   const noPesanan = document.getElementById("noPesanan").value;
+  if (noPesanan === "Syncing...") {
+    alert("Sistem sedang mengambil nomor quotation. Silakan tunggu sebentar.");
+    window.isSavingQuotation = false;
+    return;
+  }
   const kasir = document.getElementById("kasir").value;
   const noTelepon = document.getElementById("noTelepon").value;
   const alamat = document.getElementById("alamatPelanggan").value;
@@ -789,11 +775,6 @@ async function saveQuotation() {
         throw new Error(result.error || "Gagal menyimpan data");
       }
     }
-
-    const day = String(new Date().getDate()).padStart(2, "0");
-    const month = String(new Date().getMonth() + 1).padStart(2, "0");
-    const dateString = `${new Date().getFullYear()}-${month}-${day}`;
-    incrementQuotationCounter(dateString);
 
     alert(`Quotation ${noPesanan} berhasil disimpan!`);
     resetQuotationForm();

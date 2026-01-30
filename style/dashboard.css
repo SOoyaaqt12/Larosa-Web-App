@@ -64,27 +64,106 @@ body {
   opacity: 0.7;
 }
 
-.charts-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-.chart-card {
-  background-color: #d4b896;
-  border-radius: 20px;
+/* Analytics Card */
+.analytics-card {
+  background-color: #fff;
+  border-radius: 24px;
   padding: 30px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  min-width: 0; /* Prevent grid overflow */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  margin-top: 20px;
 }
 
-.chart-card h2 {
+.analytics-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.analytics-header h2 {
   font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 20px;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.analytics-filters {
+  display: flex;
+  gap: 10px;
+}
+
+.analytics-filters select {
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
+  color: #495057;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.analytics-filters select:hover {
+  border-color: #7da869;
+}
+
+/* Tabs */
+.analytics-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 30px;
+  overflow-x: auto;
+  padding-bottom: 5px;
+  scrollbar-width: thin;
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  border-radius: 14px;
+  border: none;
+  background-color: #f1f3f5;
+  color: #6c757d;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tab-btn:hover {
+  background-color: #e9ecef;
+  color: #495057;
+}
+
+.tab-btn.active {
+  background-color: #7da869;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(125, 168, 105, 0.3);
+}
+
+/* Body */
+.analytics-body {
+  background-color: #fcfcfc;
+  border-radius: 20px;
+  padding: 20px;
+  border: 1px solid #f0f0f0;
 }
 
 .chart-container {
   position: relative;
-  height: 300px;
+  height: 400px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .analytics-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .analytics-tabs {
+    justify-content: flex-start;
+  }
 }

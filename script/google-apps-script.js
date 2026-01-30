@@ -26,6 +26,7 @@ const SHEET_CONFIG = {
   DATA_QUOTATION: { headerRow: 4, insertAtTop: true },
   QUOTATION: { headerRow: 50, insertAtTop: true, startColumn: 2 }, // Sheet QUOTATION header di baris 50, mulai kolom B
   VENDOR: { headerRow: 5, startColumn: 2 }, // Header baris 5, mulai kolom B
+  COUNTERS: { headerRow: 1 }, // DATE | TYPE | COUNT
 };
 
 function doGet(e) {
@@ -37,7 +38,7 @@ function doGet(e) {
   }
 
   return ContentService.createTextOutput(
-    JSON.stringify({ error: "Invalid action" })
+    JSON.stringify({ error: "Invalid action" }),
   ).setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -48,7 +49,7 @@ function doPost(e) {
     data = JSON.parse(e.postData.contents);
   } catch (err) {
     return ContentService.createTextOutput(
-      JSON.stringify({ error: "Invalid JSON data", detail: err.toString() })
+      JSON.stringify({ error: "Invalid JSON data", detail: err.toString() }),
     ).setMimeType(ContentService.MimeType.JSON);
   }
 
@@ -79,12 +80,15 @@ function doPost(e) {
     case "login":
       result = authenticateUser(data.username, data.password);
       break;
+    case "get-next-id":
+      result = getNextIncrementalId(data.type, data.date);
+      break;
     default:
       result = { error: "Invalid action" };
   }
 
   return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(
-    ContentService.MimeType.JSON
+    ContentService.MimeType.JSON,
   );
 }
 
@@ -158,7 +162,7 @@ function readSheet(sheetName) {
 
     if (!sheet) {
       return ContentService.createTextOutput(
-        JSON.stringify({ error: "Sheet not found: " + sheetName })
+        JSON.stringify({ error: "Sheet not found: " + sheetName }),
       ).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -173,7 +177,7 @@ function readSheet(sheetName) {
 
     if (lastRow < headerRow) {
       return ContentService.createTextOutput(
-        JSON.stringify({ success: true, headers: [], data: [] })
+        JSON.stringify({ success: true, headers: [], data: [] }),
       ).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -189,7 +193,7 @@ function readSheet(sheetName) {
 
     if (numDataRows <= 0) {
       return ContentService.createTextOutput(
-        JSON.stringify({ success: true, headers: headers, data: [] })
+        JSON.stringify({ success: true, headers: headers, data: [] }),
       ).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -197,7 +201,7 @@ function readSheet(sheetName) {
       dataStartRow,
       startColumn,
       numDataRows,
-      numDataCols
+      numDataCols,
     );
     const dataValues = dataRange.getValues();
 
@@ -215,7 +219,7 @@ function readSheet(sheetName) {
       .filter((row) => {
         // Filter out empty rows (rows where all data columns are empty)
         return Object.keys(row).some(
-          (key) => key !== "_rowIndex" && row[key] !== "" && row[key] !== null
+          (key) => key !== "_rowIndex" && row[key] !== "" && row[key] !== null,
         );
       });
 
@@ -224,11 +228,11 @@ function readSheet(sheetName) {
         success: true,
         headers: headers.filter((h) => h),
         data: rows,
-      })
+      }),
     ).setMimeType(ContentService.MimeType.JSON);
   } catch (error) {
     return ContentService.createTextOutput(
-      JSON.stringify({ error: error.toString() })
+      JSON.stringify({ error: error.toString() }),
     ).setMimeType(ContentService.MimeType.JSON);
   }
 }
@@ -332,7 +336,7 @@ function addRow(sheetName, rowData, uniqueColumn = null) {
         headerRow,
         startColumn,
         1,
-        sheet.getLastColumn() - startColumn + 1
+        sheet.getLastColumn() - startColumn + 1,
       )
       .getValues()[0]
       .filter((h) => h !== ""); // Remove empty headers
@@ -341,7 +345,7 @@ function addRow(sheetName, rowData, uniqueColumn = null) {
     if (uniqueColumn) {
       // Find header case-insensitively
       const uniqueColIndex = headers.findIndex(
-        (h) => h && h.toString().toUpperCase() === uniqueColumn.toUpperCase()
+        (h) => h && h.toString().toUpperCase() === uniqueColumn.toUpperCase(),
       );
 
       if (uniqueColIndex === -1) {
@@ -397,7 +401,7 @@ function addRow(sheetName, rowData, uniqueColumn = null) {
         dataStartRow,
         startColumn,
         1,
-        newRow.length
+        newRow.length,
       );
       newRowRange.setValues([newRow]);
 
@@ -419,7 +423,7 @@ function addRow(sheetName, rowData, uniqueColumn = null) {
           dataStartRow,
           startColumn,
           1,
-          newRow.length
+          newRow.length,
         );
         newRowRange.setValues([newRow]);
         applyRowFormatting(sheet, dataStartRow, startColumn, headers);
@@ -431,7 +435,7 @@ function addRow(sheetName, rowData, uniqueColumn = null) {
         dataStartRow,
         startColumn,
         lastRow - headerRow,
-        1
+        1,
       );
       const dataValues = dataRange.getValues();
 
@@ -451,7 +455,7 @@ function addRow(sheetName, rowData, uniqueColumn = null) {
         insertRow,
         startColumn,
         1,
-        newRow.length
+        newRow.length,
       );
       newRowRange.setValues([newRow]);
 
@@ -573,7 +577,7 @@ function deleteInvoice(sheetName, noPesanan) {
       dataStartRow,
       1,
       lastRow - headerRow,
-      sheet.getLastColumn()
+      sheet.getLastColumn(),
     );
     const dataValues = dataRange.getValues();
 
@@ -642,7 +646,7 @@ function incrementCustomerTransaction(phoneNumber) {
     // Find NO HP column (case-insensitive)
     const phoneColIndex = headers.findIndex(
       (h) =>
-        h && h.toString().toUpperCase().replace(/\n/g, " ").includes("NO HP")
+        h && h.toString().toUpperCase().replace(/\n/g, " ").includes("NO HP"),
     );
 
     if (phoneColIndex === -1) {
@@ -654,7 +658,7 @@ function incrementCustomerTransaction(phoneNumber) {
       (h) =>
         h &&
         h.toString().toUpperCase().replace(/\n/g, " ").includes("JUMLAH") &&
-        h.toString().toUpperCase().replace(/\n/g, " ").includes("TRANSAKSI")
+        h.toString().toUpperCase().replace(/\n/g, " ").includes("TRANSAKSI"),
     );
 
     if (txColIndex === -1) {
@@ -704,5 +708,69 @@ function incrementCustomerTransaction(phoneNumber) {
     };
   } catch (error) {
     return { error: error.toString() };
+  }
+}
+
+/**
+ * Get the next sequential ID for a specific date and type
+ * Uses LockService to prevent collisions in multi-user environment
+ * @param {string} type - 'INV' or 'QT'
+ * @param {string} dateStr - YYYY-MM-DD format
+ * @returns {object} - {success: true, id: "LR/INV/01/300126", count: 1}
+ */
+function getNextIncrementalId(type, dateStr) {
+  const lock = LockService.getScriptLock();
+  try {
+    // Wait for up to 30 seconds for the lock
+    lock.waitLock(30000);
+
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    let sheet = ss.getSheetByName("COUNTERS");
+
+    // Create COUNTERS sheet if it doesn't exist
+    if (!sheet) {
+      sheet = ss.insertSheet("COUNTERS");
+      sheet.appendRow(["DATE", "TYPE", "COUNT"]);
+    }
+
+    const data = sheet.getDataRange().getValues();
+    let rowIndex = -1;
+
+    // Search for existing counter for this date and type
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === dateStr && data[i][1] === type) {
+        rowIndex = i + 1;
+        break;
+      }
+    }
+
+    let count = 1;
+    if (rowIndex !== -1) {
+      count = parseInt(data[rowIndex - 1][2]) + 1;
+      sheet.getRange(rowIndex, 3).setValue(count);
+    } else {
+      sheet.appendRow([dateStr, type, count]);
+    }
+
+    // Format ID: LR / TYPE / PADDED_COUNT / DDMMYY
+    const dateParts = dateStr.split("-"); // YYYY, MM, DD
+    const year = dateParts[0].slice(-2);
+    const month = dateParts[1];
+    const day = dateParts[2];
+    const orderNumPadded = String(count).padStart(2, "0");
+
+    // Standardize prefixes: INV -> LR/INV, QT -> LR/QT
+    const prefix = type === "INV" ? "LR/INV" : "LR/QT";
+    const formattedId = `${prefix}/${orderNumPadded}/${day}${month}${year}`;
+
+    return {
+      success: true,
+      id: formattedId,
+      count: count,
+    };
+  } catch (error) {
+    return { error: error.toString() };
+  } finally {
+    lock.releaseLock();
   }
 }
