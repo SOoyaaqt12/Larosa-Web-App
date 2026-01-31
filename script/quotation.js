@@ -210,13 +210,18 @@ function setupCalculatorInputs() {
 }
 
 /**
- * Update quotation number when date changes - Fetches from Server
+ * Update quotation number when date changes - Fetches from Server (PREVIEW ONLY)
  */
+let isFetchingQuotation = false;
+
 async function updateQuotationNumber() {
   const tanggalInput = document.getElementById("tanggalDibuat");
   const noPesananInput = document.getElementById("noPesanan");
 
   if (!tanggalInput || !noPesananInput) return;
+  if (isFetchingQuotation) return; // Prevent double calls
+
+  isFetchingQuotation = true;
 
   // Show loading state
   const originalValue = noPesananInput.value;
@@ -227,7 +232,8 @@ async function updateQuotationNumber() {
     tanggalInput.value || new Date().toISOString().split("T")[0];
 
   try {
-    const result = await DataServices.getNextId("QT", selectedDate);
+    // Use peekNextId to preview, NOT increment the counter
+    const result = await DataServices.peekNextId("QT", selectedDate);
     if (result.success) {
       noPesananInput.value = result.id;
     } else {
@@ -240,6 +246,7 @@ async function updateQuotationNumber() {
     noPesananInput.value = originalValue;
   } finally {
     noPesananInput.disabled = false;
+    isFetchingQuotation = false;
   }
 }
 
@@ -722,13 +729,25 @@ async function saveQuotation() {
       btnSimpan.innerText = "Menyimpan...";
     }
 
+    // Get the actual (incremented) quotation number NOW, right before saving
+    let finalNoPesanan = noPesanan;
+    if (!isEditMode) {
+      const idResult = await DataServices.getNextId("QT", tanggal);
+      if (idResult.success) {
+        finalNoPesanan = idResult.id;
+        document.getElementById("noPesanan").value = finalNoPesanan;
+      } else {
+        throw new Error("Gagal mendapatkan nomor quotation: " + idResult.error);
+      }
+    }
+
     const rows = [];
     keranjangData.forEach((item, index) => {
       let rowData = {};
       if (index === 0) {
         rowData = {
           TANGGAL: formattedDate,
-          "NO PESANAN": noPesanan,
+          "NO PESANAN": finalNoPesanan,
           KASIR: kasir,
           TRANSAKSI: jenisTransaksi, // Uses Online/Offline from select
           PAYMENT: payment,

@@ -238,11 +238,23 @@ function setupCalculatorInputs() {
 /**
  * Update invoice number when date changes - Fetches from Server
  */
+let isFetchingInvoice = false;
+
+/**
+ * Update invoice number when date changes - Fetches from Server
+ */
 async function updateInvoiceNumber() {
   const tanggalInput = document.getElementById("tanggalDibuat");
   const noPesananInput = document.getElementById("noPesanan");
 
   if (!tanggalInput || !noPesananInput) return;
+  if (isFetchingInvoice) return; // Prevent double calls
+
+  // Check if we already have a valid invoice for this date (avoids refresh on same date)
+  // But strictly, we only want to fetch if the user EXPLICITLY changes date or on init.
+  // The issue is likely init calling it, then maybe another event calling it.
+
+  isFetchingInvoice = true;
 
   // Show loading state
   const originalValue = noPesananInput.value;
@@ -253,7 +265,8 @@ async function updateInvoiceNumber() {
     tanggalInput.value || new Date().toISOString().split("T")[0];
 
   try {
-    const result = await DataServices.getNextId("INV", selectedDate);
+    // Use peekNextId to preview, NOT increment the counter
+    const result = await DataServices.peekNextId("INV", selectedDate);
     if (result.success) {
       noPesananInput.value = result.id;
     } else {
@@ -268,6 +281,7 @@ async function updateInvoiceNumber() {
     noPesananInput.value = originalValue;
   } finally {
     noPesananInput.disabled = false;
+    isFetchingInvoice = false;
   }
 }
 
@@ -1029,6 +1043,20 @@ async function saveInvoice(status) {
       }
     }
 
+    // Get the actual (incremented) invoice number NOW, right before saving
+    // This ensures the counter only increments when we actually save
+    let finalNoPesanan = noPesanan;
+    if (!isEditMode && !isCheckoutMode) {
+      // Only get new ID for new invoices, not edits or checkouts
+      const idResult = await DataServices.getNextId("INV", tanggal);
+      if (idResult.success) {
+        finalNoPesanan = idResult.id;
+        document.getElementById("noPesanan").value = finalNoPesanan;
+      } else {
+        throw new Error("Gagal mendapatkan nomor invoice: " + idResult.error);
+      }
+    }
+
     // Determine Save Target (Always INCOME now)
     const targetSheetName = "INCOME";
 
@@ -1067,7 +1095,7 @@ async function saveInvoice(status) {
           PAYMENT: payment,
           "RO/PO": roPo,
           "DP/FP": dpFpStatus,
-          "NO INVOICE": noPesanan,
+          "NO INVOICE": finalNoPesanan,
           NAME: namaPelanggan,
           HP: noTelepon,
           CITY: selectedCustomer.kota || "",

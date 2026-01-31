@@ -44,38 +44,38 @@ function renderCustomerTable(customers) {
       (customer) => `
         <tr data-row-index="${customer._rowIndex}">
             <td class="text-left">${formatDisplayDate(
-              getValueFromKeys(customer, ["TANGGAL", "Tanggal"], "")
+              getValueFromKeys(customer, ["TANGGAL", "Tanggal"], ""),
             )}</td>
             <td class="text-left">${getValueFromKeys(
               customer,
               ["NAMA PELANGGAN", "NAMA\nPELANGGAN", "Nama Pelanggan", "NAMA"],
-              ""
+              "",
             )}</td>
             <td class="text-left">${getValueFromKeys(
               customer,
               ["NO HP", "No HP", "NO\nHP"],
-              ""
+              "",
             )}</td>
             <td class="text-left">${getValueFromKeys(
               customer,
               ["ALAMAT", "Alamat"],
-              ""
+              "",
             )}</td>
             <td class="text-left">${getValueFromKeys(
               customer,
               ["KOTA", "Kota"],
-              ""
+              "",
             )}</td>
             <td class="text-left">${getValueFromKeys(
               customer,
               ["CHANNEL", "Channel"],
-              ""
+              "",
             )}</td>
             <td class="text-center">${getValueFromKeys(
               customer,
               ["JUMLAH TRANSAKSI", "JUMLAH\nTRANSAKSI", "Jumlah Transaksi"],
               0,
-              true
+              true,
             )}</td>
             <td class="text-center">
                 <div class="action-buttons">
@@ -88,7 +88,7 @@ function renderCustomerTable(customers) {
                 </div>
             </td>
         </tr>
-    `
+    `,
     )
     .join("");
 }
@@ -168,7 +168,7 @@ function showAddCustomerModal() {
   document.body.insertAdjacentHTML("beforeend", modalHTML);
 
   const dateInput = document.querySelector(
-    '#customerForm input[name="TANGGAL"]'
+    '#customerForm input[name="TANGGAL"]',
   );
   if (dateInput) {
     dateInput.valueAsDate = new Date();
@@ -189,7 +189,7 @@ async function addCustomer(formData) {
     const existingPhone = getValueFromKeys(
       c,
       ["NO HP", "NO\\nHP", "No HP"],
-      ""
+      "",
     );
     return (
       String(existingPhone).trim().toLowerCase() ===
@@ -199,13 +199,14 @@ async function addCustomer(formData) {
 
   if (existingCustomer) {
     alert(
-      "Nomor HP '" + newPhoneNumber + "' sudah terdaftar untuk pelanggan lain!"
+      "Nomor HP '" + newPhoneNumber + "' sudah terdaftar untuk pelanggan lain!",
     );
     return;
   }
 
   const data = {
     TANGGAL: formatDateForSheet(formData.get("TANGGAL")),
+    "NAMA PELANGGAN": formData.get("NAMA_PELANGGAN"),
     "NAMA\nPELANGGAN": formData.get("NAMA_PELANGGAN"),
     "NO HP": newPhoneNumber,
     ALAMAT: formData.get("ALAMAT"),
@@ -257,7 +258,7 @@ async function editCustomer(rowIndex) {
   const nama = getValueFromKeys(
     customer,
     ["NAMA PELANGGAN", "NAMA\nPELANGGAN", "Nama Pelanggan"],
-    ""
+    "",
   );
   const noHp = getValueFromKeys(customer, ["NO HP", "NO\nHP", "No HP"], "");
   const alamat = getValueFromKeys(customer, ["ALAMAT", "Alamat"], "");
@@ -336,7 +337,7 @@ async function editCustomer(rowIndex) {
                   (k) =>
                     `<option value="${k}" ${
                       kota === k ? "selected" : ""
-                    }>${k}</option>`
+                    }>${k}</option>`,
                 )
                 .join("")}
             </select>
@@ -350,7 +351,7 @@ async function editCustomer(rowIndex) {
                   (c) =>
                     `<option value="${c}" ${
                       channel === c ? "selected" : ""
-                    }>${c}</option>`
+                    }>${c}</option>`,
                 )
                 .join("")}
             </select>
@@ -378,6 +379,7 @@ async function updateCustomer(formData) {
 
   const data = {
     TANGGAL: formatDateForSheet(formData.get("TANGGAL")),
+    "NAMA PELANGGAN": formData.get("NAMA_PELANGGAN"),
     "NAMA\nPELANGGAN": formData.get("NAMA_PELANGGAN"),
     "NO HP": formatPhoneNumber(formData.get("NO_HP")),
     ALAMAT: formData.get("ALAMAT"),
@@ -387,7 +389,7 @@ async function updateCustomer(formData) {
 
   // Save original for rollback
   const customerIndex = customersData.findIndex(
-    (c) => c._rowIndex === rowIndex
+    (c) => c._rowIndex === rowIndex,
   );
   const originalData =
     customerIndex !== -1 ? { ...customersData[customerIndex] } : null;
@@ -405,7 +407,7 @@ async function updateCustomer(formData) {
     const result = await updateSheetRow(
       customerService.sheetName,
       rowIndex,
-      data
+      data,
     );
     if (result.success) {
       console.log("Customer updated in Google Sheets");

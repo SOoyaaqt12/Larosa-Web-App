@@ -199,7 +199,7 @@ const DataServices = {
   }),
 
   customer: createDataService({
-    sheetName: "KUSTOMER",
+    sheetName: "KOSTUMER",
     cacheKey: "kustomer_data_cache",
     colSpan: 8,
     emptyMessage: "Tidak ada data pelanggan",
@@ -252,6 +252,29 @@ const DataServices = {
       return result;
     } catch (e) {
       console.error("Error fetching next ID:", e);
+      return { error: e.toString() };
+    }
+  },
+
+  /**
+   * Peek at next sequential ID (for preview, does NOT increment counter)
+   * @param {string} type - 'INV' or 'QT'
+   * @param {string} date - YYYY-MM-DD format
+   */
+  async peekNextId(type, date) {
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "peek-next-id",
+          type: type,
+          date: date,
+        }),
+      });
+      const result = await response.json();
+      return result;
+    } catch (e) {
+      console.error("Error peeking next ID:", e);
       return { error: e.toString() };
     }
   },
