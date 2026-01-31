@@ -18,7 +18,7 @@ const SHEET_ID = "1Cvvc4tIIcSoC7Q8f5Agau3OgYOIo0sdgUOZ0vsKVL6g";
 // Konfigurasi baris header untuk setiap sheet
 // Sesuaikan angka ini dengan baris dimana header tabel Anda berada
 const SHEET_CONFIG = {
-  KUSTOMER: { headerRow: 1, startColumn: 1 },
+  KOSTUMER: { headerRow: 1, startColumn: 1 },
   "PERSEDIAAN BARANG": { headerRow: 1, startColumn: 1 },
   USERS: { headerRow: 1 },
   INCOME: { headerRow: 6, startColumn: 2, insertAtTop: true }, // Row 6, Col B
@@ -102,6 +102,9 @@ function doPost(e) {
         break;
       case "get-next-id":
         result = getNextIncrementalId(data.type, data.date);
+        break;
+      case "peek-next-id":
+        result = peekNextId(data.type, data.date);
         break;
       default:
         result = { error: "Invalid action" };
@@ -767,7 +770,16 @@ function getNextIncrementalId(type, dateStr) {
 
     // Search for existing counter for this date and type
     for (let i = 1; i < data.length; i++) {
-      if (data[i][0] === dateStr && data[i][1] === type) {
+      let cellDate = data[i][0];
+      if (cellDate instanceof Date) {
+        // Convert to YYYY-MM-DD string to match input
+        const y = cellDate.getFullYear();
+        const m = String(cellDate.getMonth() + 1).padStart(2, "0");
+        const d = String(cellDate.getDate()).padStart(2, "0");
+        cellDate = `${y}-${m}-${d}`;
+      }
+
+      if (String(cellDate) === String(dateStr) && data[i][1] === type) {
         rowIndex = i + 1;
         break;
       }
@@ -801,5 +813,70 @@ function getNextIncrementalId(type, dateStr) {
     return { error: error.toString() };
   } finally {
     lock.releaseLock();
+  }
+}
+
+/**
+ * Peek at the next sequential ID without incrementing (for preview)
+ * @param {string} type - 'INV' or 'QT'
+ * @param {string} dateStr - YYYY-MM-DD format
+ * @returns {object} - {success: true, id: "LR/INV/01/300126", count: 1}
+ */
+function peekNextId(type, dateStr) {
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    let sheet = ss.getSheetByName("COUNTERS");
+
+    // Default to 1 if sheet doesn't exist
+    if (!sheet) {
+      const dateParts = dateStr.split("-");
+      const year = dateParts[0].slice(-2);
+      const month = dateParts[1];
+      const day = dateParts[2];
+      const prefix = type === "INV" ? "LR/INV" : "LR/QT";
+      return {
+        success: true,
+        id: `${prefix}/01/${day}${month}${year}`,
+        count: 1,
+      };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    let currentCount = 0;
+
+    // Search for existing counter for this date and type
+    for (let i = 1; i < data.length; i++) {
+      let cellDate = data[i][0];
+      if (cellDate instanceof Date) {
+        const y = cellDate.getFullYear();
+        const m = String(cellDate.getMonth() + 1).padStart(2, "0");
+        const d = String(cellDate.getDate()).padStart(2, "0");
+        cellDate = `${y}-${m}-${d}`;
+      }
+
+      if (String(cellDate) === String(dateStr) && data[i][1] === type) {
+        currentCount = parseInt(data[i][2]) || 0;
+        break;
+      }
+    }
+
+    const nextCount = currentCount + 1;
+
+    // Format ID
+    const dateParts = dateStr.split("-");
+    const year = dateParts[0].slice(-2);
+    const month = dateParts[1];
+    const day = dateParts[2];
+    const orderNumPadded = String(nextCount).padStart(2, "0");
+    const prefix = type === "INV" ? "LR/INV" : "LR/QT";
+    const formattedId = `${prefix}/${orderNumPadded}/${day}${month}${year}`;
+
+    return {
+      success: true,
+      id: formattedId,
+      count: nextCount,
+    };
+  } catch (error) {
+    return { error: error.toString() };
   }
 }
