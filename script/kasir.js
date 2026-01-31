@@ -6,7 +6,7 @@
 const INVOICE_SHEET_NAME = "INVOICE";
 const PELUNASAN_SHEET_NAME = "DP/Pelunasan";
 const KUSTOMER_SHEET_NAME = "KOSTUMER";
-const QUOTATION_SHEET_NAME = "DATA_QUOTATION";
+const QUOTATION_SHEET_NAME = "QUOTATION";
 
 // Cart data
 let keranjangData = [];
@@ -259,7 +259,9 @@ async function updateInvoiceNumber() {
     } else {
       console.error("Failed to fetch invoice number:", result.error);
       noPesananInput.value = originalValue;
-      alert("Gagal mendapatkan nomor invoice otomatis. Silakan coba lagi.");
+      alert(
+        `Gagal mendapatkan nomor invoice otomatis.\nDetail Error: ${result.error || "Unknown Error"}`,
+      );
     }
   } catch (e) {
     console.error("Error updating invoice number:", e);
@@ -386,14 +388,16 @@ function setupProductAutocomplete() {
 
     let items = list.getElementsByClassName("suggestion-item");
     if (e.key === "ArrowDown") {
+      e.preventDefault();
       currentProductFocus++;
       addActiveProduct(items);
     } else if (e.key === "ArrowUp") {
+      e.preventDefault();
       currentProductFocus--;
       addActiveProduct(items);
     } else if (e.key === "Enter") {
-      e.preventDefault();
       if (currentProductFocus > -1) {
+        e.preventDefault();
         if (items[currentProductFocus]) items[currentProductFocus].click();
       }
     }
@@ -543,14 +547,16 @@ function setupAutocomplete() {
 
     let items = list.getElementsByClassName("suggestion-item");
     if (e.key === "ArrowDown") {
+      e.preventDefault();
       currentFocus++;
       addActive(items);
     } else if (e.key === "ArrowUp") {
+      e.preventDefault();
       currentFocus--;
       addActive(items);
     } else if (e.key === "Enter") {
-      e.preventDefault();
       if (currentFocus > -1) {
+        e.preventDefault();
         if (items[currentFocus]) items[currentFocus].click();
       }
     }
@@ -1023,113 +1029,96 @@ async function saveInvoice(status) {
       }
     }
 
-    // Determine Save Target based on status
-    let targetSheetName = INVOICE_SHEET_NAME;
-    if (status === "DP") {
-      targetSheetName = PELUNASAN_SHEET_NAME;
+    // Determine Save Target (Always INCOME now)
+    const targetSheetName = "INCOME";
+
+    // Data Mapping for INCOME Sheet
+    // Header: DATE, CASHIER, TRANSACTION, PAYMENT, RO/PO, DP/FP, NO INVOICE, NAME, HP, CITY, CATEGORY, ITEM PRODUCT, QTY, PRICE/ITEM, ITEM*QTY, SUBTOTAL ITEM, PACKING, DELIVERY, DISCOUNT, GRAND TOTAL, TOTAL DP/FP, REMAINING BALANCE, STATUS
+
+    const roPo = document.getElementById("roPo")?.value || "";
+    // Status Logic:
+    // If user clicked "Lunas" (FP) -> DP/FP = "FP", TOTAL DP/FP = GRAND TOTAL, REMAINING = 0
+    // If user clicked "DP" (DP) -> DP/FP = "DP", TOTAL DP/FP = totalPaid (dp1+dp2+pelunasan), REMAINING = Grand Total - totalPaid
+
+    let dpFpStatus = status === "LUNAS" ? "FP" : "DP";
+    let finalTotalPaid = totalPaid;
+    let finalRemaining = sisa;
+
+    if (status === "LUNAS") {
+      finalTotalPaid = totalTagihan;
+      finalRemaining = 0;
     }
 
-    // Build rows for each product
+    // Build rows
     const rows = [];
     keranjangData.forEach((item, index) => {
       let rowData = {};
 
+      // Combine SKU and Product Name for "ITEM PRODUCT" if SKU exists
+      const itemProductDisplay = item.sku
+        ? `[${item.sku}] ${item.produk}`
+        : item.produk;
+
       if (index === 0) {
-        // Sheet INVOICE menggunakan: INVOICE (bukan NO PESANAN), SUB TOTAL, ONGKIR, Kota
-        // DATA_PELUNASAN menggunakan: INVOICE, HARGA, TOTAL, SUB TOTAL, ONGKIR
-        const isInvoiceSheet = targetSheetName === INVOICE_SHEET_NAME;
-
-        // Kedua sheet (INVOICE dan DATA_PELUNASAN) menggunakan nama kolom yang sama
-        const invoiceKey = "INVOICE"; // Sama untuk kedua sheet
-        const subtotalKey = "SUB TOTAL"; // Sama untuk kedua sheet
-        const hargaKey = "HARGA";
-        const totalKey = "TOTAL";
-        const ongkirKey = "ONGKIR"; // Sama untuk kedua sheet
-        const kotaKey = isInvoiceSheet ? "Kota" : ""; // Hanya untuk INVOICE
-
         rowData = {
-          TANGGAL: formattedDate,
-          [invoiceKey]: noPesanan,
-          KASIR: kasir,
-          TRANSAKSI: jenisTransaksi, // Now uses Online/Offline from select
+          DATE: formattedDate,
+          CASHIER: kasir,
+          TRANSACTION: jenisTransaksi,
           PAYMENT: payment,
-          "NAMA PELANGGAN": namaPelanggan,
-          "NO HP": noTelepon,
-          ALAMAT: alamat,
-          CHANNEL: selectedCustomer.channel || "",
-          KATEGORI: item.kategori || "",
-          SKU: item.sku,
-          PRODUK: item.produk,
-          JUMLAH: item.jumlah,
-          SATUAN: item.satuan,
-          [hargaKey]: item.harga,
-          [totalKey]: item.total,
-          [subtotalKey]: subtotal,
-          [ongkirKey]: ongkir,
+          "RO/PO": roPo,
+          "DP/FP": dpFpStatus,
+          "NO INVOICE": noPesanan,
+          NAME: namaPelanggan,
+          HP: noTelepon,
+          CITY: selectedCustomer.kota || "",
+          CATEGORY: item.kategori || "",
+          "ITEM PRODUCT": itemProductDisplay,
+          QTY: item.jumlah,
+          "PRICE/ITEM": item.harga,
+          "ITEM*QTY": item.total,
+          "SUBTOTAL ITEM": subtotal,
           PACKING: packing,
-          DISKON: diskon,
-          "TOTAL TAGIHAN": totalTagihan,
+          DELIVERY: ongkir,
+          DISCOUNT: diskon,
+          "GRAND TOTAL": totalTagihan,
+          "TOTAL DP/FP": finalTotalPaid,
+          "REMAINING BALANCE": finalRemaining,
+          STATUS: "Belum Dikirim",
         };
-
-        // Add Kota only for INVOICE sheet
-        if (isInvoiceSheet) {
-          rowData[kotaKey] = selectedCustomer.kota || "";
-        }
-
-        // Add specific columns for DATA_PELUNASAN
-        if (targetSheetName === PELUNASAN_SHEET_NAME) {
-          rowData["DP 1"] = dp1;
-          rowData["DP 2"] = dp2;
-          rowData["Pelunasan"] = pelunasan;
-          rowData["SISA TAGIHAN"] = sisa;
-        }
       } else {
-        // Subsequent rows - empty header columns (use same dynamic keys as index 0)
-        const isInvoiceSheet = targetSheetName === INVOICE_SHEET_NAME;
-
-        // Kedua sheet (INVOICE dan DATA_PELUNASAN) menggunakan nama kolom yang sama
-        const invoiceKey = "INVOICE";
-        const subtotalKey = "SUB TOTAL";
-        const hargaKey = "HARGA";
-        const totalKey = "TOTAL";
-        const ongkirKey = "ONGKIR";
-        const kotaKey = isInvoiceSheet ? "Kota" : "";
+        // Subsequent rows only contain Item details + shared identifiers if needed?
+        // Usually GAS script expects full rows or handles sparse rows.
+        // In previous implementation, we mapped Keys again.
+        // For new structure, we should keep Meta info empty to avoid double counting in sums,
+        // BUT we need DATE/NAME to identify the row?
+        // User's previous structure had empty invoice numbers for secondary items?
+        // Let's stick to the pattern: Fill Item details, leave transaction totals empty.
 
         rowData = {
-          TANGGAL: "",
-          [invoiceKey]: "",
-          KASIR: "",
-          TRANSAKSI: "",
+          DATE: "", // Or should we repeat? Usually repeat ID/Date is better for filtering. But let's follow old pattern for now.
+          CASHIER: "",
+          TRANSACTION: "",
           PAYMENT: "",
-          "NAMA PELANGGAN": "",
-          "NO HP": "",
-          ALAMAT: "",
-          CHANNEL: "",
-          KATEGORI: item.kategori || "",
-          SKU: item.sku,
-          PRODUK: item.produk,
-          JUMLAH: item.jumlah,
-          SATUAN: item.satuan,
-          [hargaKey]: item.harga,
-          [totalKey]: item.total,
-          [subtotalKey]: "",
-          [ongkirKey]: "",
+          "RO/PO": "",
+          "DP/FP": "",
+          "NO INVOICE": "",
+          NAME: "", // Leave empty?
+          HP: "",
+          CITY: "",
+          CATEGORY: item.kategori || "",
+          "ITEM PRODUCT": itemProductDisplay,
+          QTY: item.jumlah,
+          "PRICE/ITEM": item.harga,
+          "ITEM*QTY": item.total,
+          "SUBTOTAL ITEM": "",
           PACKING: "",
-          DISKON: "",
-          "TOTAL TAGIHAN": "",
+          DELIVERY: "",
+          DISCOUNT: "",
+          "GRAND TOTAL": "",
+          "TOTAL DP/FP": "",
+          "REMAINING BALANCE": "",
+          STATUS: "",
         };
-
-        // Add Kota only for INVOICE sheet
-        if (isInvoiceSheet) {
-          rowData[kotaKey] = "";
-        }
-
-        if (targetSheetName === PELUNASAN_SHEET_NAME) {
-          rowData["DP 1"] = "";
-          rowData["DP 2"] = "";
-          rowData["Pelunasan"] = "";
-          rowData["SISA TAGIHAN"] = "";
-        }
       }
       rows.push(rowData);
     });
@@ -1141,7 +1130,7 @@ async function saveInvoice(status) {
       }
     }
 
-    // If LUNAS, increment customer transaction count
+    // Increment Transaction Logic (Only if LUNAS)
     // Logic update: Only increment if it wasn't ALREADY LUNAS.
     // If we are editing a LUNAS invoice, we shouldn't increment again.
     // But currently we can't easily track old status.

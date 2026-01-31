@@ -5,4 +5,4 @@
 
 // Google Apps Script Web App URL
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbwq1eU6ePePdvKCXI2-5R5BNZyprQrTsiByitIXi-2ro17zXk01FUOZtlepricIncz2/exec";
+  "https://script.google.com/macros/s/AKfycbzjUzC_A6HWi8wsjpqlYWbc5rE7uQBrq7EDYkrSZDZPZmDZYkt4udGyzFOAT7DUUoQx1Q/exec";

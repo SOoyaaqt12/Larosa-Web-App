@@ -68,6 +68,7 @@ function groupDataByOrder(data) {
   let currentOrderNo = null;
 
   const invoiceKeys = [
+    "NO INVOICE",
     "NO'PESANAN",
     "NO PESANAN",
     "INVOICE",
@@ -77,6 +78,9 @@ function groupDataByOrder(data) {
   ];
 
   data.forEach((row) => {
+    // Filter for FP (Lunas) only
+    if (row["DP/FP"] !== "FP") return;
+
     let noPesanan = null;
 
     // Try known keys
@@ -128,14 +132,11 @@ function renderTable(groupedData) {
     const invoiceRows = map[noPesanan];
     const mainRow = invoiceRows[0];
 
-    const tanggal = mainRow["TANGGAL"];
-    const nama = getValueFromKeys(
-      mainRow,
-      ["NAMA PELANGGAN", "Nama Pelanggan"],
-      "",
-    );
+    // New Keys: DATE, NAME, GRAND TOTAL
+    const tanggal = mainRow["DATE"];
+    const nama = mainRow["NAME"] || "";
     const itemsCount = invoiceRows.length;
-    let totalTagihan = mainRow["TOTAL TAGIHAN"] || 0;
+    let totalTagihan = mainRow["GRAND TOTAL"] || 0;
 
     const formattedTotal = parseFloat(totalTagihan).toLocaleString("id-ID");
 
@@ -174,38 +175,35 @@ function viewInvoice(noPesanan) {
   const invoiceData = {
     info: {
       noPesanan: noPesanan,
-      tanggal: mainRow["TANGGAL"],
-      kasir: mainRow["KASIR"],
-      transaksi: mainRow["TRANSAKSI"],
+      tanggal: mainRow["DATE"],
+      kasir: mainRow["CASHIER"],
+      transaksi: mainRow["TRANSACTION"],
       payment: mainRow["PAYMENT"],
     },
     customer: {
-      nama: getValueFromKeys(mainRow, ["NAMA PELANGGAN", "Nama Pelanggan"], ""),
-      noHp: mainRow["NO HP"],
-      alamat: mainRow["ALAMAT"],
-      city: getValueFromKeys(mainRow, ["Kota", "KOTA"], ""),
-      channel: mainRow["CHANNEL"],
+      nama: mainRow["NAME"],
+      noHp: mainRow["HP"],
+      alamat: "NO_ADDRESS", // Address not in INCOME header? Check.
+      city: mainRow["CITY"],
+      channel: "NO_CHANNEL", // Channel not in INCOME header?
     },
     items: invoiceRows
       .map((row) => ({
-        sku: row["SKU"],
-        produk: row["PRODUK"],
-        jumlah: parseFloat(row["JUMLAH"]) || 0,
-        satuan: row["SATUAN"],
-        harga: parseFloat(getValueFromKeys(row, ["U HARGA", "HARGA"], 0)) || 0,
-        total: parseFloat(getValueFromKeys(row, ["U TOTAL", "TOTAL"], 0)) || 0,
-        kategori: row["KATEGORI"],
+        sku: "NO_SKU", // SKU not in INCOME header
+        produk: row["ITEM PRODUCT"],
+        jumlah: parseFloat(row["QTY"]) || 0,
+        satuan: "Pcs", // Unit not in INCOME header
+        harga: parseFloat(row["PRICE/ITEM"]) || 0,
+        total: parseFloat(row["ITEM*QTY"]) || 0,
+        kategori: row["CATEGORY"],
       }))
-      .filter((item) => item.sku || item.produk),
+      .filter((item) => item.produk),
     summary: {
-      subtotal:
-        parseFloat(getValueFromKeys(mainRow, ["SUBTOTAL", "SUB TOTAL"], 0)) ||
-        0,
-      ongkir:
-        parseFloat(getValueFromKeys(mainRow, ["U ONGIR", "ONGKIR"], 0)) || 0,
+      subtotal: parseFloat(mainRow["SUBTOTAL ITEM"]) || 0,
+      ongkir: parseFloat(mainRow["DELIVERY"]) || 0,
       packing: parseFloat(mainRow["PACKING"]) || 0,
-      diskon: parseFloat(mainRow["DISKON"]) || 0,
-      totalTagihan: parseFloat(mainRow["TOTAL TAGIHAN"]) || 0,
+      diskon: parseFloat(mainRow["DISCOUNT"]) || 0,
+      totalTagihan: parseFloat(mainRow["GRAND TOTAL"]) || 0,
     },
   };
 
@@ -222,44 +220,41 @@ function editInvoice(noPesanan) {
   const editData = {
     info: {
       noPesanan: noPesanan,
-      tanggal: mainRow["TANGGAL"],
-      kasir: mainRow["KASIR"],
-      transaksi: mainRow["TRANSAKSI"],
+      tanggal: mainRow["DATE"],
+      kasir: mainRow["CASHIER"],
+      transaksi: mainRow["TRANSACTION"],
       payment: mainRow["PAYMENT"],
     },
     customer: {
-      nama: getValueFromKeys(mainRow, ["NAMA PELANGGAN", "Nama Pelanggan"], ""),
-      noHp: mainRow["NO HP"],
-      alamat: mainRow["ALAMAT"],
-      city: getValueFromKeys(mainRow, ["Kota", "KOTA"], ""),
-      channel: mainRow["CHANNEL"],
+      nama: mainRow["NAME"],
+      noHp: mainRow["HP"],
+      alamat: "",
+      city: mainRow["CITY"],
+      channel: "",
     },
     items: invoiceRows
       .map((row) => ({
-        sku: row["SKU"],
-        produk: row["PRODUK"],
-        jumlah: parseFloat(row["JUMLAH"]) || 0,
-        satuan: row["SATUAN"],
-        harga: parseFloat(getValueFromKeys(row, ["U HARGA", "HARGA"], 0)) || 0,
-        total: parseFloat(getValueFromKeys(row, ["U TOTAL", "TOTAL"], 0)) || 0,
-        kategori: row["KATEGORI"],
+        sku: "",
+        produk: row["ITEM PRODUCT"],
+        jumlah: parseFloat(row["QTY"]) || 0,
+        satuan: "Pcs",
+        harga: parseFloat(row["PRICE/ITEM"]) || 0,
+        total: parseFloat(row["ITEM*QTY"]) || 0,
+        kategori: row["CATEGORY"],
       }))
-      .filter((item) => item.sku || item.produk),
+      .filter((item) => item.produk),
     summary: {
-      subtotal:
-        parseFloat(getValueFromKeys(mainRow, ["SUBTOTAL", "SUB TOTAL"], 0)) ||
-        0,
-      ongkir:
-        parseFloat(getValueFromKeys(mainRow, ["U ONGIR", "ONGKIR"], 0)) || 0,
+      subtotal: parseFloat(mainRow["SUBTOTAL ITEM"]) || 0,
+      ongkir: parseFloat(mainRow["DELIVERY"]) || 0,
       packing: parseFloat(mainRow["PACKING"]) || 0,
-      diskon: parseFloat(mainRow["DISKON"]) || 0,
-      totalTagihan: parseFloat(mainRow["TOTAL TAGIHAN"]) || 0,
+      diskon: parseFloat(mainRow["DISCOUNT"]) || 0,
+      totalTagihan: parseFloat(mainRow["GRAND TOTAL"]) || 0,
     },
-    totalBayar: parseFloat(mainRow["TOTAL TAGIHAN"]) || 0,
+    totalBayar: parseFloat(mainRow["TOTAL DP/FP"]) || 0,
   };
 
   sessionStorage.setItem("editInvoiceData", JSON.stringify(editData));
-  window.location.href = "form_edit_invoice.html?origin=INVOICE";
+  window.location.href = "form_edit_invoice.html?origin=INCOME";
 }
 
 async function deleteInvoiceAction(noPesanan) {

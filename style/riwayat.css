@@ -28,21 +28,22 @@ body {
 /* Header styles removed - using style/layout.css */
 
 .content-area {
-  padding: 30px 40px;
+  padding: var(--container-padding);
   flex: 1;
 }
 
 .table-container {
   background-color: white;
   border-radius: 15px;
-  overflow: hidden;
-  overflow-x: auto; /* Allow horizontal scroll */
+  overflow-x: auto; /* Enable horizontal scroll */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  -webkit-overflow-scrolling: touch;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 1000px; /* History table has many columns */
 }
 
 thead {
@@ -51,17 +52,18 @@ thead {
 }
 
 th {
-  padding: 18px 15px;
+  padding: 12px 10px;
   text-align: left;
-  font-size: 14px;
+  font-size: clamp(12px, 1vw, 14px);
   font-weight: bold;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 td {
-  padding: 18px 15px;
+  padding: 12px 10px;
   border-bottom: 1px solid #e0e0e0;
-  font-size: 14px;
+  font-size: clamp(12px, 0.9vw, 14px);
 }
 
 tbody tr:hover {

@@ -58,6 +58,7 @@ function groupDataByOrder(data) {
   let currentOrderNo = null;
 
   const invoiceKeys = [
+    "NO INVOICE",
     "INVOICE",
     "NO PESANAN",
     "NO\nPESANAN",
@@ -66,6 +67,9 @@ function groupDataByOrder(data) {
   ];
 
   data.forEach((row) => {
+    // Filter for DP only
+    if (row["DP/FP"] !== "DP") return;
+
     let noPesanan = null;
     for (const key of invoiceKeys) {
       if (row[key]) {
@@ -119,9 +123,10 @@ function renderTable(groupedData) {
     const invoiceRows = map[noPesanan];
     const mainRow = invoiceRows[0];
 
-    const tanggal = mainRow["TANGGAL"];
-    const nama = mainRow["NAMA PELANGGAN"];
-    let sisaTagihan = mainRow["SISA TAGIHAN"] || 0;
+    // New keys: DATE, NAME, REMAINING BALANCE
+    const tanggal = mainRow["DATE"];
+    const nama = mainRow["NAME"];
+    let sisaTagihan = mainRow["REMAINING BALANCE"] || 0;
 
     if (typeof sisaTagihan === "string") {
       sisaTagihan = parseFloat(sisaTagihan.replace(/[^\d.-]/g, "")) || 0;
@@ -160,38 +165,37 @@ function bayarInvoice(noPesanan) {
   const editData = {
     info: {
       noPesanan: noPesanan,
-      tanggal: mainRow["TANGGAL"],
-      kasir: mainRow["KASIR"],
-      transaksi: mainRow["TRANSAKSI"],
+      tanggal: mainRow["DATE"],
+      kasir: mainRow["CASHIER"],
+      transaksi: mainRow["TRANSACTION"],
       payment: mainRow["PAYMENT"],
     },
     customer: {
-      nama: mainRow["NAMA PELANGGAN"],
-      noHp: mainRow["NO HP"],
-      alamat: mainRow["ALAMAT"],
-      kota: "",
-      channel: mainRow["CHANNEL"],
+      nama: mainRow["NAME"],
+      noHp: mainRow["HP"],
+      alamat: "NO_ADDRESS",
+      kota: mainRow["CITY"],
+      channel: "NO_CHANNEL",
     },
     items: invoiceRows
       .map((row) => ({
-        sku: row["SKU"],
-        produk: row["PRODUK"],
-        jumlah: parseFloat(row["JUMLAH"]) || 0,
-        satuan: row["SATUAN"],
-        harga: parseFloat(row["HARGA"]) || 0,
-        total: parseFloat(row["TOTAL"]) || 0,
-        kategori: row["KATEGORI"],
+        sku: "NO_SKU",
+        produk: row["ITEM PRODUCT"],
+        jumlah: parseFloat(row["QTY"]) || 0,
+        satuan: "Pcs",
+        harga: parseFloat(row["PRICE/ITEM"]) || 0,
+        total: parseFloat(row["ITEM*QTY"]) || 0,
+        kategori: row["CATEGORY"],
       }))
-      .filter((item) => item.sku || item.produk),
+      .filter((item) => item.produk),
     summary: {
-      subtotal: parseFloat(mainRow["SUB TOTAL"]) || 0,
-      ongkir: parseFloat(mainRow["ONGKIR"]) || 0,
+      subtotal: parseFloat(mainRow["SUBTOTAL ITEM"]) || 0,
+      ongkir: parseFloat(mainRow["DELIVERY"]) || 0,
       packing: parseFloat(mainRow["PACKING"]) || 0,
-      diskon: parseFloat(mainRow["DISKON"]) || 0,
-      totalTagihan: parseFloat(mainRow["TOTAL TAGIHAN"]) || 0,
+      diskon: parseFloat(mainRow["DISCOUNT"]) || 0,
+      totalTagihan: parseFloat(mainRow["GRAND TOTAL"]) || 0,
     },
-    totalBayar:
-      (parseFloat(mainRow["DP 1"]) || 0) + (parseFloat(mainRow["DP 2"]) || 0),
+    totalBayar: parseFloat(mainRow["TOTAL DP/FP"]) || 0,
   };
 
   sessionStorage.setItem("editInvoiceData", JSON.stringify(editData));
@@ -204,42 +208,45 @@ function viewInvoicePelunasan(noPesanan) {
 
   const mainRow = invoiceRows[0];
 
-  const dp1 = parseFloat(mainRow["DP 1"]) || 0;
-  const dp2 = parseFloat(mainRow["DP 2"]) || 0;
-  const totalTagihan = parseFloat(mainRow["TOTAL TAGIHAN"]) || 0;
-  const sisa = totalTagihan - (dp1 + dp2);
+  const paidAmount = parseFloat(mainRow["TOTAL DP/FP"]) || 0;
+  const totalTagihan = parseFloat(mainRow["GRAND TOTAL"]) || 0;
+  // Previously we had DP1/DP2. Now we just have Total DP/FP.
+  // We can map DP1 = paidAmount, DP2 = 0 for compatibility with view
+  const dp1 = paidAmount;
+  const dp2 = 0;
+  const sisa = totalTagihan - paidAmount;
 
   const invoiceData = {
     info: {
       noPesanan: noPesanan,
-      tanggal: mainRow["TANGGAL"],
-      kasir: mainRow["KASIR"],
-      transaksi: mainRow["TRANSAKSI"],
+      tanggal: mainRow["DATE"],
+      kasir: mainRow["CASHIER"],
+      transaksi: mainRow["TRANSACTION"],
       payment: mainRow["PAYMENT"],
     },
     customer: {
-      nama: mainRow["NAMA PELANGGAN"],
-      noHp: mainRow["NO HP"],
-      alamat: mainRow["ALAMAT"],
-      city: "",
-      channel: mainRow["CHANNEL"],
+      nama: mainRow["NAME"],
+      noHp: mainRow["HP"],
+      alamat: "",
+      city: mainRow["CITY"],
+      channel: "",
     },
     items: invoiceRows
       .map((row) => ({
-        sku: row["SKU"],
-        produk: row["PRODUK"],
-        jumlah: parseFloat(row["JUMLAH"]) || 0,
-        satuan: row["SATUAN"],
-        harga: parseFloat(row["HARGA"]) || 0,
-        total: parseFloat(row["TOTAL"]) || 0,
-        kategori: row["KATEGORI"],
+        sku: "",
+        produk: row["ITEM PRODUCT"],
+        jumlah: parseFloat(row["QTY"]) || 0,
+        satuan: "Pcs",
+        harga: parseFloat(row["PRICE/ITEM"]) || 0,
+        total: parseFloat(row["ITEM*QTY"]) || 0,
+        kategori: row["CATEGORY"],
       }))
-      .filter((item) => item.sku || item.produk),
+      .filter((item) => item.produk),
     summary: {
-      subtotal: parseFloat(mainRow["SUB TOTAL"]) || 0,
-      ongkir: parseFloat(mainRow["ONGKIR"]) || 0,
+      subtotal: parseFloat(mainRow["SUBTOTAL ITEM"]) || 0,
+      ongkir: parseFloat(mainRow["DELIVERY"]) || 0,
       packing: parseFloat(mainRow["PACKING"]) || 0,
-      diskon: parseFloat(mainRow["DISKON"]) || 0,
+      diskon: parseFloat(mainRow["DISCOUNT"]) || 0,
       totalTagihan: totalTagihan,
       dp1: dp1,
       dp2: dp2,
@@ -260,38 +267,37 @@ function editInvoicePelunasan(noPesanan) {
   const editData = {
     info: {
       noPesanan: noPesanan,
-      tanggal: mainRow["TANGGAL"],
-      kasir: mainRow["KASIR"],
-      transaksi: mainRow["TRANSAKSI"],
+      tanggal: mainRow["DATE"],
+      kasir: mainRow["CASHIER"],
+      transaksi: mainRow["TRANSACTION"],
       payment: mainRow["PAYMENT"],
     },
     customer: {
-      nama: mainRow["NAMA PELANGGAN"],
-      noHp: mainRow["NO HP"],
-      alamat: mainRow["ALAMAT"],
-      kota: "",
-      channel: mainRow["CHANNEL"],
+      nama: mainRow["NAME"],
+      noHp: mainRow["HP"],
+      alamat: "",
+      kota: mainRow["CITY"],
+      channel: "",
     },
     items: invoiceRows
       .map((row) => ({
-        sku: row["SKU"],
-        produk: row["PRODUK"],
-        jumlah: parseFloat(row["JUMLAH"]) || 0,
-        satuan: row["SATUAN"],
-        harga: parseFloat(row["HARGA"]) || 0,
-        total: parseFloat(row["TOTAL"]) || 0,
-        kategori: row["KATEGORI"],
+        sku: "",
+        produk: row["ITEM PRODUCT"],
+        jumlah: parseFloat(row["QTY"]) || 0,
+        satuan: "Pcs",
+        harga: parseFloat(row["PRICE/ITEM"]) || 0,
+        total: parseFloat(row["ITEM*QTY"]) || 0,
+        kategori: row["CATEGORY"],
       }))
-      .filter((item) => item.sku || item.produk),
+      .filter((item) => item.produk),
     summary: {
-      subtotal: parseFloat(mainRow["SUB TOTAL"]) || 0,
-      ongkir: parseFloat(mainRow["ONGKIR"]) || 0,
+      subtotal: parseFloat(mainRow["SUBTOTAL ITEM"]) || 0,
+      ongkir: parseFloat(mainRow["DELIVERY"]) || 0,
       packing: parseFloat(mainRow["PACKING"]) || 0,
-      diskon: parseFloat(mainRow["DISKON"]) || 0,
-      totalTagihan: parseFloat(mainRow["TOTAL TAGIHAN"]) || 0,
+      diskon: parseFloat(mainRow["DISCOUNT"]) || 0,
+      totalTagihan: parseFloat(mainRow["GRAND TOTAL"]) || 0,
     },
-    totalBayar:
-      (parseFloat(mainRow["DP 1"]) || 0) + (parseFloat(mainRow["DP 2"]) || 0),
+    totalBayar: parseFloat(mainRow["TOTAL DP/FP"]) || 0,
   };
 
   sessionStorage.setItem("editInvoiceData", JSON.stringify(editData));
