@@ -110,6 +110,9 @@ function injectLayout() {
             <a href="vendor.html"><div class="nav-item ${
               page === "vendor.html" ? "active" : ""
             }">Data Vendor</div></a>
+            <a href="form_restock.html"><div class="nav-item ${
+              page === "form_restock.html" ? "active" : ""
+            }">Form Restock</div></a>
         </div>
 
         <div class="nav-bottom">
@@ -172,6 +175,8 @@ function getPageTitle(page) {
       return "Kasir";
     case "produk.html":
       return "Stok Produk";
+    case "form_restock.html":
+      return "Form Restock";
     case "riwayat.html":
       return "Riwayat Transaksi";
     case "kustomer.html":

@@ -199,7 +199,7 @@ const DataServices = {
   }),
 
   customer: createDataService({
-    sheetName: "KOSTUMER",
+    sheetName: "KUSTOMER",
     cacheKey: "kustomer_data_cache",
     colSpan: 8,
     emptyMessage: "Tidak ada data pelanggan",
@@ -213,14 +213,14 @@ const DataServices = {
   }),
 
   invoice: createDataService({
-    sheetName: "INVOICE",
+    sheetName: "INCOME",
     cacheKey: "riwayat_data_cache",
     colSpan: 5,
     emptyMessage: "Belum ada riwayat transaksi",
   }),
 
   pelunasan: createDataService({
-    sheetName: "DP/Pelunasan",
+    sheetName: "INCOME",
     cacheKey: "pelunasan_data_cache",
     colSpan: 6,
     emptyMessage: "Tidak ada data pelunasan",

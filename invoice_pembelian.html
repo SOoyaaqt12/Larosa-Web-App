@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Invoice Pembelian - LAROSAPOT</title>
+    <link rel="stylesheet" href="style/invoice.css" />
+    <style>
+      .invoice-title {
+        color: #2e7d32;
+        border-bottom: 2px solid #2e7d32;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+        text-align: center;
+      }
+      .btn-action {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 30px;
+      }
+      .btn-action button {
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      .btn-print {
+        background: #4caf50;
+        color: white;
+        border: none;
+      }
+      .btn-back {
+        background: #f5f5f5;
+        color: #333;
+        border: 1px solid #ccc;
+      }
+
+      @media print {
+        .btn-action {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="invoice-container">
+      <h1 class="invoice-title">INVOICE PEMBELIAN</h1>
+
+      <div class="invoice-header">
+        <div class="info-left">
+          <p><strong>Vendor:</strong> <span id="viewVendorNama"></span></p>
+          <p><strong>Telp:</strong> <span id="viewVendorPhone"></span></p>
+          <p><strong>Alamat:</strong> <span id="viewVendorAlamat"></span></p>
+        </div>
+        <div class="info-right" style="text-align: right">
+          <p><strong>No Invoice:</strong> <span id="viewInvoiceNo"></span></p>
+          <p><strong>Tanggal:</strong> <span id="viewTanggal"></span></p>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>No.</th>
+            <th>SKU</th>
+            <th>Produk</th>
+            <th>Jumlah</th>
+            <th>Unit</th>
+            <th>HPP</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody id="invoiceItemsBody">
+          <!-- Items will be injected -->
+        </tbody>
+      </table>
+
+      <div class="summary-section">
+        <div class="summary-row">
+          <span>Subtotal:</span>
+          <span id="viewSubtotal"></span>
+        </div>
+        <div class="summary-row">
+          <span>Ongkir:</span>
+          <span id="viewOngkir"></span>
+        </div>
+        <div class="summary-row">
+          <span>Potongan:</span>
+          <span id="viewPotongan"></span>
+        </div>
+        <div class="summary-row">
+          <span>Diskon:</span>
+          <span id="viewDiskon"></span>
+        </div>
+        <div class="summary-row total" style="color: #2e7d32">
+          <span>Total Tagihan:</span>
+          <span id="viewTotal"></span>
+        </div>
+        <div class="summary-row">
+          <span>DP:</span>
+          <span id="viewDP"></span>
+        </div>
+        <div class="summary-row sisa">
+          <span>Sisa Tagihan:</span>
+          <span id="viewSisa"></span>
+        </div>
+      </div>
+
+      <div class="footer-note" style="margin-top: 40px; text-align: center">
+        <p><strong>Info Pembayaran:</strong></p>
+        <p>
+          <span id="viewVendorBank"></span> -
+          <span id="viewVendorRekening"></span>
+        </p>
+      </div>
+
+      <div class="btn-action">
+        <button class="btn-print" onclick="window.print()">
+          Cetak Invoice
+        </button>
+        <button
+          class="btn-back"
+          onclick="window.location.href = 'form_restock.html'"
+        >
+          Kembali ke Form
+        </button>
+      </div>
+    </div>
+
+    <script src="script/utils.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const dataStr = sessionStorage.getItem("currentPurchaseInvoice");
+        if (!dataStr) {
+          alert("Data tidak ditemukan!");
+          window.location.href = "form_restock.html";
+          return;
+        }
+
+        const data = JSON.parse(dataStr);
+
+        // Header
+        document.getElementById("viewVendorNama").textContent =
+          data.vendor.nama;
+        document.getElementById("viewVendorPhone").textContent =
+          data.vendor.phone;
+        document.getElementById("viewVendorAlamat").textContent =
+          data.vendor.alamat || "-";
+        document.getElementById("viewInvoiceNo").textContent = data.invoiceNo;
+        document.getElementById("viewTanggal").textContent = data.tanggal;
+        document.getElementById("viewVendorBank").textContent =
+          data.vendor.bank || "-";
+        document.getElementById("viewVendorRekening").textContent =
+          data.vendor.rekening || "-";
+
+        // Table
+        const tbody = document.getElementById("invoiceItemsBody");
+        tbody.innerHTML = data.items
+          .map(
+            (item, idx) => `
+                <tr>
+                    <td>${idx + 1}</td>
+                    <td>${item.sku}</td>
+                    <td>${item.produk}</td>
+                    <td>${item.jumlah}</td>
+                    <td>${item.satuan}</td>
+                    <td>${formatCurrency(item.hpp)}</td>
+                    <td>${formatCurrency(item.total)}</td>
+                </tr>
+            `,
+          )
+          .join("");
+
+        // Summary
+        document.getElementById("viewSubtotal").textContent = formatCurrency(
+          data.summary.subtotal,
+        );
+        document.getElementById("viewOngkir").textContent = formatCurrency(
+          data.summary.ongkir,
+        );
+        document.getElementById("viewPotongan").textContent = formatCurrency(
+          data.summary.potongan,
+        );
+        document.getElementById("viewDiskon").textContent = formatCurrency(
+          data.summary.diskon,
+        );
+        document.getElementById("viewTotal").textContent = formatCurrency(
+          data.summary.total,
+        );
+        document.getElementById("viewDP").textContent = formatCurrency(
+          data.summary.dp,
+        );
+        document.getElementById("viewSisa").textContent = formatCurrency(
+          data.summary.sisa,
+        );
+      });
+    </script>
+  </body>
+</html>

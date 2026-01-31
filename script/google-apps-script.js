@@ -13,83 +13,112 @@
  * 9. Klik Deploy dan copy URL-nya
  */
 
-const SHEET_ID = "1YQk8azd5gUXdQE9ZvD4hFsdqdG6UUrg2ZNf951dLfyY";
+const SHEET_ID = "1Cvvc4tIIcSoC7Q8f5Agau3OgYOIo0sdgUOZ0vsKVL6g";
 
 // Konfigurasi baris header untuk setiap sheet
 // Sesuaikan angka ini dengan baris dimana header tabel Anda berada
 const SHEET_CONFIG = {
-  KOSTUMER: { headerRow: 5, startColumn: 2, insertAtTop: true }, // Header kolom B, data baru di atas
-  "PERSEDIAAN BARANG": { headerRow: 6, startColumn: 2 }, // Header mulai kolom B
+  KUSTOMER: { headerRow: 1, startColumn: 1 },
+  "PERSEDIAAN BARANG": { headerRow: 1, startColumn: 1 },
   USERS: { headerRow: 1 },
-  INVOICE: { headerRow: 48, insertAtTop: true, startColumn: 2 }, // Sheet INVOICE, header baris 48, kolom B
-  "DP/Pelunasan": { headerRow: 52, insertAtTop: true, startColumn: 2 }, // Header di baris 52, mulai kolom B
-  DATA_QUOTATION: { headerRow: 4, insertAtTop: true },
-  QUOTATION: { headerRow: 50, insertAtTop: true, startColumn: 2 }, // Sheet QUOTATION header di baris 50, mulai kolom B
-  VENDOR: { headerRow: 5, startColumn: 2 }, // Header baris 5, mulai kolom B
-  COUNTERS: { headerRow: 1 }, // DATE | TYPE | COUNT
+  INCOME: { headerRow: 6, startColumn: 2, insertAtTop: true }, // Row 6, Col B
+  VENDOR: { headerRow: 1, startColumn: 1 },
+  "PO VENDOR": { headerRow: 1, startColumn: 1 },
+  "KAS & BANK": { headerRow: 1, startColumn: 1 },
+  OUTCOME: { headerRow: 1, startColumn: 1 },
+  QUOTATION: { headerRow: 1, startColumn: 1 },
+  RESTOCK: { headerRow: 1, startColumn: 1 },
+  COUNTERS: { headerRow: 1 },
 };
 
 function doGet(e) {
-  const sheet = e.parameter.sheet;
-  const action = e.parameter.action || "read";
+  try {
+    // Basic parameter check
+    if (!e || !e.parameter) {
+      return ContentService.createTextOutput(
+        JSON.stringify({ error: "No parameters provided" }),
+      ).setMimeType(ContentService.MimeType.JSON);
+    }
 
-  if (action === "read") {
-    return readSheet(sheet);
+    const sheet = e.parameter.sheet;
+    const action = e.parameter.action || "read";
+
+    if (action === "read") {
+      return readSheet(sheet);
+    }
+
+    return ContentService.createTextOutput(
+      JSON.stringify({ error: "Invalid action" }),
+    ).setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    return ContentService.createTextOutput(
+      JSON.stringify({
+        error: "Server Error",
+        detail: error.toString(),
+        stack: error.stack,
+      }),
+    ).setMimeType(ContentService.MimeType.JSON);
   }
-
-  return ContentService.createTextOutput(
-    JSON.stringify({ error: "Invalid action" }),
-  ).setMimeType(ContentService.MimeType.JSON);
 }
 
 function doPost(e) {
-  // Parsing handling yang lebih aman
-  let data;
   try {
-    data = JSON.parse(e.postData.contents);
-  } catch (err) {
+    // Parsing handling yang lebih aman
+    let data;
+    try {
+      data = JSON.parse(e.postData.contents);
+    } catch (err) {
+      return ContentService.createTextOutput(
+        JSON.stringify({ error: "Invalid JSON data", detail: err.toString() }),
+      ).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    const sheet = data.sheet;
+    const action = data.action;
+    const rowData = data.data;
+    const rowIndex = data.rowIndex;
+    const uniqueColumn = data.uniqueColumn; // For unique constraint check
+
+    let result;
+
+    switch (action) {
+      case "add":
+        result = addRow(sheet, rowData, uniqueColumn);
+        break;
+      case "update":
+        result = updateRow(sheet, rowIndex, rowData);
+        break;
+      case "delete":
+        result = deleteRow(sheet, rowIndex);
+        break;
+      case "delete-invoice":
+        result = deleteInvoice(sheet, rowData.noPesanan);
+        break;
+      case "increment-transaction":
+        result = incrementCustomerTransaction(data.phoneNumber);
+        break;
+      case "login":
+        result = authenticateUser(data.username, data.password);
+        break;
+      case "get-next-id":
+        result = getNextIncrementalId(data.type, data.date);
+        break;
+      default:
+        result = { error: "Invalid action" };
+    }
+
+    return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(
+      ContentService.MimeType.JSON,
+    );
+  } catch (error) {
+    // This closing brace matches the 'try' at the start of doPost
     return ContentService.createTextOutput(
-      JSON.stringify({ error: "Invalid JSON data", detail: err.toString() }),
+      JSON.stringify({
+        error: "Server Process Error",
+        detail: error.toString(),
+      }),
     ).setMimeType(ContentService.MimeType.JSON);
   }
-
-  const sheet = data.sheet;
-  const action = data.action;
-  const rowData = data.data;
-  const rowIndex = data.rowIndex;
-  const uniqueColumn = data.uniqueColumn; // For unique constraint check
-
-  let result;
-
-  switch (action) {
-    case "add":
-      result = addRow(sheet, rowData, uniqueColumn);
-      break;
-    case "update":
-      result = updateRow(sheet, rowIndex, rowData);
-      break;
-    case "delete":
-      result = deleteRow(sheet, rowIndex);
-      break;
-    case "delete-invoice":
-      result = deleteInvoice(sheet, rowData.noPesanan);
-      break;
-    case "increment-transaction":
-      result = incrementCustomerTransaction(data.phoneNumber);
-      break;
-    case "login":
-      result = authenticateUser(data.username, data.password);
-      break;
-    case "get-next-id":
-      result = getNextIncrementalId(data.type, data.date);
-      break;
-    default:
-      result = { error: "Invalid action" };
-  }
-
-  return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(
-    ContentService.MimeType.JSON,
-  );
 }
 
 /**

@@ -68,6 +68,29 @@ body {
   cursor: pointer;
 }
 
+.header-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-restock-global {
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  padding: 12px 25px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-restock-global:hover {
+  background-color: #1976d2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
+}
+
 .btn-tambah {
   background-color: #7da869;
   color: white;
@@ -77,11 +100,30 @@ body {
   font-size: 16px;
   font-weight: bold;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: all 0.3s;
 }
 
 .btn-tambah:hover {
   background-color: #6b8e5f;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(125, 168, 105, 0.2);
+}
+
+/* Renamed row button styling for clarity */
+.btn-stok-lapang {
+  background-color: #9c27b0;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.btn-stok-lapang:hover {
+  background-color: #7b1fa2;
 }
 
 .btn-reset {
@@ -342,80 +384,127 @@ tbody tr:last-child td {
   justify-content: center;
   align-items: center;
   z-index: 2000;
+  backdrop-filter: blur(3px);
 }
 
 .modal-content {
   background: white;
   padding: 30px;
-  border-radius: 15px;
+  border-radius: 20px;
   width: 90%;
-  max-width: 500px;
-  max-height: 80vh;
+  max-width: 650px;
+  max-height: 90vh;
   overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 
 .modal-content h2 {
-  margin-bottom: 20px;
+  margin-bottom: 25px;
   color: #333;
+  text-align: center;
+  font-size: 24px;
+  border-bottom: 2px solid #7da869;
+  padding-bottom: 15px;
+}
+
+.product-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px 20px;
 }
 
 .modal-content .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 0px;
+}
+
+/* Full width fields in grid */
+.form-group.full-width {
+  grid-column: span 2;
 }
 
 .modal-content .form-group label {
   display: block;
-  margin-bottom: 5px;
-  font-weight: bold;
+  margin-bottom: 8px;
+  font-weight: 600;
   color: #555;
+  font-size: 14px;
 }
 
-.modal-content .form-group input {
+.modal-content .form-group input,
+.modal-content .form-group select {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid #ddd;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 14px;
+  background-color: #fcfcfc;
+  transition:
+    border-color 0.3s,
+    box-shadow 0.3s;
+}
+
+.modal-content .form-group input:focus,
+.modal-content .form-group select:focus {
+  border-color: #7da869;
+  box-shadow: 0 0 0 3px rgba(125, 168, 105, 0.1);
+  outline: none;
 }
 
 .modal-buttons {
   display: flex;
-  gap: 10px;
-  margin-top: 20px;
+  gap: 15px;
+  margin-top: 30px;
+}
+
+.modal-buttons button {
+  flex: 1;
+  padding: 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  transition: all 0.3s;
 }
 
 .modal-buttons .btn-simpan {
-  flex: 1;
   background-color: #7da869;
   color: white;
   border: none;
-  padding: 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 16px;
 }
 
 .modal-buttons .btn-batal {
-  flex: 1;
-  background-color: #dc3545;
-  color: white;
-  border: none;
-  padding: 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 16px;
-}
-
-.modal-buttons .btn-simpan:disabled {
-  background-color: #9cb893;
-  cursor: not-allowed;
-  opacity: 0.8;
-}
-
-.modal-buttons .btn-batal:hover {
-  background-color: #c82333;
+  background-color: #f5f5f5;
+  color: #666;
+  border: 1px solid #ddd;
 }
 
 .modal-buttons .btn-simpan:hover:not(:disabled) {
-  background-color: #6b9459;
+  background-color: #6b8e5f;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(125, 168, 105, 0.2);
+}
+
+.modal-buttons .btn-batal:hover {
+  background-color: #eeeeee;
+}
+
+.modal-buttons .btn-simpan:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Specific styling for Edit Modal different button color */
+.modal-edit-header {
+  border-bottom-color: #ff9800 !important;
+}
+
+.btn-update {
+  background-color: #ff9800 !important;
+}
+
+.btn-update:hover:not(:disabled) {
+  background-color: #f57c00 !important;
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.2) !important;
 }

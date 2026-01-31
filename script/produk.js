@@ -64,7 +64,7 @@ function populateCategoryFilter() {
 
   // Get unique categories and sort them
   const categories = Array.from(categoryMap.values()).sort((a, b) =>
-    a.toUpperCase().localeCompare(b.toUpperCase())
+    a.toUpperCase().localeCompare(b.toUpperCase()),
   );
 
   select.innerHTML = '<option value="">Semua Kategori</option>';
@@ -141,10 +141,10 @@ function renderPaginatedTable() {
             <td>${formatCurrency(product["HARGA JUAL"] || 0)}</td>
             <td>
                 <div class="action-buttons">
-                    <button class="btn-restock" onclick="showRestockModal(${
+                    <button class="btn-stok-lapang" onclick="showStokLapangModal(${
                       product._rowIndex
-                    })">Restock</button>
-                    <button class="btn-edit" onclick="editProduct(${
+                    })">Stok Lapang</button>
+                    <button class="btn-edit" onclick="showEditProductModal(${
                       product._rowIndex
                     })">Edit</button>
                     <button class="btn-delete" onclick="deleteProduct(${
@@ -153,7 +153,7 @@ function renderPaginatedTable() {
                 </div>
             </td>
         </tr>
-    `
+    `,
     )
     .join("");
 }
@@ -303,49 +303,72 @@ function setupEventListeners() {
 }
 
 function showAddProductModal() {
+  // Get unique categories for dropdown
+  const categoryMap = new Map();
+  productsData.forEach((p) => {
+    const cat = getValueFromKeys(p, ["KETAGORI", "KATEGORI"], "")
+      .toString()
+      .trim();
+    if (cat) {
+      categoryMap.set(cat.toUpperCase(), cat);
+    }
+  });
+  const categories = Array.from(categoryMap.values()).sort();
+
   const modalHTML = `
         <div id="productModal" class="modal">
             <div class="modal-content">
                 <h2>Tambah Produk Baru</h2>
                 <form id="productForm">
-                    <div class="form-group">
-                        <label>SKU</label>
-                        <input type="text" name="SKU" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Nama Produk</label>
-                        <input type="text" name="NAMA PRODUK" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Kategori</label>
-                        <input type="text" name="KATEGORI">
-                    </div>
-                    <div class="form-group">
-                        <label>Satuan</label>
-                        <input type="text" name="SATUAN" value="Pcs">
-                    </div>
-                    <div class="form-group">
-                        <label>Stok Sistem</label>
-                        <input type="number" name="STOK SISTEM" value="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Stok Lapangan</label>
-                        <input type="number" name="STOK LAPANGAN" value="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Stok Minimum</label>
-                        <input type="number" name="STOK MINIMUM" value="0">
-                    </div>
-                    <div class="form-group">
-                        <label>HPP</label>
-                        <input type="number" name="HPP" value="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Harga Jual</label>
-                        <input type="number" name="HARGA JUAL" value="0">
+                    <div class="product-form-grid">
+                        <div class="form-group">
+                            <label>Kode SKU</label>
+                            <input type="text" name="SKU" required placeholder="Contoh: PRD-001">
+                        </div>
+                        <div class="form-group">
+                            <label>Satuan</label>
+                            <input type="text" name="SATUAN" value="Pcs">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Nama Produk</label>
+                            <input type="text" name="NAMA PRODUK" required placeholder="Masukkan nama lengkap produk">
+                        </div>
+                        <div class="form-group">
+                            <label>Kategori</label>
+                            <select name="KATEGORI_SELECT" id="categorySelect" required>
+                                <option value="">-- Pilih Kategori --</option>
+                                ${categories
+                                  .map(
+                                    (cat) =>
+                                      `<option value="${cat}">${cat}</option>`,
+                                  )
+                                  .join("")}
+                                <option value="NEW_CATEGORY">+ Tambah Kategori Baru...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Stok Awal</label>
+                            <input type="number" name="STOK_AWAL" value="0" min="0">
+                        </div>
+                        <div class="form-group" id="newCategoryGroup" style="display: none; grid-column: span 2;">
+                            <label>Nama Kategori Baru</label>
+                            <input type="text" name="NEW_KATEGORI" id="newCategoryInput" placeholder="Masukkan kategori baru...">
+                        </div>
+                        <div class="form-group">
+                            <label>Stok Minimum</label>
+                            <input type="number" name="STOK MINIMUM" value="0" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>HPP</label>
+                            <input type="number" name="HPP" value="0" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Harga Jual</label>
+                            <input type="number" name="HARGA JUAL" value="0" min="0">
+                        </div>
                     </div>
                     <div class="modal-buttons">
-                        <button type="submit" class="btn-simpan">Simpan</button>
+                        <button type="submit" class="btn-simpan">Simpan Produk</button>
                         <button type="button" class="btn-batal" onclick="closeModal()">Batal</button>
                     </div>
                 </form>
@@ -356,7 +379,22 @@ function showAddProductModal() {
   document.body.insertAdjacentHTML("beforeend", modalHTML);
 
   const form = document.getElementById("productForm");
+  const categorySelect = document.getElementById("categorySelect");
+  const newCategoryGroup = document.getElementById("newCategoryGroup");
+  const newCategoryInput = document.getElementById("newCategoryInput");
   const submitBtn = form.querySelector(".btn-simpan");
+
+  // Handle category selection change
+  categorySelect.addEventListener("change", () => {
+    if (categorySelect.value === "NEW_CATEGORY") {
+      newCategoryGroup.style.display = "block";
+      newCategoryInput.required = true;
+      newCategoryInput.focus();
+    } else {
+      newCategoryGroup.style.display = "none";
+      newCategoryInput.required = false;
+    }
+  });
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -381,9 +419,27 @@ function showAddProductModal() {
 
 async function addProduct(formData) {
   const data = {};
-  formData.forEach((value, key) => {
-    data[key] = value;
-  });
+
+  // Handle Kategori
+  const categorySelect = formData.get("KATEGORI_SELECT");
+  if (categorySelect === "NEW_CATEGORY") {
+    data["KATEGORI"] = formData.get("NEW_KATEGORI");
+  } else {
+    data["KATEGORI"] = categorySelect;
+  }
+
+  // Handle Stok Awal mapping
+  const stokAwal = formData.get("STOK_AWAL") || 0;
+  data["STOK SISTEM"] = stokAwal;
+  data["STOK LAPANGAN"] = stokAwal;
+
+  // Other fields
+  data["SKU"] = formData.get("SKU");
+  data["NAMA PRODUK"] = formData.get("NAMA PRODUK");
+  data["SATUAN"] = formData.get("SATUAN");
+  data["STOK MINIMUM"] = formData.get("STOK MINIMUM");
+  data["HPP"] = formData.get("HPP");
+  data["HARGA JUAL"] = formData.get("HARGA JUAL");
 
   try {
     const result = await addSheetRow(productService.sheetName, data);
@@ -399,22 +455,168 @@ async function addProduct(formData) {
   }
 }
 
-async function editProduct(rowIndex) {
-  const newName = prompt("Masukkan nama produk baru:");
-  if (newName) {
-    try {
-      const result = await updateSheetRow(productService.sheetName, rowIndex, {
-        "NAMA PRODUK": newName,
-      });
-      if (result.success) {
-        alert("Produk berhasil diupdate!");
-        // Clear cache to ensure fresh data is loaded
-        await window.IDBCache.clear(productService.cacheKey);
-        loadProducts();
-      }
-    } catch (error) {
-      alert("Gagal mengupdate produk: " + error.message);
+async function showEditProductModal(rowIndex) {
+  const product = productsData.find((p) => p._rowIndex === rowIndex);
+  if (!product) return;
+
+  // Get unique categories for dropdown
+  const categoryMap = new Map();
+  productsData.forEach((p) => {
+    const cat = getValueFromKeys(p, ["KETAGORI", "KATEGORI"], "")
+      .toString()
+      .trim();
+    if (cat) categoryMap.set(cat.toUpperCase(), cat);
+  });
+  const categories = Array.from(categoryMap.values()).sort();
+
+  const currentCategory = getValueFromKeys(
+    product,
+    ["KETAGORI", "KATEGORI"],
+    "",
+  )
+    .toString()
+    .trim();
+
+  const modalHTML = `
+        <div id="productModal" class="modal">
+            <div class="modal-content">
+                <h2 class="modal-edit-header">Edit Produk</h2>
+                <form id="editProductForm">
+                    <div class="product-form-grid">
+                        <div class="form-group">
+                            <label>Kode SKU</label>
+                            <input type="text" name="SKU" value="${
+                              product["SKU"] || ""
+                            }" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Satuan</label>
+                            <input type="text" name="SATUAN" value="${
+                              product["SATUAN"] || ""
+                            }">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Nama Produk</label>
+                            <input type="text" name="NAMA PRODUK" value="${
+                              product["NAMA PRODUK"] || ""
+                            }" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Kategori</label>
+                            <select name="KATEGORI_SELECT" id="categorySelectEdit" required>
+                                <option value="">-- Pilih Kategori --</option>
+                                ${categories
+                                  .map(
+                                    (cat) =>
+                                      `<option value="${cat}" ${
+                                        cat === currentCategory
+                                          ? "selected"
+                                          : ""
+                                      }>${cat}</option>`,
+                                  )
+                                  .join("")}
+                                <option value="NEW_CATEGORY">+ Tambah Kategori Baru...</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="newCategoryGroupEdit" style="display: none; grid-column: span 2;">
+                            <label>Nama Kategori Baru</label>
+                            <input type="text" name="NEW_KATEGORI" id="newCategoryInputEdit" placeholder="Masukkan kategori baru...">
+                        </div>
+                        <div class="form-group">
+                            <label>Stok Minimum</label>
+                            <input type="number" name="STOK MINIMUM" value="${
+                              product["STOK MINIMUM"] || 0
+                            }" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>HPP</label>
+                            <input type="number" name="HPP" value="${
+                              product["HPP"] || 0
+                            }" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Harga Jual</label>
+                            <input type="number" name="HARGA JUAL" value="${
+                              product["HARGA JUAL"] || 0
+                            }" min="0">
+                        </div>
+                    </div>
+                    <div class="modal-buttons">
+                        <button type="submit" class="btn-simpan btn-update">Update Produk</button>
+                        <button type="button" class="btn-batal" onclick="closeModal()">Batal</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+
+  document.body.insertAdjacentHTML("beforeend", modalHTML);
+
+  const form = document.getElementById("editProductForm");
+  const categorySelect = document.getElementById("categorySelectEdit");
+  const newCategoryGroup = document.getElementById("newCategoryGroupEdit");
+  const newCategoryInput = document.getElementById("newCategoryInputEdit");
+  const submitBtn = form.querySelector(".btn-simpan");
+
+  categorySelect.addEventListener("change", () => {
+    if (categorySelect.value === "NEW_CATEGORY") {
+      newCategoryGroup.style.display = "block";
+      newCategoryInput.required = true;
+      newCategoryInput.focus();
+    } else {
+      newCategoryGroup.style.display = "none";
+      newCategoryInput.required = false;
     }
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (submitBtn.disabled) return;
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Mengupdate...";
+
+    try {
+      await updateProduct(rowIndex, new FormData(form));
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Update Produk";
+    }
+  });
+}
+
+async function updateProduct(rowIndex, formData) {
+  const data = {};
+
+  // Handle Kategori
+  const categorySelect = formData.get("KATEGORI_SELECT");
+  if (categorySelect === "NEW_CATEGORY") {
+    data["KATEGORI"] = formData.get("NEW_KATEGORI");
+  } else {
+    data["KATEGORI"] = categorySelect;
+  }
+
+  // Other fields
+  data["SKU"] = formData.get("SKU");
+  data["NAMA PRODUK"] = formData.get("NAMA PRODUK");
+  data["SATUAN"] = formData.get("SATUAN");
+  data["STOK MINIMUM"] = formData.get("STOK MINIMUM");
+  data["HPP"] = formData.get("HPP");
+  data["HARGA JUAL"] = formData.get("HARGA JUAL");
+
+  try {
+    const result = await updateSheetRow(
+      productService.sheetName,
+      rowIndex,
+      data,
+    );
+    if (result.success) {
+      alert("Produk berhasil diupdate!");
+      closeModal();
+      await window.IDBCache.clear(productService.cacheKey);
+      loadProducts();
+    }
+  } catch (error) {
+    alert("Gagal mengupdate produk: " + error.message);
   }
 }
 
@@ -444,77 +646,69 @@ function closeModal() {
   closeModalById("productModal");
 }
 
-// Restock Logic
-function showRestockModal(rowIndex) {
+// Row-level Stok Lapang Logic
+function showStokLapangModal(rowIndex) {
   const product = productsData.find((p) => p._rowIndex === rowIndex);
   if (!product) return;
 
   const modalHTML = `
-        <div id="restockModal" class="modal">
+        <div id="productModal" class="modal">
             <div class="modal-content">
-                <h2>Restock Produk</h2>
+                <h2 style="border-bottom-color: #9c27b0;">Tambah Stok Lapangan</h2>
                 <div class="form-group">
                     <label>Produk</label>
-                    <input type="text" value="${product["NAMA PRODUK"]} (${product["SKU"]})" disabled style="background: #f0f0f0;">
+                    <input type="text" value="${product["NAMA PRODUK"]} (${
+                      product["SKU"]
+                    })" disabled style="background: #f0f0f0;">
                 </div>
                 <div class="form-group">
-                    <label>Jumlah Restock (Tambahan)</label>
-                    <input type="number" id="restockAmount" placeholder="Masukkan jumlah..." required>
+                    <label>Jumlah Tambahan Stok</label>
+                    <input type="number" id="stokLapangAmount" placeholder="Masukkan jumlah..." required>
                 </div>
                 <div class="modal-buttons">
-                    <button type="button" class="btn-simpan" onclick="processRestock(${rowIndex})">Simpan</button>
-                    <button type="button" class="btn-batal" onclick="closeRestockModal()">Batal</button>
+                    <button type="button" class="btn-simpan" style="background-color: #9c27b0;" onclick="processStokLapang(${rowIndex})">Update Stok Lapangan</button>
+                    <button type="button" class="btn-batal" onclick="closeModal()">Batal</button>
                 </div>
             </div>
         </div>
     `;
 
   document.body.insertAdjacentHTML("beforeend", modalHTML);
-  document.getElementById("restockAmount").focus();
+  document.getElementById("stokLapangAmount").focus();
 }
 
-function closeRestockModal() {
-  closeModalById("restockModal");
-}
-
-async function processRestock(rowIndex) {
-  const amountInput = document.getElementById("restockAmount");
+async function processStokLapang(rowIndex) {
+  const amountInput = document.getElementById("stokLapangAmount");
   const amount = parseFloat(amountInput.value);
 
   if (!amount || amount <= 0) {
-    alert("Masukkan jumlah restock yang valid!");
+    alert("Masukkan jumlah yang valid!");
     return;
   }
 
   const product = productsData.find((p) => p._rowIndex === rowIndex);
   if (!product) return;
 
-  // Get save button and show loading state
-  const saveBtn = document.querySelector("#restockModal .btn-simpan");
-  if (saveBtn.disabled) return; // Prevent double-click
-
+  const saveBtn = document.querySelector(".modal .btn-simpan");
   saveBtn.disabled = true;
-  const originalText = saveBtn.textContent;
   saveBtn.textContent = "Menyimpan...";
 
-  const currentRestock = parseFloat(product["RESTOCK"] || 0);
-  const newRestock = currentRestock + amount;
+  const currentStokLapang = parseFloat(product["STOK LAPANGAN"] || 0);
+  const newStokLapang = currentStokLapang + amount;
 
   try {
     const result = await updateSheetRow(productService.sheetName, rowIndex, {
-      RESTOCK: newRestock,
+      "STOK LAPANGAN": newStokLapang,
     });
     if (result.success) {
-      alert("Restock berhasil! Stok bertambah.");
-      closeRestockModal();
-      // Clear cache to ensure fresh data is loaded
+      alert("Stok lapangan berhasil diupdate!");
+      closeModal();
       await window.IDBCache.clear(productService.cacheKey);
       loadProducts();
     }
   } catch (error) {
-    alert("Gagal melakukan restock: " + error.message);
-    // Restore button state on error
+    alert("Gagal update stok lapangan: " + error.message);
     saveBtn.disabled = false;
-    saveBtn.textContent = originalText;
+    saveBtn.textContent = "Update Stok Lapangan";
   }
 }

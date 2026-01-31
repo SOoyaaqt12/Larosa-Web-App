@@ -321,9 +321,9 @@ function setupAutocomplete() {
       currentFocus--;
       addActive(items);
     } else if (e.key === "Enter") {
-      e.preventDefault();
-      if (currentFocus > -1 && items[currentFocus]) {
-        items[currentFocus].click();
+      if (currentFocus > -1) {
+        e.preventDefault();
+        if (items[currentFocus]) items[currentFocus].click();
       }
     }
   });
@@ -404,12 +404,12 @@ function setupProductAutocomplete() {
       addActiveProduct(items);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      currentFocus--;
+      currentProductFocus--;
       addActiveProduct(items);
     } else if (e.key === "Enter") {
-      e.preventDefault();
-      if (currentProductFocus > -1 && items[currentProductFocus]) {
-        items[currentProductFocus].click();
+      if (currentProductFocus > -1) {
+        e.preventDefault();
+        if (items[currentProductFocus]) items[currentProductFocus].click();
       }
     }
   });

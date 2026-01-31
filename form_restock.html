@@ -3,9 +3,28 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
+    <title>Restock - LAROSAPOT</title>
 
     <link rel="stylesheet" href="style/kasir.css?v=3" />
+    <style>
+      .btn-preview {
+        background-color: #2196f3;
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 10px;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+        width: 100%;
+        margin-top: 20px;
+      }
+      .btn-preview:hover {
+        background-color: #1976d2;
+        transform: translateY(-2px);
+      }
+    </style>
   </head>
   <body>
     <!-- Sidebar injected by script/layout.js -->
@@ -15,49 +34,70 @@
 
       <div class="content-area">
         <div class="form-section">
-          <h2 class="section-title">Tambah Pesanan</h2>
+          <h2 class="section-title">Restock (Pembelian Barang)</h2>
 
           <div class="form-row">
             <div class="form-group">
-              <label>No Invoice</label>
+              <label>No Invoice Pembelian</label>
               <input
                 type="text"
-                id="noPesanan"
+                id="noInvoice"
+                placeholder="LR/SJ/xx/ddmmyy"
+                readonly
+              />
+            </div>
+            <div class="form-group">
+              <label>Tanggal Pembelian</label>
+              <input
+                type="date"
+                id="tanggalPembelian"
+                onchange="updatePurchaseInvoiceNumber()"
+              />
+            </div>
+          </div>
+
+          <h3 class="subsection-title">Informasi Vendor</h3>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>No HP Vendor (Pilih)</label>
+              <div class="autocomplete-container">
+                <input
+                  type="text"
+                  id="noHpVendor"
+                  placeholder="Ketik no HP vendor..."
+                  autocomplete="off"
+                />
+                <div id="vendorSuggestionList" class="suggestion-list"></div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Nama Vendor</label>
+              <input
+                type="text"
+                id="namaVendor"
+                placeholder="Otomatis"
+                readonly
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Kategori Vendor</label>
+              <input
+                type="text"
+                id="kategoriVendor"
                 placeholder="Otomatis"
                 readonly
               />
             </div>
             <div class="form-group">
-              <label>Tanggal Dibuat</label>
-              <input
-                type="date"
-                id="tanggalDibuat"
-                onchange="updateInvoiceNumber()"
-              />
-            </div>
-          </div>
-
-          <h3 class="subsection-title">Informasi Pelanggan</h3>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label>No Telepon Pelanggan</label>
-              <div class="autocomplete-container">
-                <input
-                  type="text"
-                  id="noTelepon"
-                  placeholder="Ketik no telepon..."
-                  autocomplete="off"
-                />
-                <div id="suggestionList" class="suggestion-list"></div>
-              </div>
-            </div>
-            <div class="form-group">
-              <label>Nama Pelanggan</label>
+              <label>Alamat Vendor</label>
               <input
                 type="text"
-                id="namaPelanggan"
-                placeholder="Otomatis dari pencarian"
+                id="alamatVendor"
+                placeholder="Otomatis"
                 readonly
               />
             </div>
@@ -65,48 +105,30 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label>Alamat</label>
+              <label>Bank</label>
               <input
                 type="text"
-                id="alamatPelanggan"
-                placeholder="Otomatis dari pencarian"
+                id="bankVendor"
+                placeholder="Otomatis"
                 readonly
               />
             </div>
             <div class="form-group">
-              <label>Kasir</label>
-              <select id="kasir">
-                <!-- Options populated by JS -->
-              </select>
+              <label>No Rekening</label>
+              <input
+                type="text"
+                id="rekeningVendor"
+                placeholder="Otomatis"
+                readonly
+              />
             </div>
           </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label>Metode Pembayaran</label>
-              <select id="paymen">
-                <option value="Transfer" selected>Transfer</option>
-                <option value="Tunai">Tunai</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Jenis Transaksi</label>
-              <select id="jenisTransaksi">
-                <option value="Online" selected>Online</option>
-                <option value="Offline">Offline</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>RO/PO</label>
-              <input type="text" id="roPo" placeholder="No RO/PO" />
-            </div>
-          </div>
-
-          <h3 class="subsection-title">Keranjang</h3>
+          <h3 class="subsection-title">Input Barang</h3>
 
           <div class="keranjang-layout">
             <div class="form-group">
-              <label>No SKU</label>
+              <label>No SKU (Pilih)</label>
               <div class="autocomplete-container">
                 <input
                   type="text"
@@ -123,12 +145,12 @@
                 type="number"
                 id="jumlah"
                 placeholder="0"
-                oninput="hitungTotalHarga()"
+                oninput="hitungTotalHPP()"
               />
             </div>
             <div class="form-group">
-              <label>Harga</label>
-              <input type="number" id="harga" placeholder="Otomatis" readonly />
+              <label>HPP (Satuan)</label>
+              <input type="number" id="hpp" placeholder="Otomatis" />
             </div>
           </div>
 
@@ -138,7 +160,7 @@
               <input
                 type="text"
                 id="namaProduk"
-                placeholder="Otomatis dari SKU"
+                placeholder="Otomatis"
                 readonly
               />
             </div>
@@ -147,18 +169,13 @@
               <input type="text" id="satuan" placeholder="Otomatis" readonly />
             </div>
             <div class="form-group">
-              <label>Total Harga</label>
-              <input
-                type="number"
-                id="totalHarga"
-                placeholder="Rp. 0"
-                readonly
-              />
+              <label>Total HPP</label>
+              <input type="number" id="totalHpp" placeholder="Rp. 0" readonly />
             </div>
           </div>
 
           <button class="btn-simpan" onclick="tambahKeKeranjang()">
-            Simpan
+            Tambahkan ke Keranjang
           </button>
 
           <div class="cart-table">
@@ -170,7 +187,7 @@
                   <th>Produk</th>
                   <th>Jumlah</th>
                   <th>Satuan</th>
-                  <th>Harga</th>
+                  <th>HPP</th>
                   <th>Total</th>
                   <th>Aksi</th>
                 </tr>
@@ -179,7 +196,7 @@
             </table>
           </div>
 
-          <div class="bottom-section">
+          <div class="bottom-section" style="margin-top: 20px">
             <div class="left-calc">
               <div class="calc-item">
                 <label>Subtotal</label>
@@ -191,81 +208,58 @@
                 />
               </div>
               <div class="calc-item">
-                <label>Packing</label>
+                <label>Ongkir</label>
                 <input
-                  type="text"
-                  id="packing"
-                  placeholder="Rp. 0 atau =rumus"
-                  onchange="hitungTotalTagihan()"
+                  type="number"
+                  id="ongkir"
+                  placeholder="0"
+                  oninput="hitungTotalTagihan()"
+                />
+              </div>
+              <div class="calc-item">
+                <label>Potongan</label>
+                <input
+                  type="number"
+                  id="potongan"
+                  placeholder="0"
+                  oninput="hitungTotalTagihan()"
                 />
               </div>
             </div>
             <div class="right-calc">
               <div class="calc-item">
-                <label>Ongkir</label>
+                <label>Diskon</label>
                 <input
-                  type="text"
-                  id="ongkir"
-                  placeholder="Rp. 0 atau =rumus"
-                  onchange="hitungTotalTagihan()"
+                  type="number"
+                  id="diskon"
+                  placeholder="0"
+                  oninput="hitungTotalTagihan()"
                 />
               </div>
               <div class="calc-item">
-                <label>Diskon</label>
+                <label>Total Tagihan</label>
                 <input
-                  type="text"
-                  id="diskon"
-                  placeholder="Rp. 0 atau =rumus"
-                  onchange="hitungTotalTagihan()"
+                  type="number"
+                  id="totalTagihan"
+                  placeholder="Rp. 0"
+                  readonly
+                  style="font-weight: bold; color: #2e7d32"
                 />
               </div>
             </div>
           </div>
 
           <div class="bottom-section">
-            <div class="calc-item full-width-calc">
-              <label>Total Tagihan</label>
+            <div class="calc-item">
+              <label>DP (Uang Muka)</label>
               <input
                 type="number"
-                id="totalTagihan"
-                placeholder="Rp. 0"
-                readonly
-              />
-            </div>
-          </div>
-
-          <div class="bottom-section">
-            <div class="calc-item">
-              <label>DP 1</label>
-              <input
-                type="text"
-                id="dp1"
-                placeholder="Rp. 0 atau =rumus"
-                onchange="hitungSisaTagihan()"
+                id="dp"
+                placeholder="0"
+                oninput="hitungSisaTagihan()"
               />
             </div>
             <div class="calc-item">
-              <label>DP 2</label>
-              <input
-                type="text"
-                id="dp2"
-                placeholder="Rp. 0 atau =rumus"
-                onchange="hitungSisaTagihan()"
-              />
-            </div>
-            <div class="calc-item">
-              <label>Pelunasan</label>
-              <input
-                type="text"
-                id="pelunasan"
-                placeholder="Rp. 0 atau =rumus"
-                onchange="hitungSisaTagihan()"
-              />
-            </div>
-          </div>
-
-          <div class="bottom-section">
-            <div class="calc-item full-width-calc">
               <label>Sisa Tagihan</label>
               <input
                 type="number"
@@ -276,12 +270,9 @@
             </div>
           </div>
 
-          <div class="action-buttons">
-            <button class="btn-dp" onclick="saveInvoice('DP')">DP</button>
-            <button class="btn-lunas" onclick="saveInvoice('LUNAS')">
-              Lunas
-            </button>
-          </div>
+          <button class="btn-preview" onclick="previewInvoice()">
+            Review & Lihat Invoice Pembelian
+          </button>
         </div>
       </div>
     </div>
@@ -293,6 +284,6 @@
     <script src="script/idb-cache.js"></script>
     <script src="script/utils.js"></script>
     <script src="script/data-service.js"></script>
-    <script src="script/kasir.js"></script>
+    <script src="script/form_restock.js"></script>
   </body>
 </html>

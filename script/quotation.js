@@ -317,14 +317,16 @@ function setupProductAutocomplete() {
 
     let items = list.getElementsByClassName("suggestion-item");
     if (e.key === "ArrowDown") {
+      e.preventDefault();
       currentProductFocus++;
       addActiveProduct(items);
     } else if (e.key === "ArrowUp") {
+      e.preventDefault();
       currentProductFocus--;
       addActiveProduct(items);
     } else if (e.key === "Enter") {
-      e.preventDefault();
       if (currentProductFocus > -1) {
+        e.preventDefault();
         if (items[currentProductFocus]) items[currentProductFocus].click();
       }
     }
@@ -430,14 +432,16 @@ function setupAutocomplete() {
 
     let items = list.getElementsByClassName("suggestion-item");
     if (e.key === "ArrowDown") {
+      e.preventDefault();
       currentFocus++;
       addActive(items);
     } else if (e.key === "ArrowUp") {
+      e.preventDefault();
       currentFocus--;
       addActive(items);
     } else if (e.key === "Enter") {
-      e.preventDefault();
       if (currentFocus > -1) {
+        e.preventDefault();
         if (items[currentFocus]) items[currentFocus].click();
       }
     }
