@@ -129,7 +129,7 @@ function renderPaginatedTable() {
             <td>${product["NAMA PRODUK"] || ""}</td>
             <td>${getValueFromKeys(product, ["KETAGORI", "KATEGORI"], "")}</td>
             <td>${product["SATUAN"] || ""}</td>
-            <td>${product["STOK SISTEM"] || 0}</td>
+            <td>${product["STOK AWAL"] || 0}</td>
             <td>${product["RESTOCK"] || 0}</td>
             <td>${product["TERJUAL"] || 0}</td>
             <td>${product["STOK AKHIR SISTEM"] || 0}</td>
@@ -430,7 +430,7 @@ async function addProduct(formData) {
 
   // Handle Stok Awal mapping
   const stokAwal = formData.get("STOK_AWAL") || 0;
-  data["STOK SISTEM"] = stokAwal;
+  data["STOK AWAL"] = stokAwal;
   data["STOK LAPANGAN"] = stokAwal;
 
   // Other fields

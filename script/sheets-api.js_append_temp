@@ -1,0 +1,32 @@
+
+/**
+ * Increment product 'TERJUAL' count
+ * @param {Array} items - Array of {sku, jumlah} objects
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+async function incrementProductSold(items) {
+  try {
+    const response = await fetch(SHEETS_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain",
+      },
+      body: JSON.stringify({
+        action: "increment-product-sold",
+        items: items,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (result.error) {
+      console.error("Error incrementing product sold count:", result.error);
+      return result;
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to increment product sold count:", error);
+    return { error: error.message };
+  }
+}

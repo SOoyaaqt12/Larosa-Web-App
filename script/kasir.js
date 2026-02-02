@@ -1181,6 +1181,23 @@ async function saveInvoice(status) {
       }
     }
 
+    // Increment Product Sold Count (Only for new LUNAS or DP->LUNAS)
+    if (
+      status === "LUNAS" &&
+      (!isEditMode || editOriginSheet === PELUNASAN_SHEET_NAME)
+    ) {
+      try {
+        const soldItems = keranjangData.map((item) => ({
+          sku: item.sku,
+          jumlah: item.jumlah,
+        }));
+        await incrementProductSold(soldItems);
+        console.log("Product sold count incremented");
+      } catch (e) {
+        console.error("Failed to increment product sold count:", e);
+      }
+    }
+
     // If this was a checkout from quotation, delete the original quotation
     console.log("Checkout mode check:", {
       isCheckoutMode,
