@@ -1,135 +1,188 @@
 <!doctype html>
-<html lang="en">
+<html lang="id">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Invoice Pembelian - LAROSAPOT</title>
     <link rel="stylesheet" href="style/invoice.css" />
-    <style>
-      .invoice-title {
-        color: #2e7d32;
-        border-bottom: 2px solid #2e7d32;
-        padding-bottom: 10px;
-        margin-bottom: 20px;
-        text-align: center;
-      }
-      .btn-action {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-        margin-top: 30px;
-      }
-      .btn-action button {
-        padding: 10px 20px;
-        border-radius: 5px;
-        cursor: pointer;
-        font-weight: bold;
-      }
-      .btn-print {
-        background: #4caf50;
-        color: white;
-        border: none;
-      }
-      .btn-back {
-        background: #f5f5f5;
-        color: #333;
-        border: 1px solid #ccc;
-      }
-
-      @media print {
-        .btn-action {
-          display: none;
-        }
-      }
-    </style>
   </head>
   <body>
-    <div class="invoice-container">
-      <h1 class="invoice-title">INVOICE PEMBELIAN</h1>
+    <!-- Sidebar injected by script/layout.js -->
 
-      <div class="invoice-header">
-        <div class="info-left">
-          <p><strong>Vendor:</strong> <span id="viewVendorNama"></span></p>
-          <p><strong>Telp:</strong> <span id="viewVendorPhone"></span></p>
-          <p><strong>Alamat:</strong> <span id="viewVendorAlamat"></span></p>
-        </div>
-        <div class="info-right" style="text-align: right">
-          <p><strong>No Invoice:</strong> <span id="viewInvoiceNo"></span></p>
-          <p><strong>Tanggal:</strong> <span id="viewTanggal"></span></p>
-        </div>
-      </div>
+    <div class="main-content">
+      <!-- Header injected by script/layout.js -->
 
-      <table>
-        <thead>
-          <tr>
-            <th>No.</th>
-            <th>SKU</th>
-            <th>Produk</th>
-            <th>Jumlah</th>
-            <th>Unit</th>
-            <th>HPP</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody id="invoiceItemsBody">
-          <!-- Items will be injected -->
-        </tbody>
-      </table>
+      <div class="content-area" style="display: flex; justify-content: center">
+        <div id="pagesContainer">
+          <div class="invoice-container">
+            <!-- Header Section -->
+            <section class="header-section">
+              <div class="header-left">
+                <div class="invoice-box">INVOICE PEMBELIAN</div>
+                <div class="company-info">
+                  <strong>LAROSAPOT</strong><br />
+                  Jl. Perikanan Darat No 51, Kedung Waringin, Tanah Sareal,
+                  Bogor<br />
+                  Jawa Barat, 16164, Indonesia<br />
+                  081237798282<br />
+                  Larosapot@gmail.com
+                </div>
+              </div>
+              <div class="header-right">
+                <div class="header-logo">
+                  <img src="asset/image/larosa-logo.png" alt="Larosa Logo" />
+                </div>
+                <table class="info-table">
+                  <tr>
+                    <td>No Invoice</td>
+                    <td>:</td>
+                    <td id="invNoInvoice" style="font-weight: bold"></td>
+                  </tr>
+                  <tr>
+                    <td>Tanggal</td>
+                    <td>:</td>
+                    <td id="invTanggal"></td>
+                  </tr>
+                </table>
+              </div>
+            </section>
 
-      <div class="summary-section">
-        <div class="summary-row">
-          <span>Subtotal:</span>
-          <span id="viewSubtotal"></span>
-        </div>
-        <div class="summary-row">
-          <span>Ongkir:</span>
-          <span id="viewOngkir"></span>
-        </div>
-        <div class="summary-row">
-          <span>Potongan:</span>
-          <span id="viewPotongan"></span>
-        </div>
-        <div class="summary-row">
-          <span>Diskon:</span>
-          <span id="viewDiskon"></span>
-        </div>
-        <div class="summary-row total" style="color: #2e7d32">
-          <span>Total Tagihan:</span>
-          <span id="viewTotal"></span>
-        </div>
-        <div class="summary-row">
-          <span>DP:</span>
-          <span id="viewDP"></span>
-        </div>
-        <div class="summary-row sisa">
-          <span>Sisa Tagihan:</span>
-          <span id="viewSisa"></span>
-        </div>
-      </div>
+            <hr class="divider thick" />
 
-      <div class="footer-note" style="margin-top: 40px; text-align: center">
-        <p><strong>Info Pembayaran:</strong></p>
-        <p>
-          <span id="viewVendorBank"></span> -
-          <span id="viewVendorRekening"></span>
-        </p>
-      </div>
+            <!-- Info Section -->
+            <section class="info-section">
+              <div class="info-left">
+                <table class="details-table">
+                  <tr>
+                    <td colspan="3" style="padding-bottom: 5px">
+                      <strong>Informasi Vendor:</strong>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Nama Vendor</td>
+                    <td>:</td>
+                    <td id="invVendorNama" style="font-weight: bold"></td>
+                  </tr>
+                  <tr>
+                    <td>Telepon</td>
+                    <td>:</td>
+                    <td id="invVendorPhone"></td>
+                  </tr>
+                  <tr>
+                    <td>Alamat</td>
+                    <td>:</td>
+                    <td id="invVendorAlamat"></td>
+                  </tr>
+                </table>
+              </div>
+              <div class="info-right">
+                <table class="details-table right-table">
+                  <tr>
+                    <td colspan="2" style="padding-bottom: 5px">
+                      <strong>Informasi Pembayaran:</strong>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Bank</td>
+                    <td>:</td>
+                    <td id="invVendorBank"></td>
+                  </tr>
+                  <tr>
+                    <td>No Rekening</td>
+                    <td>:</td>
+                    <td id="invVendorRekening"></td>
+                  </tr>
+                </table>
+              </div>
+            </section>
 
-      <div class="btn-action">
-        <button class="btn-print" onclick="window.print()">
-          Cetak Invoice
-        </button>
-        <button
-          class="btn-back"
-          onclick="window.location.href = 'form_restock.html'"
-        >
-          Kembali ke Form
-        </button>
+            <hr class="divider" />
+
+            <!-- Table Section -->
+            <div class="table-container">
+              <table class="items-table">
+                <thead>
+                  <tr>
+                    <th>NO.</th>
+                    <th>SKU</th>
+                    <th>PRODUK</th>
+                    <th>JUMLAH</th>
+                    <th>UNIT</th>
+                    <th>HPP</th>
+                    <th>TOTAL</th>
+                  </tr>
+                </thead>
+                <tbody id="invItemsBody">
+                  <!-- Items injected by JS -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Footer Wrapper -->
+            <div class="footer-wrapper">
+              <hr class="divider thick" />
+              <section class="footer-section">
+                <div class="footer-left">
+                  <div class="notes">
+                    <strong>Catatan:</strong>
+                    <p>Terima kasih atas kerja samanya.</p>
+                  </div>
+                </div>
+                <div class="footer-right">
+                  <table class="summary-table">
+                    <tr>
+                      <td><strong>Subtotal</strong></td>
+                      <td id="invSubtotal" style="font-weight: bold"></td>
+                    </tr>
+                    <tr>
+                      <td>Ongkir</td>
+                      <td id="invOngkir"></td>
+                    </tr>
+                    <tr>
+                      <td>Potongan</td>
+                      <td id="invPotongan"></td>
+                    </tr>
+                    <tr>
+                      <td>Diskon</td>
+                      <td id="invDiskon"></td>
+                    </tr>
+                    <tr style="font-weight: bold; border-top: 1px solid #000">
+                      <td>GRAND TOTAL</td>
+                      <td id="invTotal"></td>
+                    </tr>
+                    <tr>
+                      <td>DP / Bayar</td>
+                      <td id="invDP"></td>
+                    </tr>
+                    <tr style="font-weight: bold; color: #c00">
+                      <td>SISA TAGIHAN</td>
+                      <td id="invSisa"></td>
+                    </tr>
+                  </table>
+                </div>
+              </section>
+              <div class="bottom-bar"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
+    <!-- Action Buttons (Hidden in Print) -->
+    <div class="action-buttons no-print">
+      <button onclick="window.print()" class="btn-print">Print Invoice</button>
+      <button onclick="goBack()" class="btn-back">Kembali ke Form</button>
+    </div>
+
+    <script src="script/config.js"></script>
+    <script src="script/auth.js"></script>
+    <script src="script/layout.js"></script>
     <script src="script/utils.js"></script>
     <script>
+      function goBack() {
+        window.location.href = "form_restock.html";
+      }
+
       document.addEventListener("DOMContentLoaded", () => {
         const dataStr = sessionStorage.getItem("currentPurchaseInvoice");
         if (!dataStr) {
@@ -141,57 +194,76 @@
         const data = JSON.parse(dataStr);
 
         // Header
-        document.getElementById("viewVendorNama").textContent =
-          data.vendor.nama;
-        document.getElementById("viewVendorPhone").textContent =
-          data.vendor.phone;
-        document.getElementById("viewVendorAlamat").textContent =
+        document.getElementById("invNoInvoice").textContent =
+          data.invoiceNo || "-";
+
+        // Format Date
+        let displayDate = data.tanggal;
+        if (typeof formatDisplayDate === "function") {
+          displayDate = formatDisplayDate(data.tanggal);
+        }
+        document.getElementById("invTanggal").textContent = displayDate;
+
+        // Vendor Info
+        document.getElementById("invVendorNama").textContent =
+          data.vendor.nama || "-";
+        document.getElementById("invVendorPhone").textContent =
+          data.vendor.phone || "-";
+        document.getElementById("invVendorAlamat").textContent =
           data.vendor.alamat || "-";
-        document.getElementById("viewInvoiceNo").textContent = data.invoiceNo;
-        document.getElementById("viewTanggal").textContent = data.tanggal;
-        document.getElementById("viewVendorBank").textContent =
+        document.getElementById("invVendorBank").textContent =
           data.vendor.bank || "-";
-        document.getElementById("viewVendorRekening").textContent =
+        document.getElementById("invVendorRekening").textContent =
           data.vendor.rekening || "-";
 
-        // Table
-        const tbody = document.getElementById("invoiceItemsBody");
-        tbody.innerHTML = data.items
-          .map(
-            (item, idx) => `
+        // Table Items
+        const tbody = document.getElementById("invItemsBody");
+        const formatter =
+          typeof formatCurrency === "function"
+            ? formatCurrency
+            : (v) => "Rp" + v;
+
+        if (data.items && data.items.length > 0) {
+          tbody.innerHTML = data.items
+            .map(
+              (item, idx) => `
                 <tr>
-                    <td>${idx + 1}</td>
-                    <td>${item.sku}</td>
-                    <td>${item.produk}</td>
-                    <td>${item.jumlah}</td>
-                    <td>${item.satuan}</td>
-                    <td>${formatCurrency(item.hpp)}</td>
-                    <td>${formatCurrency(item.total)}</td>
+                  <td>${idx + 1}</td>
+                  <td>${item.sku || "-"}</td>
+                  <td>${item.produk || "-"}</td>
+                  <td>${item.jumlah || 0}</td>
+                  <td>${item.satuan || "Pcs"}</td>
+                  <td>${formatter(item.hpp)}</td>
+                  <td>${formatter(item.total)}</td>
                 </tr>
-            `,
-          )
-          .join("");
+              `,
+            )
+            .join("");
+        } else {
+          tbody.innerHTML =
+            '<tr><td colspan="7" style="text-align:center;">Tidak ada item</td></tr>';
+        }
 
         // Summary
-        document.getElementById("viewSubtotal").textContent = formatCurrency(
+        document.getElementById("invSubtotal").textContent = formatter(
           data.summary.subtotal,
         );
-        document.getElementById("viewOngkir").textContent = formatCurrency(
+        document.getElementById("invOngkir").textContent = formatter(
           data.summary.ongkir,
         );
-        document.getElementById("viewPotongan").textContent = formatCurrency(
+        document.getElementById("invPotongan").textContent = formatter(
           data.summary.potongan,
         );
-        document.getElementById("viewDiskon").textContent = formatCurrency(
+        document.getElementById("invDiskon").textContent = formatter(
           data.summary.diskon,
         );
-        document.getElementById("viewTotal").textContent = formatCurrency(
+        document.getElementById("invTotal").textContent = formatter(
           data.summary.total,
         );
-        document.getElementById("viewDP").textContent = formatCurrency(
+        document.getElementById("invDP").textContent = formatter(
           data.summary.dp,
         );
-        document.getElementById("viewSisa").textContent = formatCurrency(
+        document.getElementById("invSisa").textContent = formatter(
           data.summary.sisa,
         );
       });

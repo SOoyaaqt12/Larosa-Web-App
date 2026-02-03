@@ -14,7 +14,7 @@ const SHEETS_API_URL = API_URL;
 async function fetchSheetData(sheetName) {
   try {
     const response = await fetch(
-      `${SHEETS_API_URL}?sheet=${encodeURIComponent(sheetName)}&action=read`
+      `${SHEETS_API_URL}?sheet=${encodeURIComponent(sheetName)}&action=read`,
     );
     const result = await response.json();
 
@@ -60,11 +60,7 @@ async function addSheetRow(sheetName, rowData, uniqueColumn = null) {
     const result = await response.json();
 
     if (result.error) {
-      // Don't throw for duplicate entry, just return result so frontend handles it
       if (result.error.includes("Duplicate entry")) {
-        // This allows frontend to see the error message without catching strictly generic error
-        // But throwing is also fine if caught.
-        // Let's stick to throwing, but ensure message is clear
         throw new Error(result.error);
       }
       console.error("Error adding row:", result.error);
@@ -185,6 +181,41 @@ async function deleteInvoice(sheetName, noPesanan) {
 }
 
 /**
+ * Delete restock invoice and trigger stock correction in backend
+ * @param {string} noPesanan - The invoice number to delete
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+async function deleteRestockAndCorrectStock(noPesanan) {
+  try {
+    const response = await fetch(SHEETS_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain",
+      },
+      body: JSON.stringify({
+        sheet: "RESTOCK", // Sheet name is fixed for this action
+        action: "delete-restock",
+        data: {
+          noPesanan: noPesanan,
+        },
+      }),
+    });
+
+    const result = await response.json();
+
+    if (result.error) {
+      console.error("Error deleting restock:", result.error);
+      throw new Error(result.error);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to delete restock:", error);
+    throw error;
+  }
+}
+
+/**
  * Increment customer transaction count by phone number
  * @param {string} phoneNumber - Customer phone number
  * @returns {Promise<{success: boolean, message: string, newCount?: number}>}
@@ -206,14 +237,76 @@ async function incrementCustomerTransaction(phoneNumber) {
 
     if (result.error) {
       console.error("Error incrementing transaction:", result.error);
-      // Don't throw - this is a secondary operation, shouldn't block invoice save
       return result;
     }
 
     return result;
   } catch (error) {
     console.error("Failed to increment customer transaction:", error);
-    // Don't throw - invoice save should still succeed even if this fails
+    return { error: error.message };
+  }
+}
+
+/**
+ * Increment product 'TERJUAL' count
+ * @param {Array} items - Array of {sku, jumlah} objects
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+async function incrementProductSold(items) {
+  try {
+    const response = await fetch(SHEETS_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain",
+      },
+      body: JSON.stringify({
+        action: "increment-product-sold",
+        items: items,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (result.error) {
+      console.error("Error incrementing product sold count:", result.error);
+      return result;
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to increment product sold count:", error);
+    return { error: error.message };
+  }
+}
+
+/**
+ * Increment product 'RESTOCK' count
+ * @param {Array} items - Array of {sku, jumlah} objects
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+async function incrementProductRestock(items) {
+  try {
+    const response = await fetch(SHEETS_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain",
+      },
+      body: JSON.stringify({
+        action: "increment-product-restock",
+        items: items,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (result.error) {
+      console.error("Error incrementing product restock count:", result.error);
+      return result;
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to increment product restock count:", error);
     return { error: error.message };
   }
 }

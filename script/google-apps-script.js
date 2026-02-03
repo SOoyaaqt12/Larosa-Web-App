@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Google Apps Script - LarosaWebApp API
  *
  * INSTRUKSI DEPLOYMENT:
@@ -94,8 +94,17 @@ function doPost(e) {
       case "delete-invoice":
         result = deleteInvoice(sheet, rowData.noPesanan);
         break;
+      case "delete-restock":
+        result = deleteRestockWithStockCorrection(rowData.noPesanan);
+        break;
       case "increment-transaction":
         result = incrementCustomerTransaction(data.phoneNumber);
+        break;
+      case "increment-product-sold":
+        result = incrementProductSold(data.items);
+        break;
+      case "increment-product-restock":
+        result = incrementProductRestock(data.items);
         break;
       case "login":
         result = authenticateUser(data.username, data.password);
@@ -217,6 +226,7 @@ function readSheet(sheetName) {
     const headers = sheet
       .getRange(headerRow, startColumn, 1, numDataCols)
       .getValues()[0]
+      .map((h) => (typeof h === "string" ? h.replace(/\n/g, " ").trim() : h))
       .filter((h) => h !== "");
 
     // Get data starting from the row after headers
@@ -520,20 +530,14 @@ function updateRow(sheetName, rowIndex, rowData) {
       .getRange(headerRow, 1, 1, sheet.getLastColumn())
       .getValues()[0];
 
-    // Get current row data first
-    const currentRow = sheet
-      .getRange(rowIndex, 1, 1, headers.length)
-      .getValues()[0];
-
-    // Update only the fields that are provided
-    const updatedRow = headers.map((header, i) => {
-      if (rowData.hasOwnProperty(header)) {
-        return rowData[header];
+    // Only update the specific cells that are provided in rowData
+    // This preserves formulas in other cells
+    Object.keys(rowData).forEach(function (key) {
+      const colIndex = headers.indexOf(key);
+      if (colIndex !== -1) {
+        sheet.getRange(rowIndex, colIndex + 1).setValue(rowData[key]);
       }
-      return currentRow[i];
     });
-
-    sheet.getRange(rowIndex, 1, 1, updatedRow.length).setValues([updatedRow]);
 
     return { success: true, message: "Row updated successfully" };
   } catch (error) {
@@ -651,6 +655,96 @@ function deleteInvoice(sheetName, noPesanan) {
     };
   } catch (error) {
     return { error: error.toString() };
+  }
+}
+
+/**
+ * Delete restock invoice and reverse the stock addition
+ * @param {string} invoiceNo
+ */
+function deleteRestockWithStockCorrection(invoiceNo) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000); // Wait up to 10 seconds
+
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sheet = ss.getSheetByName("RESTOCK");
+    if (!sheet) return { error: "Sheet RESTOCK not found" };
+
+    // 1. Get items to reverse stock
+    const config = SHEET_CONFIG["RESTOCK"] || { headerRow: 1 };
+    const headerRow = config.headerRow;
+    const lastRow = sheet.getLastRow();
+
+    // Find column indices
+    const headers = sheet
+      .getRange(headerRow, 1, 1, sheet.getLastColumn())
+      .getValues()[0]
+      .map((h) => String(h).trim());
+    const invoiceColIdx = headers.indexOf("INVOICE");
+    const skuColIdx = headers.indexOf("SKU");
+    const qtyColIdx = headers.indexOf("JUMLAH");
+
+    if (invoiceColIdx === -1 || skuColIdx === -1 || qtyColIdx === -1) {
+      return { error: "Required columns (INVOICE, SKU, JUMLAH) not found" };
+    }
+
+    const dataRange = sheet.getRange(
+      headerRow + 1,
+      1,
+      lastRow - headerRow,
+      sheet.getLastColumn(),
+    );
+    const data = dataRange.getValues();
+
+    const itemsToReverse = [];
+    const rowsToDelete = [];
+
+    // Identify rows and items
+    for (let i = 0; i < data.length; i++) {
+      if (String(data[i][invoiceColIdx]).trim() === String(invoiceNo).trim()) {
+        rowsToDelete.push(i + headerRow + 1);
+        itemsToReverse.push({
+          sku: data[i][skuColIdx],
+          jumlah: parseFloat(data[i][qtyColIdx]) || 0,
+        });
+      }
+    }
+
+    if (rowsToDelete.length === 0) {
+      return { error: "Invoice not found or already deleted" };
+    }
+
+    // 2. Reverse Stock (reduce stock because we are deleting a Restock)
+    // We reuse incrementProductSold because it SUBTRACTS from stock based on 'TERJUAL' logic,
+    // BUT wait, incrementProductSold adds to 'TERJUAL'. We need to subtract from 'RESTOCK' column in PERSEDIAAN BARANG?
+    // Actually, normally 'RESTOCK' adds to stock. So if we delete it, we should SUBTRACT from 'RESTOCK' count or just DECREMENT stock.
+    // The safest way is to decrement the 'RESTOCK' counter for these items.
+
+    // Let's use a custom logic to update 'RESTOCK' column with negative values
+    const reverseItems = itemsToReverse.map((item) => ({
+      sku: item.sku,
+      jumlah: -item.jumlah, // Negative to subtract
+    }));
+
+    // Update 'RESTOCK' column with negative values (subtraction)
+    const stockUpdateResult = updateProductCounter(reverseItems, "RESTOCK");
+    if (stockUpdateResult.error) {
+      return { error: "Failed to update stock: " + stockUpdateResult.error };
+    }
+
+    // 3. Delete Rows (bottom to top)
+    rowsToDelete.sort((a, b) => b - a);
+    rowsToDelete.forEach((row) => sheet.deleteRow(row));
+
+    return {
+      success: true,
+      message: `Restock ${invoiceNo} deleted and stock reversed for ${itemsToReverse.length} items.`,
+    };
+  } catch (error) {
+    return { error: error.toString() };
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -800,8 +894,11 @@ function getNextIncrementalId(type, dateStr) {
     const day = dateParts[2];
     const orderNumPadded = String(count).padStart(2, "0");
 
-    // Standardize prefixes: INV -> LR/INV, QT -> LR/QT
-    const prefix = type === "INV" ? "LR/INV" : "LR/QT";
+    // Standardize prefixes: INV -> LR/INV, QT -> LR/QT, SJ -> LR/SJ
+    let prefix = "LR/INV";
+    if (type === "QT") prefix = "LR/QT";
+    else if (type === "SJ") prefix = "LR/SJ";
+
     const formattedId = `${prefix}/${orderNumPadded}/${day}${month}${year}`;
 
     return {
@@ -833,7 +930,11 @@ function peekNextId(type, dateStr) {
       const year = dateParts[0].slice(-2);
       const month = dateParts[1];
       const day = dateParts[2];
-      const prefix = type === "INV" ? "LR/INV" : "LR/QT";
+
+      let prefix = "LR/INV";
+      if (type === "QT") prefix = "LR/QT";
+      else if (type === "SJ") prefix = "LR/SJ";
+
       return {
         success: true,
         id: `${prefix}/01/${day}${month}${year}`,
@@ -868,7 +969,10 @@ function peekNextId(type, dateStr) {
     const month = dateParts[1];
     const day = dateParts[2];
     const orderNumPadded = String(nextCount).padStart(2, "0");
-    const prefix = type === "INV" ? "LR/INV" : "LR/QT";
+    let prefix = "LR/INV";
+    if (type === "QT") prefix = "LR/QT";
+    else if (type === "SJ") prefix = "LR/SJ";
+
     const formattedId = `${prefix}/${orderNumPadded}/${day}${month}${year}`;
 
     return {
@@ -878,5 +982,99 @@ function peekNextId(type, dateStr) {
     };
   } catch (error) {
     return { error: error.toString() };
+  }
+}
+
+/**
+ * Increment 'TERJUAL' count for products
+ * @param {Array} items - Array of {sku, jumlah} objects
+ * @returns {object} - Success or error message
+ */
+function incrementProductSold(items) {
+  return updateProductCounter(items, "TERJUAL");
+}
+
+/**
+ * Increment 'RESTOCK' count for products
+ * @param {Array} items - Array of {sku, jumlah} objects
+ * @returns {object} - Success or error message
+ */
+function incrementProductRestock(items) {
+  return updateProductCounter(items, "RESTOCK");
+}
+
+/**
+ * Generic function to update product counters
+ * @param {Array} items - Array of {sku, jumlah} objects
+ * @param {string} columnName - 'TERJUAL', 'RESTOCK', etc.
+ */
+function updateProductCounter(items, columnName) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000);
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return { error: "No items provided for update" };
+    }
+
+    const sheetName = "PERSEDIAAN BARANG";
+    const config = SHEET_CONFIG[sheetName];
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sheet = ss.getSheetByName(sheetName);
+
+    if (!sheet) return { error: "Sheet " + sheetName + " not found" };
+
+    const headerRow = config.headerRow;
+    const lastRow = sheet.getLastRow();
+    const headers = sheet
+      .getRange(headerRow, 1, 1, sheet.getLastColumn())
+      .getValues()[0];
+
+    const skuColIndex = headers.findIndex(function (h) {
+      return h && String(h).toUpperCase().trim() === "SKU";
+    });
+    const targetColIndex = headers.findIndex(function (h) {
+      return h && String(h).toUpperCase().trim() === columnName.toUpperCase();
+    });
+
+    if (skuColIndex === -1) return { error: "Column 'SKU' not found" };
+    if (targetColIndex === -1)
+      return { error: "Column '" + columnName + "' not found" };
+
+    if (lastRow <= headerRow)
+      return { success: true, message: "No products to update" };
+
+    const skuData = sheet
+      .getRange(headerRow + 1, skuColIndex + 1, lastRow - headerRow, 1)
+      .getValues();
+    const skuRowMap = new Map();
+    skuData.forEach(function (row, i) {
+      const sku = String(row[0]).trim().toUpperCase();
+      if (sku) skuRowMap.set(sku, headerRow + 1 + i);
+    });
+
+    let updatedCount = 0;
+    items.forEach(function (item) {
+      const sku = String(item.sku).trim().toUpperCase();
+      const qty = parseFloat(item.jumlah) || 0;
+
+      if (skuRowMap.has(sku) && qty !== 0) {
+        const rowIndex = skuRowMap.get(sku);
+        const cell = sheet.getRange(rowIndex, targetColIndex + 1);
+        const currentValue = parseFloat(cell.getValue()) || 0;
+        cell.setValue(currentValue + qty);
+        updatedCount++;
+      }
+    });
+
+    return {
+      success: true,
+      message: "Updated " + columnName + " for " + updatedCount + " products",
+      updated: updatedCount,
+    };
+  } catch (e) {
+    return { error: "Error updating " + columnName + ": " + e.toString() };
+  } finally {
+    lock.releaseLock();
   }
 }

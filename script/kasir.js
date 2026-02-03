@@ -1181,6 +1181,23 @@ async function saveInvoice(status) {
       }
     }
 
+    // Increment Product Sold Count (Only for new LUNAS or DP->LUNAS)
+    if (
+      status === "LUNAS" &&
+      (!isEditMode || editOriginSheet === PELUNASAN_SHEET_NAME)
+    ) {
+      try {
+        const soldItems = keranjangData.map((item) => ({
+          sku: item.sku,
+          jumlah: item.jumlah,
+        }));
+        await incrementProductSold(soldItems);
+        console.log("Product sold count incremented");
+      } catch (e) {
+        console.error("Failed to increment product sold count:", e);
+      }
+    }
+
     // If this was a checkout from quotation, delete the original quotation
     console.log("Checkout mode check:", {
       isCheckoutMode,
@@ -1228,6 +1245,7 @@ async function saveInvoice(status) {
         kasir: kasir,
         transaksi: status === "LUNAS" ? "Lunas" : status, // Or customize
         payment: payment,
+        roPo: roPo,
       },
       customer: {
         nama: namaPelanggan,
@@ -1321,6 +1339,8 @@ function resetKasirForm() {
   document.getElementById("namaPelanggan").value = "";
   document.getElementById("alamatPelanggan").value = "";
   document.getElementById("paymen").value = "";
+  const roPoEl = document.getElementById("roPo");
+  if (roPoEl) roPoEl.value = "";
 
   // Reset selected customer
   selectedCustomer = { kota: "", channel: "" };
@@ -1381,6 +1401,8 @@ function checkEditMode() {
     document.getElementById("kasir").value = editData.info.kasir;
     document.getElementById("paymen").value =
       editData.info.payment || "Transfer"; // Default?
+    const roPoEl = document.getElementById("roPo");
+    if (roPoEl) roPoEl.value = editData.info.roPo || "";
 
     // Set Customer
     document.getElementById("namaPelanggan").value = editData.customer.nama;

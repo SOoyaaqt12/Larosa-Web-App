@@ -193,44 +193,51 @@ function createDataService(config) {
 const DataServices = {
   vendor: createDataService({
     sheetName: "VENDOR",
-    cacheKey: "vendor_data_cache",
+    cacheKey: "vendor_data_cache_v2",
     colSpan: 9,
     emptyMessage: "Tidak ada data vendor",
   }),
 
   customer: createDataService({
     sheetName: "KOSTUMER",
-    cacheKey: "kustomer_data_cache",
+    cacheKey: "kustomer_data_cache_v2",
     colSpan: 8,
     emptyMessage: "Tidak ada data pelanggan",
   }),
 
   product: createDataService({
     sheetName: "PERSEDIAAN BARANG",
-    cacheKey: "produk_data_cache",
+    cacheKey: "produk_data_cache_v2",
     colSpan: 15,
     emptyMessage: "Tidak ada data produk",
   }),
 
   invoice: createDataService({
     sheetName: "INCOME",
-    cacheKey: "riwayat_data_cache",
+    cacheKey: "riwayat_data_cache_v2",
     colSpan: 5,
     emptyMessage: "Belum ada riwayat transaksi",
   }),
 
   pelunasan: createDataService({
     sheetName: "INCOME",
-    cacheKey: "pelunasan_data_cache",
+    cacheKey: "pelunasan_data_cache_v2",
     colSpan: 6,
     emptyMessage: "Tidak ada data pelunasan",
   }),
 
   quotation: createDataService({
     sheetName: "QUOTATION",
-    cacheKey: "quotation_data_cache",
+    cacheKey: "quotation_data_cache_v2",
     colSpan: 5,
     emptyMessage: "Belum ada data quotation",
+  }),
+
+  restock: createDataService({
+    sheetName: "RESTOCK",
+    cacheKey: "restock_data_cache_v2",
+    colSpan: 5,
+    emptyMessage: "Belum ada riwayat restock",
   }),
 
   /**

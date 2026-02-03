@@ -97,7 +97,7 @@ function displayStats() {
 
   // Available Stock
   const stock = products.reduce(
-    (acc, p) => acc + (parseFloat(p["STOK SISTEM"]) || 0),
+    (acc, p) => acc + (parseFloat(p["STOK AKHIR"]) || 0),
     0,
   );
   document.getElementById("statBarang").textContent = formatNum(stock);
