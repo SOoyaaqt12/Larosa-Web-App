@@ -1245,6 +1245,7 @@ async function saveInvoice(status) {
         kasir: kasir,
         transaksi: status === "LUNAS" ? "Lunas" : status, // Or customize
         payment: payment,
+        roPo: roPo,
       },
       customer: {
         nama: namaPelanggan,
@@ -1338,6 +1339,8 @@ function resetKasirForm() {
   document.getElementById("namaPelanggan").value = "";
   document.getElementById("alamatPelanggan").value = "";
   document.getElementById("paymen").value = "";
+  const roPoEl = document.getElementById("roPo");
+  if (roPoEl) roPoEl.value = "";
 
   // Reset selected customer
   selectedCustomer = { kota: "", channel: "" };
@@ -1398,6 +1401,8 @@ function checkEditMode() {
     document.getElementById("kasir").value = editData.info.kasir;
     document.getElementById("paymen").value =
       editData.info.payment || "Transfer"; // Default?
+    const roPoEl = document.getElementById("roPo");
+    if (roPoEl) roPoEl.value = editData.info.roPo || "";
 
     // Set Customer
     document.getElementById("namaPelanggan").value = editData.customer.nama;

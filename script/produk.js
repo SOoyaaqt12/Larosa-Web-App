@@ -132,11 +132,11 @@ function renderPaginatedTable() {
             <td>${product["STOK AWAL"] || 0}</td>
             <td>${product["RESTOCK"] || 0}</td>
             <td>${product["TERJUAL"] || 0}</td>
-            <td>${product["STOK AKHIR SISTEM"] || 0}</td>
-            <td>${product["STOK LAPANGAN"] || 0}</td>
+            <td>${product["STOK AKHIR"] || 0}</td>
+            <td>${product["STOK LAPANG"] || 0}</td>
             <td>${product["SELISIH"] || 0}</td>
             <td>${product["STOK MINIMUM"] || 0}</td>
-            <td>${Math.max(0, product["KEKURANGAN STOK"] || 0)}</td>
+            <td>${Math.max(0, -(product["KEKURANGAN STOK"] || 0))}</td>
             <td>${formatCurrency(product["HPP"] || 0)}</td>
             <td>${formatCurrency(product["HARGA JUAL"] || 0)}</td>
             <td>
@@ -654,7 +654,7 @@ function showStokLapangModal(rowIndex) {
   const modalHTML = `
         <div id="productModal" class="modal">
             <div class="modal-content">
-                <h2 style="border-bottom-color: #9c27b0;">Tambah Stok Lapangan</h2>
+                <h2 style="border-bottom-color: #9c27b0;">Update Stok Lapangan</h2>
                 <div class="form-group">
                     <label>Produk</label>
                     <input type="text" value="${product["NAMA PRODUK"]} (${
@@ -662,8 +662,8 @@ function showStokLapangModal(rowIndex) {
                     })" disabled style="background: #f0f0f0;">
                 </div>
                 <div class="form-group">
-                    <label>Jumlah Tambahan Stok</label>
-                    <input type="number" id="stokLapangAmount" placeholder="Masukkan jumlah..." required>
+                    <label>Stok Lapangan Aktual</label>
+                    <input type="number" id="stokLapangAmount" value="${product["STOK LAPANG"] || 0}" placeholder="Masukkan stok aktual..." required>
                 </div>
                 <div class="modal-buttons">
                     <button type="button" class="btn-simpan" style="background-color: #9c27b0;" onclick="processStokLapang(${rowIndex})">Update Stok Lapangan</button>
@@ -681,7 +681,7 @@ async function processStokLapang(rowIndex) {
   const amountInput = document.getElementById("stokLapangAmount");
   const amount = parseFloat(amountInput.value);
 
-  if (!amount || amount <= 0) {
+  if (isNaN(amount) || amount < 0) {
     alert("Masukkan jumlah yang valid!");
     return;
   }
@@ -693,12 +693,12 @@ async function processStokLapang(rowIndex) {
   saveBtn.disabled = true;
   saveBtn.textContent = "Menyimpan...";
 
-  const currentStokLapang = parseFloat(product["STOK LAPANGAN"] || 0);
-  const newStokLapang = currentStokLapang + amount;
+  // Set stok lapangan directly (replace, not add)
+  const newStokLapang = amount;
 
   try {
     const result = await updateSheetRow(productService.sheetName, rowIndex, {
-      "STOK LAPANGAN": newStokLapang,
+      "STOK LAPANG": newStokLapang,
     });
     if (result.success) {
       alert("Stok lapangan berhasil diupdate!");

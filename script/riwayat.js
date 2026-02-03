@@ -179,6 +179,7 @@ function viewInvoice(noPesanan) {
       kasir: mainRow["CASHIER"],
       transaksi: mainRow["TRANSACTION"],
       payment: mainRow["PAYMENT"],
+      roPo: mainRow["RO/PO"] || "",
     },
     customer: {
       nama: mainRow["NAME"],
@@ -224,6 +225,7 @@ function editInvoice(noPesanan) {
       kasir: mainRow["CASHIER"],
       transaksi: mainRow["TRANSACTION"],
       payment: mainRow["PAYMENT"],
+      roPo: mainRow["RO/PO"] || "",
     },
     customer: {
       nama: mainRow["NAME"],

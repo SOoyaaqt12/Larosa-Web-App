@@ -76,13 +76,17 @@ function injectLayout() {
                     <a href="quotation.html" class="${
                       page === "quotation.html" ? "active" : ""
                     }">Quotation</a>
+                    <a href="form_restock.html" class="${
+                      page === "form_restock.html" ? "active" : ""
+                    }">Restock</a>
                 </div>
             </div>
             <!-- Riwayat Dropdown -->
             <div class="menu-item ${
               page === "riwayat.html" ||
               page === "pelunasan.html" ||
-              page === "data_quotation.html"
+              page === "data_quotation.html" ||
+              page === "riwayat_restock.html"
                 ? "open"
                 : ""
             }">
@@ -102,6 +106,9 @@ function injectLayout() {
                     <a href="data_quotation.html" class="${
                       page === "data_quotation.html" ? "active" : ""
                     }">Data Quotation</a>
+                    <a href="riwayat_restock.html" class="${
+                      page === "riwayat_restock.html" ? "active" : ""
+                    }">Riwayat Restock</a>
                 </div>
             </div>
             <a href="produk.html"><div class="nav-item ${
@@ -110,9 +117,6 @@ function injectLayout() {
             <a href="vendor.html"><div class="nav-item ${
               page === "vendor.html" ? "active" : ""
             }">Data Vendor</div></a>
-            <a href="form_restock.html"><div class="nav-item ${
-              page === "form_restock.html" ? "active" : ""
-            }">Form Restock</div></a>
         </div>
 
         <div class="nav-bottom">
@@ -193,6 +197,8 @@ function getPageTitle(page) {
       return "Data Vendor";
     case "pelunasan.html":
       return "Pelunasan";
+    case "riwayat_restock.html":
+      return "Riwayat Restock";
     default:
       return "Dashboard";
   }

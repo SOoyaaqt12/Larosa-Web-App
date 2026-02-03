@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Google Apps Script - LarosaWebApp API
  *
  * INSTRUKSI DEPLOYMENT:
@@ -94,11 +94,17 @@ function doPost(e) {
       case "delete-invoice":
         result = deleteInvoice(sheet, rowData.noPesanan);
         break;
+      case "delete-restock":
+        result = deleteRestockWithStockCorrection(rowData.noPesanan);
+        break;
       case "increment-transaction":
         result = incrementCustomerTransaction(data.phoneNumber);
         break;
       case "increment-product-sold":
         result = incrementProductSold(data.items);
+        break;
+      case "increment-product-restock":
+        result = incrementProductRestock(data.items);
         break;
       case "login":
         result = authenticateUser(data.username, data.password);
@@ -220,6 +226,7 @@ function readSheet(sheetName) {
     const headers = sheet
       .getRange(headerRow, startColumn, 1, numDataCols)
       .getValues()[0]
+      .map((h) => (typeof h === "string" ? h.replace(/\n/g, " ").trim() : h))
       .filter((h) => h !== "");
 
     // Get data starting from the row after headers
@@ -523,20 +530,14 @@ function updateRow(sheetName, rowIndex, rowData) {
       .getRange(headerRow, 1, 1, sheet.getLastColumn())
       .getValues()[0];
 
-    // Get current row data first
-    const currentRow = sheet
-      .getRange(rowIndex, 1, 1, headers.length)
-      .getValues()[0];
-
-    // Update only the fields that are provided
-    const updatedRow = headers.map((header, i) => {
-      if (rowData.hasOwnProperty(header)) {
-        return rowData[header];
+    // Only update the specific cells that are provided in rowData
+    // This preserves formulas in other cells
+    Object.keys(rowData).forEach(function (key) {
+      const colIndex = headers.indexOf(key);
+      if (colIndex !== -1) {
+        sheet.getRange(rowIndex, colIndex + 1).setValue(rowData[key]);
       }
-      return currentRow[i];
     });
-
-    sheet.getRange(rowIndex, 1, 1, updatedRow.length).setValues([updatedRow]);
 
     return { success: true, message: "Row updated successfully" };
   } catch (error) {
@@ -654,6 +655,96 @@ function deleteInvoice(sheetName, noPesanan) {
     };
   } catch (error) {
     return { error: error.toString() };
+  }
+}
+
+/**
+ * Delete restock invoice and reverse the stock addition
+ * @param {string} invoiceNo
+ */
+function deleteRestockWithStockCorrection(invoiceNo) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000); // Wait up to 10 seconds
+
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sheet = ss.getSheetByName("RESTOCK");
+    if (!sheet) return { error: "Sheet RESTOCK not found" };
+
+    // 1. Get items to reverse stock
+    const config = SHEET_CONFIG["RESTOCK"] || { headerRow: 1 };
+    const headerRow = config.headerRow;
+    const lastRow = sheet.getLastRow();
+
+    // Find column indices
+    const headers = sheet
+      .getRange(headerRow, 1, 1, sheet.getLastColumn())
+      .getValues()[0]
+      .map((h) => String(h).trim());
+    const invoiceColIdx = headers.indexOf("INVOICE");
+    const skuColIdx = headers.indexOf("SKU");
+    const qtyColIdx = headers.indexOf("JUMLAH");
+
+    if (invoiceColIdx === -1 || skuColIdx === -1 || qtyColIdx === -1) {
+      return { error: "Required columns (INVOICE, SKU, JUMLAH) not found" };
+    }
+
+    const dataRange = sheet.getRange(
+      headerRow + 1,
+      1,
+      lastRow - headerRow,
+      sheet.getLastColumn(),
+    );
+    const data = dataRange.getValues();
+
+    const itemsToReverse = [];
+    const rowsToDelete = [];
+
+    // Identify rows and items
+    for (let i = 0; i < data.length; i++) {
+      if (String(data[i][invoiceColIdx]).trim() === String(invoiceNo).trim()) {
+        rowsToDelete.push(i + headerRow + 1);
+        itemsToReverse.push({
+          sku: data[i][skuColIdx],
+          jumlah: parseFloat(data[i][qtyColIdx]) || 0,
+        });
+      }
+    }
+
+    if (rowsToDelete.length === 0) {
+      return { error: "Invoice not found or already deleted" };
+    }
+
+    // 2. Reverse Stock (reduce stock because we are deleting a Restock)
+    // We reuse incrementProductSold because it SUBTRACTS from stock based on 'TERJUAL' logic,
+    // BUT wait, incrementProductSold adds to 'TERJUAL'. We need to subtract from 'RESTOCK' column in PERSEDIAAN BARANG?
+    // Actually, normally 'RESTOCK' adds to stock. So if we delete it, we should SUBTRACT from 'RESTOCK' count or just DECREMENT stock.
+    // The safest way is to decrement the 'RESTOCK' counter for these items.
+
+    // Let's use a custom logic to update 'RESTOCK' column with negative values
+    const reverseItems = itemsToReverse.map((item) => ({
+      sku: item.sku,
+      jumlah: -item.jumlah, // Negative to subtract
+    }));
+
+    // Update 'RESTOCK' column with negative values (subtraction)
+    const stockUpdateResult = updateProductCounter(reverseItems, "RESTOCK");
+    if (stockUpdateResult.error) {
+      return { error: "Failed to update stock: " + stockUpdateResult.error };
+    }
+
+    // 3. Delete Rows (bottom to top)
+    rowsToDelete.sort((a, b) => b - a);
+    rowsToDelete.forEach((row) => sheet.deleteRow(row));
+
+    return {
+      success: true,
+      message: `Restock ${invoiceNo} deleted and stock reversed for ${itemsToReverse.length} items.`,
+    };
+  } catch (error) {
+    return { error: error.toString() };
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -803,8 +894,11 @@ function getNextIncrementalId(type, dateStr) {
     const day = dateParts[2];
     const orderNumPadded = String(count).padStart(2, "0");
 
-    // Standardize prefixes: INV -> LR/INV, QT -> LR/QT
-    const prefix = type === "INV" ? "LR/INV" : "LR/QT";
+    // Standardize prefixes: INV -> LR/INV, QT -> LR/QT, SJ -> LR/SJ
+    let prefix = "LR/INV";
+    if (type === "QT") prefix = "LR/QT";
+    else if (type === "SJ") prefix = "LR/SJ";
+
     const formattedId = `${prefix}/${orderNumPadded}/${day}${month}${year}`;
 
     return {
@@ -836,7 +930,11 @@ function peekNextId(type, dateStr) {
       const year = dateParts[0].slice(-2);
       const month = dateParts[1];
       const day = dateParts[2];
-      const prefix = type === "INV" ? "LR/INV" : "LR/QT";
+
+      let prefix = "LR/INV";
+      if (type === "QT") prefix = "LR/QT";
+      else if (type === "SJ") prefix = "LR/SJ";
+
       return {
         success: true,
         id: `${prefix}/01/${day}${month}${year}`,
@@ -871,7 +969,10 @@ function peekNextId(type, dateStr) {
     const month = dateParts[1];
     const day = dateParts[2];
     const orderNumPadded = String(nextCount).padStart(2, "0");
-    const prefix = type === "INV" ? "LR/INV" : "LR/QT";
+    let prefix = "LR/INV";
+    if (type === "QT") prefix = "LR/QT";
+    else if (type === "SJ") prefix = "LR/SJ";
+
     const formattedId = `${prefix}/${orderNumPadded}/${day}${month}${year}`;
 
     return {
@@ -883,85 +984,97 @@ function peekNextId(type, dateStr) {
     return { error: error.toString() };
   }
 }
- 
- / * *  
-   *   I n c r e m e n t   ' T E R J U A L '   c o u n t   f o r   p r o d u c t s  
-   *   @ p a r a m   { A r r a y }   i t e m s   -   A r r a y   o f   { s k u ,   j u m l a h }   o b j e c t s  
-   *   @ r e t u r n s   { o b j e c t }   -   S u c c e s s   o r   e r r o r   m e s s a g e  
-   * /  
- f u n c t i o n   i n c r e m e n t P r o d u c t S o l d ( i t e m s )   {  
-     c o n s t   l o c k   =   L o c k S e r v i c e . g e t S c r i p t L o c k ( ) ;  
-     t r y   {  
-         / /   W a i t   f o r   l o c k   t o   p r e v e n t   r a c e   c o n d i t i o n s   ( 3 0 s   t i m e o u t )  
-         l o c k . w a i t L o c k ( 3 0 0 0 0 ) ;  
-  
-         i f   ( ! i t e m s   | |   ! A r r a y . i s A r r a y ( i t e m s )   | |   i t e m s . l e n g t h   = = =   0 )   {  
-             r e t u r n   {   e r r o r :   " N o   i t e m s   p r o v i d e d   f o r   u p d a t e "   } ;  
-         }  
-  
-         c o n s t   s h e e t N a m e   =   " P E R S E D I A A N   B A R A N G " ;  
-         c o n s t   c o n f i g   =   S H E E T _ C O N F I G [ s h e e t N a m e ] ;  
-         c o n s t   s s   =   S p r e a d s h e e t A p p . o p e n B y I d ( S H E E T _ I D ) ;  
-         c o n s t   s h e e t   =   s s . g e t S h e e t B y N a m e ( s h e e t N a m e ) ;  
-  
-         i f   ( ! s h e e t )   {  
-             r e t u r n   {   e r r o r :   ` S h e e t   $ { s h e e t N a m e }   n o t   f o u n d `   } ;  
-         }  
-  
-         c o n s t   h e a d e r R o w   =   c o n f i g . h e a d e r R o w ;  
-         c o n s t   l a s t R o w   =   s h e e t . g e t L a s t R o w ( ) ;  
-          
-         / /   H e a d e r s  
-         c o n s t   h e a d e r s   =   s h e e t . g e t R a n g e ( h e a d e r R o w ,   1 ,   1 ,   s h e e t . g e t L a s t C o l u m n ( ) ) . g e t V a l u e s ( ) [ 0 ] ;  
-          
-         / /   F i n d   c o l u m n s  
-         c o n s t   s k u C o l I n d e x   =   h e a d e r s . f i n d I n d e x ( h   = >   h   & &   S t r i n g ( h ) . t o U p p e r C a s e ( ) . t r i m ( )   = = =   " S K U " ) ;  
-         c o n s t   s o l d C o l I n d e x   =   h e a d e r s . f i n d I n d e x ( h   = >   h   & &   S t r i n g ( h ) . t o U p p e r C a s e ( ) . t r i m ( )   = = =   " T E R J U A L " ) ;  
-  
-         i f   ( s k u C o l I n d e x   = = =   - 1 )   r e t u r n   {   e r r o r :   " C o l u m n   ' S K U '   n o t   f o u n d "   } ;  
-         i f   ( s o l d C o l I n d e x   = = =   - 1 )   r e t u r n   {   e r r o r :   " C o l u m n   ' T E R J U A L '   n o t   f o u n d "   } ;  
-  
-         i f   ( l a s t R o w   < =   h e a d e r R o w )   r e t u r n   {   s u c c e s s :   t r u e ,   m e s s a g e :   " N o   p r o d u c t s   t o   u p d a t e "   } ;  
-  
-         / /   G e t   a l l   S K U   d a t a   t o   m a p   r o w   i n d i c e s  
-         / /   F e t c h   o n l y   S K U   c o l u m n   t o   b e   f a s t e r  
-         c o n s t   s k u D a t a   =   s h e e t . g e t R a n g e ( h e a d e r R o w   +   1 ,   s k u C o l I n d e x   +   1 ,   l a s t R o w   -   h e a d e r R o w ,   1 ) . g e t V a l u e s ( ) ;  
-          
-         / /   C r e a t e   a   m a p   o f   S K U   - >   R o w   I n d e x   ( r e l a t i v e   t o   s h e e t )  
-         c o n s t   s k u R o w M a p   =   n e w   M a p ( ) ;  
-         s k u D a t a . f o r E a c h ( ( r o w ,   i )   = >   {  
-             c o n s t   s k u   =   S t r i n g ( r o w [ 0 ] ) . t r i m ( ) . t o U p p e r C a s e ( ) ;  
-             i f   ( s k u )   {  
-                 s k u R o w M a p . s e t ( s k u ,   h e a d e r R o w   +   1   +   i ) ;  
-             }  
-         } ) ;  
-  
-         l e t   u p d a t e d C o u n t   =   0 ;  
-          
-         / /   U p d a t e   i t e m s  
-         i t e m s . f o r E a c h ( i t e m   = >   {  
-             c o n s t   s k u   =   S t r i n g ( i t e m . s k u ) . t r i m ( ) . t o U p p e r C a s e ( ) ;  
-             c o n s t   q t y   =   p a r s e F l o a t ( i t e m . j u m l a h )   | |   0 ;  
-              
-             i f   ( s k u R o w M a p . h a s ( s k u )   & &   q t y   >   0 )   {  
-                 c o n s t   r o w I n d e x   =   s k u R o w M a p . g e t ( s k u ) ;  
-                 c o n s t   c e l l   =   s h e e t . g e t R a n g e ( r o w I n d e x ,   s o l d C o l I n d e x   +   1 ) ;  
-                 c o n s t   c u r r e n t S o l d   =   p a r s e F l o a t ( c e l l . g e t V a l u e ( ) )   | |   0 ;  
-                 c e l l . s e t V a l u e ( c u r r e n t S o l d   +   q t y ) ;  
-                 u p d a t e d C o u n t + + ;  
-             }  
-         } ) ;  
-  
-         r e t u r n   {    
-             s u c c e s s :   t r u e ,    
-             m e s s a g e :   ` U p d a t e d   s o l d   c o u n t   f o r   $ { u p d a t e d C o u n t }   p r o d u c t s ` ,  
-             u p d a t e d :   u p d a t e d C o u n t  
-         } ;  
-  
-     }   c a t c h   ( e )   {  
-         r e t u r n   {   e r r o r :   " E r r o r   u p d a t i n g   s o l d   c o u n t :   "   +   e . t o S t r i n g ( )   } ;  
-     }   f i n a l l y   {  
-         l o c k . r e l e a s e L o c k ( ) ;  
-     }  
- }  
- 
+
+/**
+ * Increment 'TERJUAL' count for products
+ * @param {Array} items - Array of {sku, jumlah} objects
+ * @returns {object} - Success or error message
+ */
+function incrementProductSold(items) {
+  return updateProductCounter(items, "TERJUAL");
+}
+
+/**
+ * Increment 'RESTOCK' count for products
+ * @param {Array} items - Array of {sku, jumlah} objects
+ * @returns {object} - Success or error message
+ */
+function incrementProductRestock(items) {
+  return updateProductCounter(items, "RESTOCK");
+}
+
+/**
+ * Generic function to update product counters
+ * @param {Array} items - Array of {sku, jumlah} objects
+ * @param {string} columnName - 'TERJUAL', 'RESTOCK', etc.
+ */
+function updateProductCounter(items, columnName) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000);
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return { error: "No items provided for update" };
+    }
+
+    const sheetName = "PERSEDIAAN BARANG";
+    const config = SHEET_CONFIG[sheetName];
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sheet = ss.getSheetByName(sheetName);
+
+    if (!sheet) return { error: "Sheet " + sheetName + " not found" };
+
+    const headerRow = config.headerRow;
+    const lastRow = sheet.getLastRow();
+    const headers = sheet
+      .getRange(headerRow, 1, 1, sheet.getLastColumn())
+      .getValues()[0];
+
+    const skuColIndex = headers.findIndex(function (h) {
+      return h && String(h).toUpperCase().trim() === "SKU";
+    });
+    const targetColIndex = headers.findIndex(function (h) {
+      return h && String(h).toUpperCase().trim() === columnName.toUpperCase();
+    });
+
+    if (skuColIndex === -1) return { error: "Column 'SKU' not found" };
+    if (targetColIndex === -1)
+      return { error: "Column '" + columnName + "' not found" };
+
+    if (lastRow <= headerRow)
+      return { success: true, message: "No products to update" };
+
+    const skuData = sheet
+      .getRange(headerRow + 1, skuColIndex + 1, lastRow - headerRow, 1)
+      .getValues();
+    const skuRowMap = new Map();
+    skuData.forEach(function (row, i) {
+      const sku = String(row[0]).trim().toUpperCase();
+      if (sku) skuRowMap.set(sku, headerRow + 1 + i);
+    });
+
+    let updatedCount = 0;
+    items.forEach(function (item) {
+      const sku = String(item.sku).trim().toUpperCase();
+      const qty = parseFloat(item.jumlah) || 0;
+
+      if (skuRowMap.has(sku) && qty !== 0) {
+        const rowIndex = skuRowMap.get(sku);
+        const cell = sheet.getRange(rowIndex, targetColIndex + 1);
+        const currentValue = parseFloat(cell.getValue()) || 0;
+        cell.setValue(currentValue + qty);
+        updatedCount++;
+      }
+    });
+
+    return {
+      success: true,
+      message: "Updated " + columnName + " for " + updatedCount + " products",
+      updated: updatedCount,
+    };
+  } catch (e) {
+    return { error: "Error updating " + columnName + ": " + e.toString() };
+  } finally {
+    lock.releaseLock();
+  }
+}

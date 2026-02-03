@@ -42,7 +42,7 @@
               <input
                 type="text"
                 id="noInvoice"
-                placeholder="LR/SJ/xx/ddmmyy"
+                placeholder="Syncing..."
                 readonly
               />
             </div>
@@ -270,9 +270,16 @@
             </div>
           </div>
 
-          <button class="btn-preview" onclick="previewInvoice()">
-            Review & Lihat Invoice Pembelian
-          </button>
+          <div style="margin-top: 20px">
+            <button
+              class="btn-preview"
+              id="btnSaveRestock"
+              onclick="saveRestock()"
+              style="background-color: #2e7d32"
+            >
+              Simpan & Cetak Invoice
+            </button>
+          </div>
         </div>
       </div>
     </div>
