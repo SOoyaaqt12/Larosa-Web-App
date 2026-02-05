@@ -50,7 +50,11 @@ function groupDataByOrder(data) {
 
   data.forEach((row) => {
     let noPesanan =
-      row["NO PESANAN"] || row["NO'PESANAN"] || row["INVOICE"] || null;
+      row["NO INVOICE"] ||
+      row["NO PESANAN"] ||
+      row["NO'PESANAN"] ||
+      row["INVOICE"] ||
+      null;
 
     // Fuzzy search if direct key not found
     if (!noPesanan) {
@@ -134,9 +138,7 @@ function renderTable(groupedData) {
       <td>${noPesanan}</td>
       <td>
         <div style="font-weight:bold;">${nama}</div>
-        <div style="font-size: 0.8em; color: gray;">${formatDisplayDate(
-          tanggal,
-        )}</div>
+        <div style="font-size: 0.8em; color: gray;">${formatDateForDisplay(tanggal)}</div>
       </td>
       <td>
          <div style="font-weight:bold;">Rp${formattedTotal}</div>
@@ -208,7 +210,7 @@ function viewQuotation(noPesanan) {
       noPesanan: noPesanan,
       tanggal: mainRow["TANGGAL"],
       kasir: mainRow["KASIR"],
-      transaksi: "QUOTATION",
+      transaksi: "Quotation",
       payment: mainRow["PAYMENT"],
     },
     customer: {
@@ -253,6 +255,7 @@ function editQuotationAction(noPesanan) {
       kasir: mainRow["KASIR"],
       transaksi: mainRow["TRANSAKSI"] || "Online",
       payment: mainRow["PAYMENT"] || "Transfer",
+      roPo: mainRow["RO/PO"] || "",
     },
     customer: {
       nama: mainRow["PELANGGAN"] || mainRow["NAMA PELANGGAN"],

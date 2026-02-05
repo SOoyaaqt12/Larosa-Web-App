@@ -4,7 +4,7 @@
  * Saves back to DATA_PELUNASAN.
  */
 
-const PELUNASAN_SHEET_NAME = "DP/Pelunasan";
+const PELUNASAN_SHEET_NAME = "INCOME";
 const KUSTOMER_SHEET_NAME = "KOSTUMER";
 const PRODUK_SHEET_NAME = "PERSEDIAAN BARANG";
 
@@ -168,6 +168,13 @@ function populateForm(editData) {
   document.getElementById("noPesanan").value = editData.info.noPesanan;
   document.getElementById("kasir").value = editData.info.kasir;
   document.getElementById("paymen").value = editData.info.payment || "";
+  document.getElementById("roPo").value = editData.info.roPo || "";
+  document.getElementById("jenisTransaksi").value = [
+    "Online",
+    "Offline",
+  ].includes(editData.info.transaksi)
+    ? editData.info.transaksi
+    : "Online";
 
   // Customer
   document.getElementById("namaPelanggan").value = editData.customer.nama;
@@ -629,8 +636,9 @@ async function saveEditPelunasan() {
       noPesanan: document.getElementById("noPesanan").value,
       tanggal: document.getElementById("tanggalDibuat").value,
       kasir: document.getElementById("kasir").value,
-      transaction: "DP", // Always DP
+      transaction: document.getElementById("jenisTransaksi").value,
       payment: document.getElementById("paymen").value,
+      roPo: document.getElementById("roPo").value,
     };
     const cust = {
       nama: document.getElementById("namaPelanggan").value,
@@ -651,51 +659,63 @@ async function saveEditPelunasan() {
 
     keranjangData.forEach((item, idx) => {
       let rowData = {};
-      const invoiceKey = "INVOICE";
-      const subtotalKey = "SUB TOTAL";
-      // Standardize usage key
-      const hargaKey = "HARGA";
-      const totalKey = "TOTAL";
-      const ongkirKey = "ONGKIR";
+
+      // Combine SKU and Product Name for "ITEM PRODUCT"
+      const itemProductDisplay = item.sku
+        ? `[${item.sku}] ${item.produk}`
+        : item.produk;
 
       if (idx === 0) {
         rowData = {
-          TANGGAL: formattedDate,
-          [invoiceKey]: info.noPesanan,
-          KASIR: info.kasir,
-          TRANSAKSI: info.transaction,
+          DATE: formattedDate,
+          CASHIER: info.kasir,
+          TRANSACTION: info.transaction,
           PAYMENT: info.payment,
-          "NAMA PELANGGAN": cust.nama,
-          "NO HP": cust.hp,
-          ALAMAT: cust.alamat,
-          CHANNEL: cust.channel || "",
-          KATEGORI: item.kategori || "",
-          SKU: item.sku,
-          PRODUK: item.produk,
-          JUMLAH: item.jumlah,
-          SATUAN: item.satuan,
-          [hargaKey]: item.harga,
-          [totalKey]: item.total,
-          [subtotalKey]: sum.sub,
-          [ongkirKey]: sum.ong,
+          "RO/PO": info.roPo,
+          "DP/FP": "DP",
+          "NO INVOICE": info.noPesanan,
+          NAME: cust.nama,
+          HP: cust.hp,
+          CITY: cust.kota,
+          CATEGORY: item.kategori || "",
+          "ITEM PRODUCT": itemProductDisplay,
+          QTY: item.jumlah,
+          "PRICE/ITEM": item.harga,
+          "ITEM*QTY": item.total,
+          "SUBTOTAL ITEM": sum.sub,
           PACKING: sum.pack,
-          DISKON: sum.disc,
-          "TOTAL TAGIHAN": sum.tot,
-          "DP 1": dp1,
-          "DP 2": dp2,
-          Pelunasan: "",
-          "SISA TAGIHAN": sisa,
+          DELIVERY: sum.ong,
+          DISCOUNT: sum.disc,
+          "GRAND TOTAL": sum.tot,
+          "TOTAL DP/FP": dp1 + dp2,
+          "REMAINING BALANCE": sisa,
+          STATUS: "Belum Dikirim",
         };
       } else {
         rowData = {
-          TANGGAL: "",
-          [invoiceKey]: "",
-          SKU: item.sku,
-          PRODUK: item.produk,
-          JUMLAH: item.jumlah,
-          SATUAN: item.satuan,
-          [hargaKey]: item.harga,
-          [totalKey]: item.total,
+          DATE: "",
+          CASHIER: "",
+          TRANSACTION: "",
+          PAYMENT: "",
+          "RO/PO": "",
+          "DP/FP": "",
+          "NO INVOICE": "",
+          NAME: "",
+          HP: "",
+          CITY: "",
+          CATEGORY: item.kategori || "",
+          "ITEM PRODUCT": itemProductDisplay,
+          QTY: item.jumlah,
+          "PRICE/ITEM": item.harga,
+          "ITEM*QTY": item.total,
+          "SUBTOTAL ITEM": "",
+          PACKING: "",
+          DELIVERY: "",
+          DISCOUNT: "",
+          "GRAND TOTAL": "",
+          "TOTAL DP/FP": "",
+          "REMAINING BALANCE": "",
+          STATUS: "",
         };
       }
       rows.push(rowData);

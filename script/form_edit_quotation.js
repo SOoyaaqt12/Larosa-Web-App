@@ -597,7 +597,7 @@ async function saveEditQuotation() {
       if (idx === 0) {
         rowData = {
           TANGGAL: formattedDate,
-          "NO PESANAN": info.noPesanan,
+          "NO INVOICE": info.noPesanan,
           KASIR: info.kasir,
           TRANSAKSI: info.transaksi,
           PAYMENT: info.payment,
@@ -619,7 +619,7 @@ async function saveEditQuotation() {
       } else {
         rowData = {
           TANGGAL: "",
-          "NO PESANAN": "",
+          "NO INVOICE": "",
           KASIR: "",
           TRANSAKSI: "",
           PAYMENT: "",
@@ -717,9 +717,8 @@ function formatDateForInput(dateVal) {
 
 function formatDateForInvoice(dateString) {
   if (!dateString) return "";
-  const date = new Date(dateString);
-  const day = String(date.getDate()).padStart(2, "0");
-  const months = [
+
+  const monthNames = [
     "Jan",
     "Feb",
     "Mar",
@@ -733,7 +732,22 @@ function formatDateForInvoice(dateString) {
     "Nov",
     "Dec",
   ];
-  const month = months[date.getMonth()];
-  const year = date.getFullYear();
-  return `${day}-${month}-${year}`;
+
+  // If already in DD-Mon-YYYY format, return as-is
+  const ddMonYYYY = String(dateString).match(
+    /^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/,
+  );
+  if (ddMonYYYY) {
+    return `${ddMonYYYY[1].padStart(2, "0")}-${ddMonYYYY[2]}-${ddMonYYYY[3]}`;
+  }
+
+  // If in YYYY-MM-DD format (from HTML date input)
+  const ymd = String(dateString).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (ymd) {
+    const monthIdx = parseInt(ymd[2], 10) - 1;
+    return `${ymd[3]}-${monthNames[monthIdx]}-${ymd[1]}`;
+  }
+
+  // Fallback: return as-is
+  return String(dateString);
 }

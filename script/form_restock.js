@@ -137,24 +137,41 @@ async function updatePurchaseInvoiceNumber() {
   const dateInput = document.getElementById("tanggalPembelian");
   if (!dateInput.value) return;
 
+  const selectedDate = dateInput.value; // YYYY-MM-DD
+  const dateObj = new Date(selectedDate);
+  const d = String(dateObj.getDate()).padStart(2, "0");
+  const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+  const y = String(dateObj.getFullYear()).slice(-2);
+  const dateSuffix = `${d}${m}${y}`;
+
+  // Default fallback
+  let proposedId = `LR/SJ/01/${dateSuffix}`;
+  let maxSeq = 0;
+
   try {
-    const result = await DataServices.peekNextId("SJ", dateInput.value);
-    if (result.success && result.id) {
-      document.getElementById("noInvoice").value = result.id;
-      console.log("Restock Invoice Number updated:", result.id);
-    } else {
-      // Fallback if server fails
-      const date = new Date(dateInput.value);
-      const d = String(date.getDate()).padStart(2, "0");
-      const m = String(date.getMonth() + 1).padStart(2, "0");
-      const y = String(date.getFullYear()).slice(-2);
-      const now = new Date();
-      const counter = String(now.getSeconds()).padStart(2, "0");
-      document.getElementById("noInvoice").value =
-        `LR/SJ/${counter}/${d}${m}${y}`;
+    // 1. Get Server Suggestion
+    const serverResult = await DataServices.peekNextId("SJ", selectedDate);
+    if (serverResult.success && serverResult.id) {
+      proposedId = serverResult.id;
+      // Extract sequence from server ID
+      const parts = proposedId.split("/");
+      if (parts.length >= 3) {
+        maxSeq = parseInt(parts[2]) || 0;
+      }
     }
+
+    // 2. Use Server ID directly
+    if (serverResult.success && serverResult.id) {
+      document.getElementById("noInvoice").value = serverResult.id;
+    } else {
+      // Fallback if server fails (but server should return 01 if not found)
+      document.getElementById("noInvoice").value = proposedId;
+    }
+    // console.log(`Invoice Generation: Server=${serverSeq}, LocalMax=${maxSeq}, Final=${validSeq}`);
   } catch (e) {
     console.error("Error updating invoice number:", e);
+    // Fallback to simple random-ish or just 01 if error
+    document.getElementById("noInvoice").value = proposedId;
   }
 }
 
@@ -256,12 +273,18 @@ function setupVendorAutocomplete() {
 
 function selectVendor(v) {
   // Use exact keys from VENDOR sheet header
+  // Support both "ALAMAT" and "ALAMAT VENDOR" variations
   document.getElementById("noHpVendor").value = v["NO HP"] || "";
-  document.getElementById("namaVendor").value = v["NAMA VENDOR"] || "";
+  document.getElementById("namaVendor").value =
+    getValueFromKeys(v, ["NAMA\nVENDOR", "NAMA VENDOR"], v["VENDOR"] || "") ||
+    "";
   document.getElementById("kategoriVendor").value = v["KATEGORI"] || "";
-  document.getElementById("alamatVendor").value = v["ALAMAT"] || "";
-  document.getElementById("bankVendor").value = v["BANK"] || "";
-  document.getElementById("rekeningVendor").value = v["REKENING"] || "";
+  document.getElementById("alamatVendor").value =
+    v["ALAMAT"] || v["ALAMAT VENDOR"] || "";
+  document.getElementById("bankVendor").value =
+    v["BANK"] || v["BANK VENDOR"] || "";
+  document.getElementById("rekeningVendor").value =
+    v["REKENING"] || v["REKENING VENDOR"] || "";
 
   document.getElementById("vendorSuggestionList").classList.remove("show");
 }
@@ -553,7 +576,25 @@ async function saveRestock() {
   };
 
   try {
-    // 1. If edit mode, delete old records FIRST
+    // 1. Get New Invoice ID from Server (Syncs with COUNTERS sheet)
+    // Always fetch fresh ID for new entries to ensure sequence
+    if (!isEditMode) {
+      btnSave.textContent = "Mengambil ID...";
+      const dateVal = document.getElementById("tanggalPembelian").value;
+      const idResult = await DataServices.getNextId("SJ", dateVal);
+
+      if (idResult.success && idResult.id) {
+        data.invoiceNo = idResult.id;
+        document.getElementById("noInvoice").value = idResult.id;
+      } else {
+        throw new Error(
+          "Gagal mendapatkan nomor invoice baru: " +
+            (idResult.error || "Unknown error"),
+        );
+      }
+    }
+
+    // 2. If edit mode, delete old records FIRST
     if (isEditMode && editOriginalInvoiceNo) {
       const deleteResult = await deleteInvoice(
         "RESTOCK",
@@ -575,7 +616,7 @@ async function saveRestock() {
     for (const item of data.items) {
       const row = {
         TANGGAL: data.tanggal,
-        INVOICE: data.invoiceNo,
+        "NO INVOICE": data.invoiceNo,
         VENDOR: data.vendor.nama,
         KATEGORI: document.getElementById("kategoriVendor").value || "",
         SKU: item.sku,
@@ -651,9 +692,7 @@ async function saveRestock() {
     }
 
     // Clear RESTOCK cache to ensure history page is fresh
-    if (localStorage.getItem("restock_data_cache")) {
-      localStorage.removeItem("restock_data_cache");
-    }
+    await DataServices.restock.clearCache();
 
     // Store for invoice preview
     const previewData = { ...data };

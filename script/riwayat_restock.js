@@ -57,7 +57,7 @@ function groupDataByInvoice(data) {
   const orderedGroups = [];
 
   data.forEach((row) => {
-    const invoiceNo = row["INVOICE"];
+    const invoiceNo = row["NO INVOICE"];
     if (!invoiceNo) return;
 
     if (!groups[invoiceNo]) {
@@ -89,17 +89,28 @@ function renderTable(groupedData) {
 
     const tanggal = mainRow["TANGGAL"];
     const vendor = mainRow["VENDOR"] || "";
-    const totalTagihan = parseFloat(mainRow["TOTAL TAGIHAN"]) || 0;
-    const itemsCount = rows.length;
+
+    // Calculate totals dynamically from all rows in the group
+    // This handles cases where multiple rows share an invoice number but have separate totals
+    const totalTagihan = rows.reduce(
+      (sum, row) => sum + (parseFloat(row["TOTAL"]) || 0),
+      0,
+    );
+
+    // Sum of Quantities for "Items" count
+    const itemsCount = rows.reduce(
+      (sum, row) => sum + (parseFloat(row["JUMLAH"]) || 0),
+      0,
+    );
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${index + 1}.</td>
+      <td>${invoiceNo}</td>
       <td>
         <div style="font-weight:bold;">${vendor}</div>
-        <div style="font-size: 0.8em; color: gray;">${formatDisplayDate(tanggal)}</div>
+        <div style="font-size: 0.8em; color: gray;">${formatDateForDisplay(tanggal)}</div>
       </td>
-      <td>${invoiceNo}</td>
       <td>
         <div style="font-weight:bold;">${formatCurrency(totalTagihan)}</div>
         <div style="font-size: 0.8em; color: gray;">${itemsCount} Items</div>
@@ -116,22 +127,66 @@ function renderTable(groupedData) {
   });
 }
 
-function viewRestockInvoice(invoiceNo) {
+async function viewRestockInvoice(invoiceNo) {
   const rows = groupedRestocks.map[invoiceNo];
   if (!rows) return;
 
   const mainRow = rows[0];
+
+  // Vendor Lookup Fallback
+  // Some legacy data or data saved without full details might miss this info
+  let vendorDetails = {
+    phone: mainRow["HP VENDOR"],
+    alamat: mainRow["ALAMAT VENDOR"],
+    bank: mainRow["BANK VENDOR"],
+    rekening: mainRow["REKENING VENDOR"],
+  };
+
+  // If details are missing, try to look up in VENDOR master data
+  if (
+    !vendorDetails.phone ||
+    !vendorDetails.alamat ||
+    !vendorDetails.bank ||
+    !vendorDetails.rekening
+  ) {
+    if (window.showGlobalLoader) window.showGlobalLoader();
+    try {
+      // Ensure vendor data is loaded
+      const vendors = await DataServices.vendor.loadData({});
+      const vendorName = (mainRow["VENDOR"] || "").toLowerCase().trim();
+      const matchedVendor = vendors.find(
+        (v) => (v["NAMA VENDOR"] || "").toLowerCase().trim() === vendorName,
+      );
+
+      if (matchedVendor) {
+        if (!vendorDetails.phone) vendorDetails.phone = matchedVendor["NO HP"];
+        if (!vendorDetails.alamat)
+          vendorDetails.alamat =
+            matchedVendor["ALAMAT"] || matchedVendor["ALAMAT VENDOR"];
+        if (!vendorDetails.bank)
+          vendorDetails.bank =
+            matchedVendor["BANK"] || matchedVendor["BANK VENDOR"];
+        if (!vendorDetails.rekening)
+          vendorDetails.rekening =
+            matchedVendor["REKENING"] || matchedVendor["REKENING VENDOR"];
+      }
+    } catch (e) {
+      console.error("Failed to lookup vendor details", e);
+    } finally {
+      if (window.hideGlobalLoader) window.hideGlobalLoader();
+    }
+  }
 
   const restockData = {
     invoiceNo: invoiceNo,
     tanggal: mainRow["TANGGAL"],
     vendor: {
       nama: mainRow["VENDOR"],
-      phone: mainRow["HP VENDOR"] || "-",
+      phone: vendorDetails.phone || "-",
       kategori: mainRow["KATEGORI"] || "-",
-      alamat: mainRow["ALAMAT VENDOR"] || "-",
-      bank: mainRow["BANK VENDOR"] || "-",
-      rekening: mainRow["REKENING VENDOR"] || "-",
+      alamat: vendorDetails.alamat || "-",
+      bank: vendorDetails.bank || "-",
+      rekening: vendorDetails.rekening || "-",
     },
     items: rows.map((row) => ({
       sku: row["SKU"],
@@ -149,6 +204,7 @@ function viewRestockInvoice(invoiceNo) {
       total: parseFloat(mainRow["TOTAL TAGIHAN"]) || 0,
       dp: parseFloat(mainRow["DP"]) || 0,
       sisa: parseFloat(mainRow["SISA TAGIHAN"]) || 0,
+      totalItems: parseInt(mainRow["TOTAL ITEM"]) || rows.length,
     },
   };
 

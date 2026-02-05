@@ -580,7 +580,12 @@ function deleteInvoice(sheetName, noPesanan) {
       .getValues()[0];
 
     // Try multiple possible column names for invoice/order number
-    const possibleColumnNames = ["INVOICE", "NO'PESANAN", "NO PESANAN"];
+    const possibleColumnNames = [
+      "NO INVOICE",
+      "INVOICE",
+      "NO'PESANAN",
+      "NO PESANAN",
+    ];
     let noPesananCol = -1;
     let foundColumnName = "";
 
@@ -681,7 +686,7 @@ function deleteRestockWithStockCorrection(invoiceNo) {
       .getRange(headerRow, 1, 1, sheet.getLastColumn())
       .getValues()[0]
       .map((h) => String(h).trim());
-    const invoiceColIdx = headers.indexOf("INVOICE");
+    const invoiceColIdx = headers.indexOf("NO INVOICE");
     const skuColIdx = headers.indexOf("SKU");
     const qtyColIdx = headers.indexOf("JUMLAH");
 
@@ -884,6 +889,7 @@ function getNextIncrementalId(type, dateStr) {
       count = parseInt(data[rowIndex - 1][2]) + 1;
       sheet.getRange(rowIndex, 3).setValue(count);
     } else {
+      // Default to 1 if not found
       sheet.appendRow([dateStr, type, count]);
     }
 
@@ -924,22 +930,21 @@ function peekNextId(type, dateStr) {
     const ss = SpreadsheetApp.openById(SHEET_ID);
     let sheet = ss.getSheetByName("COUNTERS");
 
+    const dateParts = dateStr.split("-");
+    const year = dateParts[0].slice(-2);
+    const month = dateParts[1];
+    const day = dateParts[2];
+    let prefix = "LR/INV";
+    if (type === "QT") prefix = "LR/QT";
+    else if (type === "SJ") prefix = "LR/SJ";
+
+    // Helper to format
+    const format = (c) =>
+      `${prefix}/${String(c).padStart(2, "0")}/${day}${month}${year}`;
+
     // Default to 1 if sheet doesn't exist
     if (!sheet) {
-      const dateParts = dateStr.split("-");
-      const year = dateParts[0].slice(-2);
-      const month = dateParts[1];
-      const day = dateParts[2];
-
-      let prefix = "LR/INV";
-      if (type === "QT") prefix = "LR/QT";
-      else if (type === "SJ") prefix = "LR/SJ";
-
-      return {
-        success: true,
-        id: `${prefix}/01/${day}${month}${year}`,
-        count: 1,
-      };
+      return { success: true, id: format(1), count: 1 };
     }
 
     const data = sheet.getDataRange().getValues();
@@ -963,26 +968,22 @@ function peekNextId(type, dateStr) {
 
     const nextCount = currentCount + 1;
 
-    // Format ID
-    const dateParts = dateStr.split("-");
-    const year = dateParts[0].slice(-2);
-    const month = dateParts[1];
-    const day = dateParts[2];
-    const orderNumPadded = String(nextCount).padStart(2, "0");
-    let prefix = "LR/INV";
-    if (type === "QT") prefix = "LR/QT";
-    else if (type === "SJ") prefix = "LR/SJ";
-
-    const formattedId = `${prefix}/${orderNumPadded}/${day}${month}${year}`;
-
     return {
       success: true,
-      id: formattedId,
+      id: format(nextCount),
       count: nextCount,
     };
   } catch (error) {
     return { error: error.toString() };
   }
+}
+
+/**
+ * Convert Date object to YYYY-MM-DD or DDMMYY suffix
+ */
+function getDateSuffix(dateStr) {
+  const parts = dateStr.split("-");
+  return `${parts[2]}${parts[1]}${parts[0].slice(-2)}`;
 }
 
 /**

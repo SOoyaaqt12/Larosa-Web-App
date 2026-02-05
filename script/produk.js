@@ -134,7 +134,7 @@ function renderPaginatedTable() {
             <td>${product["TERJUAL"] || 0}</td>
             <td>${product["STOK AKHIR"] || 0}</td>
             <td>${product["STOK LAPANG"] || 0}</td>
-            <td>${product["SELISIH"] || 0}</td>
+            <td>${Math.max(0, -(product["SELISIH"] || 0))}</td>
             <td>${product["STOK MINIMUM"] || 0}</td>
             <td>${Math.max(0, -(product["KEKURANGAN STOK"] || 0))}</td>
             <td>${formatCurrency(product["HPP"] || 0)}</td>

@@ -230,20 +230,39 @@ async function updateQuotationNumber() {
 
   const selectedDate =
     tanggalInput.value || new Date().toISOString().split("T")[0];
+  const dateObj = new Date(selectedDate);
+  const d = String(dateObj.getDate()).padStart(2, "0");
+  const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+  const y = String(dateObj.getFullYear()).slice(-2);
+  const dateSuffix = `${d}${m}${y}`;
+
+  // Default fallback
+  let proposedId = `LR/QT/01/${dateSuffix}`;
+  let maxSeq = 0;
 
   try {
-    // Use peekNextId to preview, NOT increment the counter
+    // 1. Get Server Suggestion
     const result = await DataServices.peekNextId("QT", selectedDate);
-    if (result.success) {
+    if (result.success && result.id) {
+      proposedId = result.id;
+      // Extract sequence from server ID
+      const parts = proposedId.split("/");
+      if (parts.length >= 3) {
+        maxSeq = parseInt(parts[2]) || 0;
+      }
+    }
+
+    // 2. Use Server ID directly
+    if (result.success && result.id) {
       noPesananInput.value = result.id;
     } else {
-      console.error("Failed to fetch quotation number:", result.error);
-      noPesananInput.value = originalValue;
-      alert("Gagal mendapatkan nomor quotation otomatis. Silakan coba lagi.");
+      noPesananInput.value = proposedId || originalValue;
     }
+
+    // Logic removed to strictly follow Server ID
   } catch (e) {
     console.error("Error updating quotation number:", e);
-    noPesananInput.value = originalValue;
+    noPesananInput.value = proposedId || originalValue;
   } finally {
     noPesananInput.disabled = false;
     isFetchingQuotation = false;
@@ -708,6 +727,7 @@ async function saveQuotation() {
   const noTelepon = document.getElementById("noTelepon").value;
   const alamat = document.getElementById("alamatPelanggan").value;
   const payment = document.getElementById("paymen").value;
+  const roPo = document.getElementById("roPo")?.value || "";
 
   // Get jenis transaksi (Online/Offline)
   const jenisTransaksi =
@@ -730,6 +750,7 @@ async function saveQuotation() {
     }
 
     // Get the actual (incremented) quotation number NOW, right before saving
+    // Server-side (Atomic Counter at Google Sheet) is used as requested
     let finalNoPesanan = noPesanan;
     if (!isEditMode) {
       const idResult = await DataServices.getNextId("QT", tanggal);
@@ -747,10 +768,11 @@ async function saveQuotation() {
       if (index === 0) {
         rowData = {
           TANGGAL: formattedDate,
-          "NO PESANAN": finalNoPesanan,
+          "NO INVOICE": finalNoPesanan,
           KASIR: kasir,
           TRANSAKSI: jenisTransaksi, // Uses Online/Offline from select
           PAYMENT: payment,
+          "RO/PO": roPo,
           PELANGGAN: namaPelanggan,
           "NO HP": noTelepon,
           ALAMAT: alamat,
@@ -769,7 +791,7 @@ async function saveQuotation() {
       } else {
         rowData = {
           TANGGAL: "",
-          "NO PESANAN": "",
+          "NO INVOICE": "",
           KASIR: "",
           TRANSAKSI: "",
           PAYMENT: "",
@@ -816,9 +838,8 @@ async function saveQuotation() {
 
 function formatDateForInvoice(dateString) {
   if (!dateString) return "";
-  const date = new Date(dateString);
-  const day = String(date.getDate()).padStart(2, "0");
-  const months = [
+
+  const monthNames = [
     "Jan",
     "Feb",
     "Mar",
@@ -832,9 +853,24 @@ function formatDateForInvoice(dateString) {
     "Nov",
     "Dec",
   ];
-  const month = months[date.getMonth()];
-  const year = date.getFullYear();
-  return `${day}-${month}-${year}`;
+
+  // If already in DD-Mon-YYYY format, return as-is
+  const ddMonYYYY = String(dateString).match(
+    /^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/,
+  );
+  if (ddMonYYYY) {
+    return `${ddMonYYYY[1].padStart(2, "0")}-${ddMonYYYY[2]}-${ddMonYYYY[3]}`;
+  }
+
+  // If in YYYY-MM-DD format (from HTML date input)
+  const ymd = String(dateString).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (ymd) {
+    const monthIdx = parseInt(ymd[2], 10) - 1;
+    return `${ymd[3]}-${monthNames[monthIdx]}-${ymd[1]}`;
+  }
+
+  // Fallback: return as-is
+  return String(dateString);
 }
 
 function resetQuotationForm() {

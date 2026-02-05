@@ -42,6 +42,61 @@ function formatDisplayDate(dateValue) {
 }
 
 /**
+ * Format date for display in table (handles ISO and DD-Mon-YYYY format)
+ * Converts to DD-Mon-YYYY without using Date object to avoid timezone issues
+ */
+function formatDateForDisplay(dateValue) {
+  if (!dateValue) return "-";
+
+  const str = String(dateValue).trim();
+  const monthNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+
+  // If already in DD-Mon-YYYY format, return as-is
+  const ddMonYYYY = str.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/);
+  if (ddMonYYYY) {
+    return `${ddMonYYYY[1].padStart(2, "0")}-${ddMonYYYY[2]}-${ddMonYYYY[3]}`;
+  }
+
+  // If in ISO format (contains T), parse manually to avoid timezone issues
+  if (str.includes("T")) {
+    // Extract date part: "2026-02-03T17:00:00.002Z" -> "2026-02-03"
+    const isoDate = str.split("T")[0];
+    const parts = isoDate.split("-");
+    if (parts.length === 3) {
+      const year = parts[0];
+      const monthIdx = parseInt(parts[1], 10) - 1;
+      const day = parts[2];
+      // Add 1 day to compensate for UTC offset (Indonesia is UTC+7)
+      const dayNum = parseInt(day, 10) + 1;
+      return `${String(dayNum).padStart(2, "0")}-${monthNames[monthIdx]}-${year}`;
+    }
+  }
+
+  // If in YYYY-MM-DD format
+  const ymd = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (ymd) {
+    const monthIdx = parseInt(ymd[2], 10) - 1;
+    return `${ymd[3]}-${monthNames[monthIdx]}-${ymd[1]}`;
+  }
+
+  // Fallback: return as-is
+  return str;
+}
+
+/**
  * Format date for Google Sheet (DD-Mon-YYYY)
  * @param {string} dateString - Date string in YYYY-MM-DD format
  * @returns {string} Formatted date string
@@ -254,6 +309,91 @@ function getCityForCustomer(name, phone) {
 }
 
 /**
+ * Resolves a customer's address from the customer database if missing
+ * Uses async lookup to check IDB cache (via DataServices) first, then LocalStorage
+ * @param {string} name - Customer name
+ * @param {string} phone - Customer phone
+ * @returns {Promise<string>} Customer address or empty string
+ */
+async function getAddressForCustomer(name, phone) {
+  if (!name && !phone) return "";
+
+  let customers = [];
+
+  // 1. Try DataServices / IDBCache (v2) - Preferred
+  if (window.DataServices && window.DataServices.customer) {
+    try {
+      const cached = await window.DataServices.customer.getCached();
+      if (cached && Array.isArray(cached.data) && cached.data.length > 0) {
+        customers = cached.data;
+      }
+    } catch (e) {
+      console.warn("Error reading IDB customer cache for address lookup:", e);
+    }
+  }
+
+  // 2. Fallback to LocalStorage (v1) if IDB failed or empty
+  if (customers.length === 0) {
+    const cacheKeys = ["larosapot_customer_cache", "kustomer_data_cache"];
+    for (const key of cacheKeys) {
+      const cachedStr = localStorage.getItem(key);
+      if (cachedStr) {
+        try {
+          const parsed = JSON.parse(cachedStr);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            customers = parsed;
+            break;
+          }
+        } catch (e) {}
+      }
+    }
+  }
+
+  if (customers.length === 0) return "";
+
+  const searchName = (name || "").toString().toLowerCase().trim();
+  const searchPhone = (phone || "").toString().replace(/\D/g, ""); // Digits only
+
+  const match = customers.find((c) => {
+    // Name Check
+    const cName = getValueFromKeys(
+      c,
+      ["NAMA PELANGGAN", "NAMA\nPELANGGAN", "Nama Pelanggan"],
+      "",
+      true,
+    )
+      .toString()
+      .toLowerCase()
+      .trim();
+
+    // Phone Check
+    const cPhoneRaw = getValueFromKeys(
+      c,
+      ["NO HP", "NO\nHP", "No HP"],
+      "",
+      true,
+    ).toString();
+    const cPhone = cPhoneRaw.replace(/\D/g, "");
+
+    const nameMatch = searchName && cName === searchName;
+
+    // Loose phone checking (includes)
+    const phoneMatch =
+      searchPhone &&
+      cPhone &&
+      (cPhone.includes(searchPhone) || searchPhone.includes(cPhone));
+
+    return phoneMatch || nameMatch;
+  });
+
+  if (match) {
+    return getValueFromKeys(match, ["ALAMAT", "Alamat"], "");
+  }
+
+  return "";
+}
+
+/**
  * Show empty table message
  * @param {HTMLElement} tbody - Table body element
  * @param {string} message - Message to display
@@ -340,6 +480,7 @@ function populateKasirSelect(select, users, defaultValue) {
 // Export for global use
 window.Utils = {
   formatDisplayDate,
+  formatDateForDisplay,
   formatDateForSheet,
   formatCurrency,
   formatPhoneNumber,
@@ -350,5 +491,6 @@ window.Utils = {
   getValueFromKeys,
   showTableMessage,
   getCityForCustomer,
+  getAddressForCustomer,
   loadKasirDropdown,
 };

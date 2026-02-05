@@ -3,8 +3,8 @@
  * Handles paying off an existing DP invoice
  */
 
-const INVOICE_SHEET_NAME = "INVOICE";
-const PELUNASAN_SHEET_NAME = "DP/Pelunasan";
+const INVOICE_SHEET_NAME = "INCOME";
+const PELUNASAN_SHEET_NAME = "INCOME";
 
 let currentInvoiceData = null;
 
@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function initPelunasanPage() {
-  const editData = sessionStorage.getItem("editInvoiceData");
+  const editData = sessionStorage.getItem("pelunasanInvoiceData");
   if (!editData) {
     alert("Data invoice tidak ditemukan!");
     window.location.href = "pelunasan.html";
@@ -38,6 +38,9 @@ function renderInvoiceData(data) {
   // Customer
   document.getElementById("namaPelanggan").value = data.customer.nama;
   document.getElementById("noTelepon").value = data.customer.noHp;
+  if (document.getElementById("roPo")) {
+    document.getElementById("roPo").value = data.info.roPo || "";
+  }
 
   // Items
   const tbody = document.getElementById("keranjangBody");
@@ -118,6 +121,13 @@ async function prosesPelunasan() {
     return;
   }
 
+  // RO/PO Validation
+  const roPo = document.getElementById("roPo")?.value || "";
+  if (!roPo) {
+    alert("RO/PO wajib diisi!");
+    return;
+  }
+
   // Determine status automatically
   let isFullPayment = false;
 
@@ -179,6 +189,7 @@ async function prosesPelunasan() {
       dp2Obj,
       document.getElementById("paymen").value ||
         currentInvoiceData.info.payment,
+      roPo,
     );
 
     // 4. Save to Target Sheet
@@ -220,72 +231,77 @@ function buildInvoiceRows(
   dp1Val,
   dp2Val,
   paymentMethod,
+  roPoVal,
 ) {
   const rows = [];
-  const isInvoiceSheet = targetSheet === INVOICE_SHEET_NAME;
+
+  // Current database schema uses these column names:
+  // DATE, CASHIER, TRANSACTION, PAYMENT, RO/PO, DP/FP, NO INVOICE, NAME, HP, CITY,
+  // CATEGORY, ITEM PRODUCT, QTY, PRICE/ITEM, ITEM*QTY, SUBTOTAL ITEM, PACKING,
+  // DELIVERY, DISCOUNT, GRAND TOTAL, TOTAL DP/FP, REMAINING BALANCE, STATUS
 
   data.items.forEach((item, index) => {
     let rowData = {};
 
-    // Standardize column keys to "HARGA" regardless of sheet, assuming headers allow it.
-    // If 'HARGA' works for Main Row, we should use it for Sub Row too.
-    const hargaKey = "HARGA";
-    const totalKey = "TOTAL";
+    // Combine SKU and Product Name for "ITEM PRODUCT"
+    const itemProductDisplay = item.sku
+      ? `[${item.sku}] ${item.produk}`
+      : item.produk;
 
     if (index === 0) {
-      // Kedua sheet menggunakan nama kolom yang sama untuk sebagian besar field
-      const invoiceKey = "INVOICE";
-      const subtotalKey = "SUB TOTAL";
-      const ongkirKey = "ONGKIR";
-      const kotaKey = isInvoiceSheet ? "Kota" : "";
-
+      // Main row with all transaction details
       rowData = {
-        TANGGAL: formatDateForInvoice(new Date()),
-        [invoiceKey]: data.info.noPesanan,
-        KASIR: data.info.kasir,
-        TRANSAKSI: status,
+        DATE: formatDateForInvoice(new Date()),
+        CASHIER: data.info.kasir,
+        TRANSACTION: data.info.transaksi || "Online",
         PAYMENT: paymentMethod || data.info.payment,
-        "NAMA PELANGGAN": data.customer.nama,
-        "NO HP": data.customer.noHp,
-        ALAMAT: data.customer.alamat,
-        CHANNEL: data.customer.channel,
-        KATEGORI: item.kategori || "",
-        SKU: item.sku,
-        PRODUK: item.produk,
-        JUMLAH: item.jumlah,
-        SATUAN: item.satuan,
-        [hargaKey]: item.harga,
-        [totalKey]: item.total,
-        [subtotalKey]: data.summary.subtotal,
-        [ongkirKey]: data.summary.ongkir,
-        PACKING: data.summary.packing,
-        DISKON: data.summary.diskon,
-        "TOTAL TAGIHAN": data.summary.totalTagihan,
-        "DP 1": dp1Val,
-        "DP 2": dp2Val,
-        Pelunasan: isLunas ? dp2Val : "",
-        "SISA TAGIHAN": sisa,
+        "RO/PO": roPoVal || data.info.roPo || "",
+        "DP/FP": isLunas ? "FP" : "DP",
+        "NO INVOICE": data.info.noPesanan,
+        NAME: data.customer.nama,
+        HP: data.customer.noHp,
+        CITY: data.customer.city || "",
+        CATEGORY: item.kategori || "",
+        "ITEM PRODUCT": itemProductDisplay,
+        QTY: item.jumlah,
+        "PRICE/ITEM": item.harga,
+        "ITEM*QTY": item.total,
+        "SUBTOTAL ITEM": data.summary.subtotal,
+        PACKING: data.summary.packing || 0,
+        DELIVERY: data.summary.ongkir,
+        DISCOUNT: data.summary.diskon,
+        "GRAND TOTAL": data.summary.totalTagihan,
+        "TOTAL DP/FP": totalPaid,
+        "REMAINING BALANCE": isLunas ? 0 : sisa,
+        STATUS: "Belum Dikirim",
       };
-
-      // Ensure city is included for Riwayat sheet
-      if (isInvoiceSheet) {
-        rowData["Kota"] = data.customer.city || "";
-      }
     } else {
-      // Subsequent rows
-      const invoiceKey = "INVOICE";
+      // Subsequent rows only contain item details
       rowData = {
-        TANGGAL: "",
-        [invoiceKey]: "",
-        SKU: item.sku,
-        PRODUK: item.produk,
-        JUMLAH: item.jumlah,
-        SATUAN: item.satuan,
+        DATE: "",
+        CASHIER: "",
+        TRANSACTION: "",
+        PAYMENT: "",
+        "RO/PO": "",
+        "DP/FP": "",
+        "NO INVOICE": "",
+        NAME: "",
+        HP: "",
+        CITY: "",
+        CATEGORY: item.kategori || "",
+        "ITEM PRODUCT": itemProductDisplay,
+        QTY: item.jumlah,
+        "PRICE/ITEM": item.harga,
+        "ITEM*QTY": item.total,
+        "SUBTOTAL ITEM": "",
+        PACKING: "",
+        DELIVERY: "",
+        DISCOUNT: "",
+        "GRAND TOTAL": "",
+        "TOTAL DP/FP": "",
+        "REMAINING BALANCE": "",
+        STATUS: "",
       };
-
-      // Use consistent keys
-      rowData[hargaKey] = item.harga;
-      rowData[totalKey] = item.total;
     }
     rows.push(rowData);
   });
@@ -295,9 +311,7 @@ function buildInvoiceRows(
 function formatDateForInvoice(dateString) {
   if (!dateString) return "";
 
-  const date = new Date(dateString);
-  const day = String(date.getDate()).padStart(2, "0");
-  const months = [
+  const monthNames = [
     "Jan",
     "Feb",
     "Mar",
@@ -311,8 +325,31 @@ function formatDateForInvoice(dateString) {
     "Nov",
     "Dec",
   ];
-  const month = months[date.getMonth()];
-  const year = date.getFullYear();
 
-  return `${day}-${month}-${year}`;
+  // If already in DD-Mon-YYYY format, return as-is
+  const ddMonYYYY = String(dateString).match(
+    /^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/,
+  );
+  if (ddMonYYYY) {
+    return `${ddMonYYYY[1].padStart(2, "0")}-${ddMonYYYY[2]}-${ddMonYYYY[3]}`;
+  }
+
+  // If in YYYY-MM-DD format (from HTML date input)
+  const ymd = String(dateString).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (ymd) {
+    const monthIdx = parseInt(ymd[2], 10) - 1;
+    return `${ymd[3]}-${monthNames[monthIdx]}-${ymd[1]}`;
+  }
+
+  // If it's a Date object, format it locally
+  if (dateString instanceof Date) {
+    const d = dateString;
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = monthNames[d.getMonth()];
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  }
+
+  // Fallback: return as-is
+  return String(dateString);
 }

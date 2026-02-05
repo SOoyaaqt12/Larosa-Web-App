@@ -3,8 +3,8 @@
  * Handles customer autocomplete, cart management, and calculations
  */
 
-const INVOICE_SHEET_NAME = "INVOICE";
-const PELUNASAN_SHEET_NAME = "DP/Pelunasan";
+const INVOICE_SHEET_NAME = "INCOME";
+const PELUNASAN_SHEET_NAME = "INCOME";
 const KUSTOMER_SHEET_NAME = "KOSTUMER";
 const QUOTATION_SHEET_NAME = "QUOTATION";
 
@@ -24,11 +24,6 @@ const PRODUCT_CACHE_KEY = "larosapot_product_cache";
 // Invoice counter storage key (stores {date: 'YYYY-MM-DD', count: number})
 const INVOICE_COUNTER_KEY = "larosapot_invoice_counter";
 
-// Edit Mode State
-let isEditMode = false;
-let editOriginalOrderNo = "";
-let editOriginSheet = "";
-
 // Checkout Mode State (Quotation -> Invoice)
 let isCheckoutMode = false;
 let checkoutQuotationNo = "";
@@ -42,13 +37,11 @@ document.addEventListener("DOMContentLoaded", () => {
  * Initialize kasir page
  */
 async function initKasirPage() {
-  // Check for edit mode or checkout mode FIRST
-  const editData = sessionStorage.getItem("editInvoiceData");
+  // Check for checkout mode FIRST
   const checkoutData = sessionStorage.getItem("checkoutQuotationData");
 
-  const hasEditData = !!editData;
   const hasCheckoutData = !!checkoutData;
-  if ((hasEditData || hasCheckoutData) && window.showGlobalLoader) {
+  if (hasCheckoutData && window.showGlobalLoader) {
     window.showGlobalLoader();
   }
 
@@ -78,14 +71,11 @@ async function initKasirPage() {
   setupCalculatorInputs();
   setupEnterKeyListeners();
 
-  // Apply edit data if available
-  checkEditMode();
-
   // Apply checkout data if available (Quotation -> Invoice)
   checkCheckoutMode();
 
   // Hide loader when done (only if it was shown)
-  if ((hasEditData || hasCheckoutData) && window.hideGlobalLoader) {
+  if (hasCheckoutData && window.hideGlobalLoader) {
     window.hideGlobalLoader();
   }
 
@@ -250,10 +240,6 @@ async function updateInvoiceNumber() {
   if (!tanggalInput || !noPesananInput) return;
   if (isFetchingInvoice) return; // Prevent double calls
 
-  // Check if we already have a valid invoice for this date (avoids refresh on same date)
-  // But strictly, we only want to fetch if the user EXPLICITLY changes date or on init.
-  // The issue is likely init calling it, then maybe another event calling it.
-
   isFetchingInvoice = true;
 
   // Show loading state
@@ -263,22 +249,40 @@ async function updateInvoiceNumber() {
 
   const selectedDate =
     tanggalInput.value || new Date().toISOString().split("T")[0];
+  const dateObj = new Date(selectedDate);
+  const d = String(dateObj.getDate()).padStart(2, "0");
+  const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+  const y = String(dateObj.getFullYear()).slice(-2);
+  const dateSuffix = `${d}${m}${y}`;
+
+  // Default fallback
+  let proposedId = `LR/INV/01/${dateSuffix}`;
+  let maxSeq = 0;
 
   try {
-    // Use peekNextId to preview, NOT increment the counter
-    const result = await DataServices.peekNextId("INV", selectedDate);
-    if (result.success) {
-      noPesananInput.value = result.id;
-    } else {
-      console.error("Failed to fetch invoice number:", result.error);
-      noPesananInput.value = originalValue;
-      alert(
-        `Gagal mendapatkan nomor invoice otomatis.\nDetail Error: ${result.error || "Unknown Error"}`,
-      );
+    // 1. Get Server Suggestion
+    const serverResult = await DataServices.peekNextId("INV", selectedDate);
+    if (serverResult.success && serverResult.id) {
+      proposedId = serverResult.id;
+      // Extract sequence from server ID (expected: LR/INV/XX/DDMMYY)
+      const parts = proposedId.split("/");
+      if (parts.length >= 3) {
+        maxSeq = parseInt(parts[2]) || 0;
+      }
     }
+
+    // 2. Use Server ID directly
+    if (serverResult.success && serverResult.id) {
+      noPesananInput.value = serverResult.id;
+    } else {
+      // Fallback
+      noPesananInput.value = proposedId || originalValue;
+    }
+
+    // Logic removed to strictly follow Server ID
   } catch (e) {
     console.error("Error updating invoice number:", e);
-    noPesananInput.value = originalValue;
+    noPesananInput.value = proposedId || originalValue;
   } finally {
     noPesananInput.disabled = false;
     isFetchingInvoice = false;
@@ -966,6 +970,13 @@ async function saveInvoice(status) {
   const noTelepon = document.getElementById("noTelepon").value;
   const alamat = document.getElementById("alamatPelanggan").value;
   const payment = document.getElementById("paymen").value;
+  const roPo = document.getElementById("roPo")?.value || "";
+
+  if (!roPo) {
+    alert("Silakan pilih RO/PO terlebih dahulu!");
+    window.isSavingKasir = false;
+    return;
+  }
 
   // Get new select values
   const jenisTransaksi =
@@ -1027,27 +1038,11 @@ async function saveInvoice(status) {
       btnLunas.textContent = "Menyimpan...";
     }
 
-    // Determine Deletion Target (if Edit Mode)
-    if (isEditMode && editOriginalOrderNo) {
-      const deleteSheet = editOriginSheet || INVOICE_SHEET_NAME;
-      const deleteResult = await deleteInvoice(
-        deleteSheet,
-        editOriginalOrderNo,
-      );
-
-      if (!deleteResult.success) {
-        throw new Error(
-          `Gagal menghapus invoice lama dari ${deleteSheet}: ` +
-            deleteResult.error,
-        );
-      }
-    }
-
     // Get the actual (incremented) invoice number NOW, right before saving
-    // This ensures the counter only increments when we actually save
+    // Server-side (Atomic Counter at Google Sheet) is used as requested
     let finalNoPesanan = noPesanan;
-    if (!isEditMode && !isCheckoutMode) {
-      // Only get new ID for new invoices, not edits or checkouts
+    if (!isCheckoutMode) {
+      // Only get new ID for new invoices
       const idResult = await DataServices.getNextId("INV", tanggal);
       if (idResult.success) {
         finalNoPesanan = idResult.id;
@@ -1168,11 +1163,7 @@ async function saveInvoice(status) {
     // So usually we are converting DP -> LUNAS.
     // Let's assume we increment if status is LUNAS. (Ideally backend handles idempotency)
     // Backend increments if we call it.
-    if (
-      status === "LUNAS" &&
-      noTelepon &&
-      (!isEditMode || editOriginSheet === PELUNASAN_SHEET_NAME)
-    ) {
+    if (status === "LUNAS" && noTelepon && !isCheckoutMode) {
       try {
         await incrementCustomerTransaction(noTelepon);
         console.log("Customer transaction count incremented for:", noTelepon);
@@ -1182,10 +1173,7 @@ async function saveInvoice(status) {
     }
 
     // Increment Product Sold Count (Only for new LUNAS or DP->LUNAS)
-    if (
-      status === "LUNAS" &&
-      (!isEditMode || editOriginSheet === PELUNASAN_SHEET_NAME)
-    ) {
+    if (status === "LUNAS" && !isCheckoutMode) {
       try {
         const soldItems = keranjangData.map((item) => ({
           sku: item.sku,
@@ -1304,13 +1292,12 @@ async function saveInvoice(status) {
 
 /**
  * Format date for invoice (DD-Mon-YYYY)
+ * Uses string parsing to avoid timezone issues
  */
 function formatDateForInvoice(dateString) {
   if (!dateString) return "";
 
-  const date = new Date(dateString);
-  const day = String(date.getDate()).padStart(2, "0");
-  const months = [
+  const monthNames = [
     "Jan",
     "Feb",
     "Mar",
@@ -1324,10 +1311,22 @@ function formatDateForInvoice(dateString) {
     "Nov",
     "Dec",
   ];
-  const month = months[date.getMonth()];
-  const year = date.getFullYear();
 
-  return `${day}-${month}-${year}`;
+  // If already in DD-Mon-YYYY format, return as-is
+  const ddMonYYYY = dateString.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/);
+  if (ddMonYYYY) {
+    return `${ddMonYYYY[1].padStart(2, "0")}-${ddMonYYYY[2]}-${ddMonYYYY[3]}`;
+  }
+
+  // If in YYYY-MM-DD format (from HTML date input)
+  const ymd = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (ymd) {
+    const monthIdx = parseInt(ymd[2], 10) - 1;
+    return `${ymd[3]}-${monthNames[monthIdx]}-${ymd[1]}`;
+  }
+
+  // Fallback: return as-is
+  return dateString;
 }
 
 /**
@@ -1362,101 +1361,6 @@ function resetKasirForm() {
 
   // Generate new invoice number
   updateInvoiceNumber();
-
-  // Reset edit mode
-  isEditMode = false;
-  editOriginalOrderNo = "";
-}
-
-/**
- * Check if we are in Edit Mode and populate form
- */
-function checkEditMode() {
-  const editDataString = sessionStorage.getItem("editInvoiceData");
-  if (!editDataString) return;
-
-  try {
-    const editData = JSON.parse(editDataString);
-    sessionStorage.removeItem("editInvoiceData"); // Clear after use
-
-    isEditMode = true;
-    editOriginalOrderNo = editData.info.noPesanan;
-
-    // Capture origin sheet from URL if present
-    const urlParams = new URLSearchParams(window.location.search);
-    editOriginSheet = urlParams.get("origin") || INVOICE_SHEET_NAME;
-
-    // Check if this is pelunasan mode (only payment entry, not full edit)
-    const isPelunasanMode = urlParams.get("type") === "pelunasan";
-
-    // Set Fields
-    document.getElementById("tanggalDibuat").value = formatDateForInput(
-      editData.info.tanggal,
-    ); // Need helper for DD-Mon-YYYY to YYYY-MM-DD
-    // Or if saved as DD-Mon-YYYY, input type=date expects YYYY-MM-DD.
-    // Our formatDateForInvoice makes it DD-Mon-YYYY.
-    // We need to parse it back.
-
-    document.getElementById("noPesanan").value = editData.info.noPesanan;
-    document.getElementById("kasir").value = editData.info.kasir;
-    document.getElementById("paymen").value =
-      editData.info.payment || "Transfer"; // Default?
-    const roPoEl = document.getElementById("roPo");
-    if (roPoEl) roPoEl.value = editData.info.roPo || "";
-
-    // Set Customer
-    document.getElementById("namaPelanggan").value = editData.customer.nama;
-    document.getElementById("noTelepon").value = editData.customer.noHp;
-    document.getElementById("alamatPelanggan").value = editData.customer.alamat;
-    selectedCustomer.kota = editData.customer.city;
-    selectedCustomer.channel = editData.customer.channel;
-
-    // Set Cart
-    keranjangData = [];
-    nomorUrut = 1;
-
-    editData.items.forEach((item) => {
-      keranjangData.push({
-        no: nomorUrut++,
-        sku: item.sku,
-        produk: item.produk,
-        jumlah: item.jumlah,
-        satuan: item.satuan,
-        harga: item.harga,
-        total: item.total,
-        kategori: item.kategori, // Ensure this is carried over
-      });
-    });
-
-    updateTabelKeranjang();
-
-    // Set Totals
-    document.getElementById("subtotal").value = editData.summary.subtotal;
-    document.getElementById("ongkir").value = editData.summary.ongkir;
-    document.getElementById("packing").value = editData.summary.packing;
-    document.getElementById("diskon").value = editData.summary.diskon;
-
-    // Set Accumulated Payment (DP History)
-    const totalBayar = editData.totalBayar || 0;
-    if (totalBayar > 0 || editData.info.transaksi === "DP") {
-      const dp1El = document.getElementById("dp1");
-      dp1El.value = totalBayar;
-      dp1El.readOnly = true;
-      dp1El.title = "Total pembayaran sebelumnya (History)";
-      dp1El.style.backgroundColor = "#f0f0f0";
-      // Focus on DP2 for new payment
-      setTimeout(() => document.getElementById("dp2").focus(), 500);
-    }
-
-    // If Pelunasan Mode: Disable all fields EXCEPT DP inputs and save buttons
-    if (isPelunasanMode) {
-      disableFieldsForPelunasanMode();
-    }
-
-    hitungTotalTagihan();
-  } catch (e) {
-    console.error("Error loading edit data:", e);
-  }
 }
 
 /**
@@ -1530,70 +1434,13 @@ function checkCheckoutMode() {
   }
 }
 
-/**
- * Disable all form fields except DP inputs for Pelunasan Mode
- * This prevents editing invoice details while allowing payment entry
- */
-function disableFieldsForPelunasanMode() {
-  // List of fields to disable (everything except DP and action buttons)
-  const fieldsToDisable = [
-    "tanggalDibuat",
-    "noPesanan",
-    "kasir",
-    "paymen",
-    "namaPelanggan",
-    "noTelepon",
-    "alamatPelanggan",
-    "noSku",
-    "namaProduk",
-    "satuan",
-    "jumlahProduk",
-    "hargaProduk",
-    "totalHarga",
-    "subtotal",
-    "ongkir",
-    "packing",
-    "diskon",
-  ];
-
-  fieldsToDisable.forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.disabled = true;
-      el.style.backgroundColor = "#e9e9e9";
-      el.style.cursor = "not-allowed";
-    }
-  });
-
-  // Disable "Tambah" button for adding products
-  const tambahBtn = document.querySelector(
-    'button[onclick*="tambahKeKeranjang"]',
-  );
-  if (tambahBtn) {
-    tambahBtn.disabled = true;
-    tambahBtn.style.backgroundColor = "#ccc";
-    tambahBtn.style.cursor = "not-allowed";
-  }
-
-  // Hide delete buttons in cart
-  document
-    .querySelectorAll('.btn-hapus, [onclick*="hapusItem"]')
-    .forEach((btn) => {
-      btn.style.display = "none";
-    });
-
-  // Add visual indicator that we're in Pelunasan Mode
-  const header = document.querySelector(".header h1");
-  if (header) {
-    header.innerHTML =
-      'Kasir <span style="color: #4CAF50; font-size: 0.7em;">(Mode Pelunasan)</span>';
-  }
-
-  console.log("Pelunasan Mode: Fields disabled, only DP entry allowed");
-}
-
 function formatDateForInput(dateString) {
-  if (!dateString) return new Date().toISOString().split("T")[0];
+  // Get today's date in local timezone for fallback
+  const today = new Date();
+  const todayFormatted = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  if (!dateString) return todayFormatted;
+
   const months = {
     Jan: "01",
     Feb: "02",
@@ -1608,10 +1455,26 @@ function formatDateForInput(dateString) {
     Nov: "11",
     Dec: "12",
   };
-  // Input: 16-Dec-2025
-  const parts = dateString.split("-");
-  if (parts.length === 3) {
-    return `${parts[2]}-${months[parts[1]]}-${parts[0]}`;
+
+  // Try dash-separated format first: "4-Feb-2026" or "16-Dec-2025"
+  let parts = dateString.split("-");
+  if (parts.length === 3 && months[parts[1]]) {
+    const day = parts[0].padStart(2, "0");
+    return `${parts[2]}-${months[parts[1]]}-${day}`;
   }
-  return dateString;
+
+  // Try space-separated format: "4 Feb 2026"
+  parts = dateString.split(" ");
+  if (parts.length === 3 && months[parts[1]]) {
+    const day = parts[0].padStart(2, "0");
+    return `${parts[2]}-${months[parts[1]]}-${day}`;
+  }
+
+  // If already in YYYY-MM-DD format, return as-is
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    return dateString;
+  }
+
+  // Fallback to today's local date (avoid Date object parsing to prevent timezone issues)
+  return todayFormatted;
 }

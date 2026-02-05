@@ -3,8 +3,8 @@
  * Duplicate of kasir.js but stripped down for dedicated editing page
  */
 
-const INVOICE_SHEET_NAME = "INVOICE";
-const PELUNASAN_SHEET_NAME = "DP/Pelunasan";
+const INVOICE_SHEET_NAME = "INCOME";
+const PELUNASAN_SHEET_NAME = "INCOME";
 const KUSTOMER_SHEET_NAME = "KOSTUMER";
 const PRODUK_SHEET_NAME = "PERSEDIAAN BARANG";
 const INVOICE_COUNTER_KEY = "larosapot_invoice_counter";
@@ -177,6 +177,7 @@ function populateForm(editData) {
   document.getElementById("noPesanan").value = editData.info.noPesanan;
   document.getElementById("kasir").value = editData.info.kasir;
   document.getElementById("paymen").value = editData.info.payment || "";
+  document.getElementById("roPo").value = editData.info.roPo || "";
 
   // Customer
   document.getElementById("namaPelanggan").value = editData.customer.nama;
@@ -644,6 +645,15 @@ async function saveEdit(forceLunas = false) {
     status = "DP";
   }
 
+  // RO/PO Validation
+  const roPo = document.getElementById("roPo")?.value || "";
+  if (!roPo) {
+    alert("RO/PO wajib diisi!");
+    if (window.hideGlobalLoader) window.hideGlobalLoader();
+    window.isSavingEdit = false;
+    return;
+  }
+
   if (window.showGlobalLoader) window.showGlobalLoader();
 
   try {
@@ -652,13 +662,10 @@ async function saveEdit(forceLunas = false) {
     if (!deleteRes.success)
       throw new Error("Gagal menghapus data lama: " + deleteRes.error);
 
-    // 2. Determine Target
-    const targetSheet =
-      status === "LUNAS" ? INVOICE_SHEET_NAME : PELUNASAN_SHEET_NAME;
+    // 2. Determine Target (Always INCOME now)
+    const targetSheet = "INCOME";
 
     // 3. Build Rows
-    // Re-use logic for row building.
-    // We use the same format as kasir.js and form_pelunasan.js
     const rows = [];
     const info = {
       noPesanan: document.getElementById("noPesanan").value,
@@ -666,6 +673,7 @@ async function saveEdit(forceLunas = false) {
       kasir: document.getElementById("kasir").value,
       transaction: status,
       payment: document.getElementById("paymen").value,
+      roPo: roPo,
     };
     const cust = {
       nama: document.getElementById("namaPelanggan").value,
@@ -686,73 +694,69 @@ async function saveEdit(forceLunas = false) {
 
     keranjangData.forEach((item, idx) => {
       let rowData = {};
-      const isInvoiceSheet = targetSheet === INVOICE_SHEET_NAME;
-
-      // Kedua sheet menggunakan nama kolom yang sama
-      const invoiceKey = "INVOICE";
-      const subtotalKey = "SUB TOTAL";
-      const hargaKey = "HARGA";
-      const totalKey = "TOTAL";
-      const ongkirKey = "ONGKIR";
-      const kotaKey = isInvoiceSheet ? "Kota" : "";
 
       if (idx === 0) {
         rowData = {
-          TANGGAL: formattedDate,
-          [invoiceKey]: info.noPesanan,
-          KASIR: info.kasir,
-          TRANSAKSI: status,
+          DATE: formattedDate,
+          CASHIER: info.kasir,
+          TRANSACTION: originalStatus || "Online",
           PAYMENT: info.payment,
-          "NAMA PELANGGAN": cust.nama,
-          "NO HP": cust.hp,
-          ALAMAT: cust.alamat,
-          CHANNEL: cust.channel || "",
-          KATEGORI: item.kategori || "",
-          SKU: item.sku,
-          PRODUK: item.produk,
-          JUMLAH: item.jumlah,
-          SATUAN: item.satuan,
-          [hargaKey]: item.harga,
-          [totalKey]: item.total,
-          [subtotalKey]: sum.sub,
-          [ongkirKey]: sum.ong,
+          "RO/PO": info.roPo,
+          "DP/FP": status === "LUNAS" ? "FP" : "DP",
+          "NO INVOICE": info.noPesanan,
+          NAME: cust.nama,
+          HP: cust.hp,
+          CITY: cust.kota || "",
+          CATEGORY: item.kategori || "",
+          "ITEM PRODUCT": item.sku
+            ? `[${item.sku}] ${item.produk}`
+            : item.produk,
+          QTY: item.jumlah,
+          "PRICE/ITEM": item.harga,
+          "ITEM*QTY": item.total,
+          "SUBTOTAL ITEM": sum.sub,
           PACKING: sum.pack,
-          DISKON: sum.disc,
-          "TOTAL TAGIHAN": sum.tot,
+          DELIVERY: sum.ong,
+          DISCOUNT: sum.disc,
+          "GRAND TOTAL": sum.tot,
+          "TOTAL DP/FP": status === "LUNAS" ? sum.tot : dp1 + dp2,
+          "REMAINING BALANCE": status === "LUNAS" ? 0 : sisa,
+          STATUS: "Belum Dikirim",
         };
-        if (isInvoiceSheet) rowData[kotaKey] = cust.kota || "";
-        else {
-          rowData["DP 1"] = dp1;
-          rowData["DP 2"] = dp2;
-          rowData["Pelunasan"] = "";
-          rowData["SISA TAGIHAN"] = sisa;
-        }
       } else {
         rowData = {
-          TANGGAL: "",
-          [invoiceKey]: "",
-          SKU: item.sku,
-          PRODUK: item.produk,
-          JUMLAH: item.jumlah,
-          SATUAN: item.satuan,
-          [hargaKey]: item.harga,
-          [totalKey]: item.total,
+          DATE: "",
+          CASHIER: "",
+          TRANSACTION: "",
+          PAYMENT: "",
+          "RO/PO": "",
+          "DP/FP": "",
+          "NO INVOICE": "",
+          NAME: "",
+          HP: "",
+          CITY: "",
+          CATEGORY: item.kategori || "",
+          "ITEM PRODUCT": item.sku
+            ? `[${item.sku}] ${item.produk}`
+            : item.produk,
+          QTY: item.jumlah,
+          "PRICE/ITEM": item.harga,
+          "ITEM*QTY": item.total,
+          "SUBTOTAL ITEM": "",
+          PACKING: "",
+          DELIVERY: "",
+          DISCOUNT: "",
+          "GRAND TOTAL": "",
+          "TOTAL DP/FP": "",
+          "REMAINING BALANCE": "",
+          STATUS: "",
         };
       }
       rows.push(rowData);
     });
 
     // 4. Save
-    // Loop through rows and save each one using addSheetRow
-    // Reverse to maintain order if addSheetRow appends to top?
-    // kasir.js uses .reverse() but usually append goes to bottom.
-    // If rows are [Header, Item1, Item2], generally we want Header first.
-    // If Google Sheet appends to bottom, we want [Header, Item1, Item2].
-    // kasir.js reversing might be due to prepend logic or just legacy.
-    // Let's stick to standard order unless proven otherwise.
-    // Update: checked kasir.js, it REVERSES. Maybe inserts at top?
-    // Let's follow kasir.js pattern to be safe: rows.reverse()
-
+    // kasir.js uses .reverse()
     for (const row of rows.reverse()) {
       const saveRes = await addSheetRow(targetSheet, row);
       if (!saveRes.success)
@@ -762,18 +766,7 @@ async function saveEdit(forceLunas = false) {
     alert("Perubahan berhasil disimpan!");
     sessionStorage.removeItem("editInvoiceData");
 
-    // Force clear cache so list pages show fresh data
-    if (window.DataServices) {
-      if (window.DataServices.invoice)
-        await window.DataServices.invoice.clearCache();
-      if (window.DataServices.pelunasan)
-        await window.DataServices.pelunasan.clearCache();
-    }
-
-    // Redirect logic
-    if (targetSheet === INVOICE_SHEET_NAME)
-      window.location.href = "riwayat.html";
-    else window.location.href = "pelunasan.html";
+    window.location.href = "riwayat.html";
   } catch (e) {
     console.error("Save Error", e);
     alert("Gagal menyimpan: " + e.message);
@@ -844,9 +837,8 @@ function formatDateForInput(dateVal) {
 
 function formatDateForInvoice(dateString) {
   if (!dateString) return "";
-  const date = new Date(dateString);
-  const day = String(date.getDate()).padStart(2, "0");
-  const months = [
+
+  const monthNames = [
     "Jan",
     "Feb",
     "Mar",
@@ -860,7 +852,20 @@ function formatDateForInvoice(dateString) {
     "Nov",
     "Dec",
   ];
-  const month = months[date.getMonth()];
-  const year = date.getFullYear();
-  return `${day}-${month}-${year}`;
+
+  // If already in DD-Mon-YYYY format, return as-is
+  const ddMonYYYY = dateString.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/);
+  if (ddMonYYYY) {
+    return `${ddMonYYYY[1].padStart(2, "0")}-${ddMonYYYY[2]}-${ddMonYYYY[3]}`;
+  }
+
+  // If in YYYY-MM-DD format (from HTML date input)
+  const ymd = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (ymd) {
+    const monthIdx = parseInt(ymd[2], 10) - 1;
+    return `${ymd[3]}-${monthNames[monthIdx]}-${ymd[1]}`;
+  }
+
+  // Fallback: return as-is
+  return dateString;
 }

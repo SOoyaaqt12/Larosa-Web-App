@@ -34,11 +34,50 @@ function renderMultiPageInvoice(data) {
   const formatCurrency = (val) =>
     "Rp" + (parseFloat(val) || 0).toLocaleString("id-ID");
   const formatDate = (dateVal) => {
-    const d = new Date(dateVal);
-    const options = { day: "2-digit", month: "short", year: "numeric" };
-    return !isNaN(d)
-      ? d.toLocaleDateString("id-ID", options).replace(/ /g, "-")
-      : dateVal;
+    if (!dateVal) return "-";
+    const str = String(dateVal).trim();
+    const monthNames = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+
+    // If already in DD-Mon-YYYY format, return as-is
+    const ddMonYYYY = str.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/);
+    if (ddMonYYYY) {
+      return `${ddMonYYYY[1].padStart(2, "0")}-${ddMonYYYY[2]}-${ddMonYYYY[3]}`;
+    }
+
+    // If in ISO format (contains T)
+    if (str.includes("T")) {
+      const isoDate = str.split("T")[0];
+      const parts = isoDate.split("-");
+      if (parts.length === 3) {
+        const year = parts[0];
+        const monthIdx = parseInt(parts[1], 10) - 1;
+        const day = parts[2];
+        const dayNum = parseInt(day, 10) + 1; // +1 for UTC+7 offset compensation
+        return `${String(dayNum).padStart(2, "0")}-${monthNames[monthIdx]}-${year}`;
+      }
+    }
+
+    // If in YYYY-MM-DD
+    const ymd = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (ymd) {
+      const monthIdx = parseInt(ymd[2], 10) - 1;
+      return `${ymd[3]}-${monthNames[monthIdx]}-${ymd[1]}`;
+    }
+
+    return str;
   };
 
   for (let i = 0; i < totalPages; i++) {

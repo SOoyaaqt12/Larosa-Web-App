@@ -33,7 +33,7 @@ function setupFilterListeners() {
  */
 async function loadDashboardData() {
   // Step 1: Try to show cached data immediately
-  const cached = await window.IDBCache?.get("dashboard_data_cache");
+  const cached = await window.IDBCache?.get("dashboard_data_cache_v3");
   if (cached && cached.data) {
     rawData = cached.data;
     updateDashboardUI();
@@ -42,33 +42,59 @@ async function loadDashboardData() {
 
   // Step 2: Fetch fresh data
   try {
-    const sheets = [
-      "KOSTUMER",
-      "PERSEDIAAN BARANG",
-      "INVOICE",
-      "DP/Pelunasan",
-      "VENDOR",
-    ];
+    const sheets = ["KOSTUMER", "PERSEDIAAN BARANG", "INCOME", "VENDOR"];
     const results = await Promise.all(
       sheets.map((s) => fetchSheetData(s).catch(() => ({ data: [] }))),
     );
 
+    // Pre-process Invoices to fill sparse data (fill down Date & Invoice No)
+    const filledInvoices = fillSparseInvoiceData(results[2].data);
+
     rawData = {
       customers: results[0].data,
       products: results[1].data,
-      invoices: results[2].data,
-      pelunasan: results[3].data,
-      vendors: results[4].data,
+      invoices: filledInvoices,
+      pelunasan: [],
+      vendors: results[3].data,
     };
 
     // Save to cache
-    await window.IDBCache?.set("dashboard_data_cache", rawData);
+    await window.IDBCache?.set("dashboard_data_cache_v3", rawData);
 
     updateDashboardUI();
     console.log("Dashboard data refreshed from server");
   } catch (error) {
     console.error("Error loading dashboard data:", error);
   }
+}
+
+/**
+ * Helper to propogate parent row data to child rows
+ */
+function fillSparseInvoiceData(invoices) {
+  let lastDate = "";
+  let lastInvoice = "";
+  let lastCashier = "";
+  let lastCity = "";
+
+  return invoices.map((row) => {
+    const newRow = { ...row };
+
+    // Check for "Main" row markers
+    if (newRow["DATE"] && newRow["DATE"] !== "") {
+      lastDate = newRow["DATE"];
+      lastInvoice = newRow["NO INVOICE"];
+      lastCashier = newRow["CASHIER"];
+      lastCity = newRow["CITY"];
+    } else {
+      // Fill from last known
+      newRow["DATE"] = lastDate;
+      newRow["NO INVOICE"] = lastInvoice;
+      newRow["CASHIER"] = lastCashier;
+      newRow["CITY"] = lastCity;
+    }
+    return newRow;
+  });
 }
 
 /**
@@ -102,9 +128,9 @@ function displayStats() {
   );
   document.getElementById("statBarang").textContent = formatNum(stock);
 
-  // Sold Items
+  // Sold Items (Use QTY column from INCOME)
   const sold = invoices.reduce(
-    (acc, row) => acc + (parseFloat(row["JUMLAH"]) || 0),
+    (acc, row) => acc + (parseFloat(row["QTY"]) || 0),
     0,
   );
   document.getElementById("statTerjual").textContent = formatNum(sold);
@@ -116,8 +142,8 @@ function displayStats() {
 
   Object.values(groups).forEach((rows) => {
     const main = rows[0];
-    const sub = parseFloat(main["SUB TOTAL"]) || 0;
-    const ongkir = parseFloat(main["ONGKIR"]) || 0;
+    const sub = parseFloat(main["SUBTOTAL ITEM"]) || 0;
+    const ongkir = parseFloat(main["DELIVERY"]) || 0;
     const packing = parseFloat(main["PACKING"]) || 0;
 
     omset += sub;
@@ -138,7 +164,8 @@ function populateYearFilter() {
 
   const years = new Set();
   rawData.invoices.forEach((row) => {
-    const dateStr = row["TANGGAL"];
+    // Check DATE key from INCOME
+    const dateStr = row["DATE"];
     if (dateStr) {
       const date = parseInvoiceDate(dateStr);
       if (date) years.add(date.getFullYear());
@@ -167,7 +194,7 @@ function getFilteredData() {
   const monthFilter = document.getElementById("filterMonth").value;
 
   return rawData.invoices.filter((row) => {
-    const dateStr = row["TANGGAL"];
+    const dateStr = row["DATE"];
     if (!dateStr) return false;
 
     const date = parseInvoiceDate(dateStr);
@@ -243,12 +270,12 @@ function getConfigOmsetHarian(invoices) {
 
   Object.values(groups).forEach((rows) => {
     const main = rows[0];
-    const date = parseInvoiceDate(main["TANGGAL"]);
+    const date = parseInvoiceDate(main["DATE"]);
     if (!date) return;
 
     const key = date.toISOString().split("T")[0];
     dailyData[key] =
-      (dailyData[key] || 0) + (parseFloat(main["SUB TOTAL"]) || 0);
+      (dailyData[key] || 0) + (parseFloat(main["SUBTOTAL ITEM"]) || 0);
   });
 
   const sortedKeys = Object.keys(dailyData).sort();
@@ -299,9 +326,9 @@ function getConfigOmsetSales(invoices) {
 
   Object.values(groups).forEach((rows) => {
     const main = rows[0];
-    const sales = main["KASIR"] || "Unknown";
+    const sales = main["CASHIER"] || "Unknown";
     salesData[sales] =
-      (salesData[sales] || 0) + (parseFloat(main["SUB TOTAL"]) || 0);
+      (salesData[sales] || 0) + (parseFloat(main["SUBTOTAL ITEM"]) || 0);
   });
 
   const sorted = Object.entries(salesData).sort((a, b) => b[1] - a[1]);
@@ -343,10 +370,15 @@ function getConfigOmsetSales(invoices) {
 function getConfigOmsetProduk(invoices) {
   const productData = {};
   invoices.forEach((row) => {
-    const sku = row["SKU"] || row["PRODUK"];
-    if (!sku) return;
-    productData[sku] =
-      (productData[sku] || 0) + (parseFloat(row["TOTAL"]) || 0);
+    // Extract SKU/Name from ITEM PRODUCT which is "[SKU] Name" or just "Name"
+    const raw = row["ITEM PRODUCT"] || "";
+    let name = raw;
+    // We can try to clean it up or just use full string
+    // Let's use full string for uniqueness, maybe trim
+    if (!name) return;
+
+    productData[name] =
+      (productData[name] || 0) + (parseFloat(row["ITEM*QTY"]) || 0);
   });
 
   const top10 = Object.entries(productData)
@@ -376,9 +408,9 @@ function getConfigOmsetProduk(invoices) {
 function getConfigQtyProduk(invoices) {
   const productQty = {};
   invoices.forEach((row) => {
-    const sku = row["SKU"] || row["PRODUK"];
-    if (!sku) return;
-    productQty[sku] = (productQty[sku] || 0) + (parseFloat(row["JUMLAH"]) || 0);
+    const name = row["ITEM PRODUCT"] || "";
+    if (!name) return;
+    productQty[name] = (productQty[name] || 0) + (parseFloat(row["QTY"]) || 0);
   });
 
   const top10 = Object.entries(productQty)
@@ -464,7 +496,7 @@ function getConfigKotaCust(invoices) {
 
   Object.values(groups).forEach((rows) => {
     const main = rows[0];
-    const city = main["Kota"] || main["KOTA"] || "Lainnya";
+    const city = main["CITY"] || "Lainnya";
     cityData[city] = (cityData[city] || 0) + 1;
   });
 
@@ -507,7 +539,7 @@ function getConfigKotaCust(invoices) {
  */
 function groupByInvoice(data) {
   const groups = {};
-  const invoiceKeys = ["INVOICE", "NO PESANAN"];
+  const invoiceKeys = ["NO INVOICE"]; // INCOME sheet keys
   let currentKey = null;
 
   data.forEach((row) => {
@@ -531,12 +563,17 @@ function groupByInvoice(data) {
 function parseInvoiceDate(dateStr) {
   if (!dateStr) return null;
   // Format DD-MMM-YYYY or YYYY-MM-DD
+  // Check for Title Case months just in case
+
   if (dateStr.includes("-")) {
     const parts = dateStr.split("-");
     if (parts[0].length === 4) return new Date(dateStr); // YYYY-MM-DD
 
     // DD-MMM-YYYY
     const day = parseInt(parts[0]);
+    const monthStr =
+      parts[1].charAt(0).toUpperCase() + parts[1].slice(1).toLowerCase(); // Normalize
+
     const months = [
       "Jan",
       "Feb",
@@ -551,7 +588,7 @@ function parseInvoiceDate(dateStr) {
       "Nov",
       "Dec",
     ];
-    const month = months.indexOf(parts[1]);
+    const month = months.indexOf(monthStr);
     const year = parseInt(parts[2]);
     if (month !== -1) return new Date(year, month, day);
   }

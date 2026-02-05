@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Invoice Pembelian - LAROSAPOT</title>
     <link rel="stylesheet" href="style/invoice.css" />
-      <link rel="icon" href="asset/image/larosa-logo.ico" type="image/x-icon" />
+    <link rel="icon" href="asset/image/larosa-logo.ico" type="image/x-icon" />
   </head>
   <body>
     <!-- Sidebar injected by script/layout.js -->
@@ -132,6 +132,10 @@
                 <div class="footer-right">
                   <table class="summary-table">
                     <tr>
+                      <td>Total Item</td>
+                      <td id="invTotalItem"></td>
+                    </tr>
+                    <tr>
                       <td><strong>Subtotal</strong></td>
                       <td id="invSubtotal" style="font-weight: bold"></td>
                     </tr>
@@ -246,6 +250,8 @@
         }
 
         // Summary
+        document.getElementById("invTotalItem").textContent =
+          data.summary.totalItems || 0;
         document.getElementById("invSubtotal").textContent = formatter(
           data.summary.subtotal,
         );

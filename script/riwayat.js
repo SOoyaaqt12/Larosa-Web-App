@@ -1,14 +1,12 @@
 /**
  * Riwayat Page - Google Sheets Integration
- * Connects to INVOICE sheet
- *
- * Refactored to use shared utilities (utils.js, data-service.js)
+ * Connects to INCOME sheet
  */
 
 const invoiceService = DataServices.invoice;
 
 // Global variable to store grouped data for actions
-let groupedInvoices = {};
+let groupedInvoices = { map: {}, order: [] };
 
 document.addEventListener("DOMContentLoaded", () => {
   loadRiwayatData();
@@ -27,6 +25,9 @@ async function loadRiwayatData() {
   setupSearch();
 }
 
+/**
+ * Filter Management
+ */
 function setupSearch() {
   const searchInput = document.getElementById("searchInput");
   if (!searchInput) return;
@@ -41,20 +42,23 @@ function setupSearch() {
     const keywords = searchTerm.split(/\s+/);
     const filteredOrder = groupedInvoices.order.filter((noPesanan) => {
       const rows = groupedInvoices.map[noPesanan];
+      if (!rows || rows.length === 0) return false;
       const mainRow = rows[0];
-      const nama = getValueFromKeys(
-        mainRow,
-        ["NAMA PELANGGAN", "Nama Pelanggan"],
-        "",
-      ).toLowerCase();
-      const kota = getValueFromKeys(
-        mainRow,
-        ["Kota", "KOTA"],
-        "",
-      ).toLowerCase();
-      const searchSource = `${noPesanan.toLowerCase()} ${nama} ${kota}`;
 
-      // All keywords must be found in the combined source string (AND logic)
+      const nama = (
+        mainRow["NAME"] ||
+        mainRow["NAMA PELANGGAN"] ||
+        ""
+      ).toLowerCase();
+      const city = (
+        mainRow["CITY"] ||
+        mainRow["Kota"] ||
+        mainRow["KOTA"] ||
+        ""
+      ).toLowerCase();
+
+      const searchSource = `${noPesanan.toLowerCase()} ${nama} ${city}`;
+
       return keywords.every((kw) => searchSource.includes(kw));
     });
 
@@ -62,28 +66,26 @@ function setupSearch() {
   });
 }
 
+/**
+ * Group raw sheet data by Invoice Number
+ */
 function groupDataByOrder(data) {
   const groups = {};
   const orderedGroups = [];
-  let currentOrderNo = null;
 
-  const invoiceKeys = [
-    "NO INVOICE",
-    "NO'PESANAN",
-    "NO PESANAN",
-    "INVOICE",
-    "NO\nPESANAN",
-    "INVOICE\n",
-    "invoice",
-  ];
+  // Potential keys for Invoice Number in different sheet versions
+  const invoiceKeys = ["NO PESANAN", "NO INVOICE", "INVOICE"];
 
   data.forEach((row) => {
-    // Filter for FP (Lunas) only
-    if (row["DP/FP"] !== "FP") return;
+    // Only show "FP" (Fully Paid) / Lunas in History
+    if (
+      row["DP/FP"] !== "FP" &&
+      row["TRANSACTION"] !== "LUNAS" &&
+      row["TRANSAKSI"] !== "LUNAS"
+    )
+      return;
 
     let noPesanan = null;
-
-    // Try known keys
     for (const key of invoiceKeys) {
       if (row[key]) {
         noPesanan = row[key];
@@ -91,68 +93,55 @@ function groupDataByOrder(data) {
       }
     }
 
-    // Fallback: fuzzy search
-    if (!noPesanan) {
-      const keys = Object.keys(row);
-      for (const key of keys) {
-        const upperKey = key.toUpperCase();
-        if (
-          (upperKey.includes("INVOICE") || upperKey.includes("PESANAN")) &&
-          row[key]
-        ) {
-          noPesanan = row[key];
-          break;
-        }
-      }
-    }
-
     if (noPesanan) {
-      currentOrderNo = noPesanan;
-      if (!groups[currentOrderNo]) {
-        groups[currentOrderNo] = [];
-        orderedGroups.push(currentOrderNo);
+      if (!groups[noPesanan]) {
+        groups[noPesanan] = [];
+        orderedGroups.push(noPesanan);
       }
-    }
-
-    if (currentOrderNo) {
-      groups[currentOrderNo].push(row);
+      groups[noPesanan].push(row);
     }
   });
 
   return { map: groups, order: orderedGroups };
 }
 
+/**
+ * Render the table rows
+ */
 function renderTable(groupedData) {
   const tableBody = document.querySelector("tbody");
+  if (!tableBody) return;
   tableBody.innerHTML = "";
 
   const { map, order } = groupedData;
 
+  if (order.length === 0) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="5" style="text-align:center; padding: 20px;">Belum ada riwayat transaksi lunas.</td>`;
+    tableBody.appendChild(tr);
+    return;
+  }
+
   order.forEach((noPesanan, index) => {
-    const invoiceRows = map[noPesanan];
-    const mainRow = invoiceRows[0];
+    const rows = map[noPesanan];
+    const main = rows[0];
 
-    // New Keys: DATE, NAME, GRAND TOTAL
-    const tanggal = mainRow["DATE"];
-    const nama = mainRow["NAME"] || "";
-    const itemsCount = invoiceRows.length;
-    let totalTagihan = mainRow["GRAND TOTAL"] || 0;
-
-    const formattedTotal = parseFloat(totalTagihan).toLocaleString("id-ID");
+    const date = main["DATE"] || main["TANGGAL"];
+    const name = main["NAME"] || main["NAMA PELANGGAN"] || "";
+    const total = parseFloat(main["GRAND TOTAL"] || main["TOTAL TAGIHAN"]) || 0;
+    const itemsCount = rows.length;
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${index + 1}.</td>
       <td>${noPesanan}</td>
       <td>
-        <div style="font-weight:bold;">${nama}</div>
-        <div style="font-size: 0.8em; color: gray;">${formatDisplayDate(
-          tanggal,
-        )}</div>
+        <div style="font-weight:bold;">${name}</div>
+        <div style="font-size: 0.85em; color: #666;">${formatDateForDisplay(date)}</div>
       </td>
       <td>
-         <div style="font-weight:bold;">Rp${formattedTotal}</div>
-         <div style="font-size: 0.8em; color: gray;">${itemsCount} Items</div>
+        <div style="font-weight:bold;">Rp${total.toLocaleString("id-ID")}</div>
+        <div style="font-size: 0.85em; color: #666;">${itemsCount} Item</div>
       </td>
       <td>
         <div class="action-buttons">
@@ -166,113 +155,167 @@ function renderTable(groupedData) {
   });
 }
 
-function viewInvoice(noPesanan) {
-  const invoiceRows = groupedInvoices.map[noPesanan];
-  if (!invoiceRows) return;
+/**
+ * View Invoice Details
+ */
+/**
+ * Helper to parse SKU and Product Name from row data
+ * Handles cases where SKU is merged into Product Name like "[SKU] Product Name"
+ */
+function parseItemRow(r) {
+  let sku = r["SKU"] || "";
+  let produk = r["PRODUK"] || r["ITEM PRODUCT"] || "";
 
-  const mainRow = invoiceRows[0];
+  // If SKU is empty, try to extract from Product Name
+  if (!sku && produk.startsWith("[")) {
+    const match = produk.match(/^\[(.*?)\]\s*(.*)$/);
+    if (match) {
+      sku = match[1];
+      produk = match[2];
+    }
+  }
 
-  const invoiceData = {
+  // If Product Name still has [SKU] prefix even if SKU col exists, clean it
+  if (produk.startsWith("[")) {
+    const match = produk.match(/^\[(.*?)\]\s*(.*)$/);
+    if (match) {
+      produk = match[2];
+    }
+  }
+
+  return { sku, produk };
+}
+
+/**
+ * View Invoice Details
+ */
+async function viewInvoice(orderNo) {
+  const rows = groupedInvoices.map[orderNo];
+  if (!rows) return;
+
+  const main = rows[0];
+  const name = main["NAME"] || main["NAMA PELANGGAN"];
+  const phone = main["HP"] || main["NO HP"];
+
+  let address = main["ALAMAT"] || "NO_ADDRESS";
+  if (window.Utils && window.Utils.getAddressForCustomer) {
+    const found = await window.Utils.getAddressForCustomer(name, phone);
+    if (found) address = found;
+  }
+
+  const data = {
     info: {
-      noPesanan: noPesanan,
-      tanggal: mainRow["DATE"],
-      kasir: mainRow["CASHIER"],
-      transaksi: mainRow["TRANSACTION"],
-      payment: mainRow["PAYMENT"],
-      roPo: mainRow["RO/PO"] || "",
+      noPesanan: orderNo,
+      tanggal: main["DATE"] || main["TANGGAL"],
+      kasir: main["CASHIER"] || main["KASIR"],
+      transaksi: main["TRANSACTION"] || main["TRANSAKSI"] || "LUNAS",
+      payment: main["PAYMENT"],
+      roPo: main["RO/PO"] || "",
     },
     customer: {
-      nama: mainRow["NAME"],
-      noHp: mainRow["HP"],
-      alamat: "NO_ADDRESS", // Address not in INCOME header? Check.
-      city: mainRow["CITY"],
-      channel: "NO_CHANNEL", // Channel not in INCOME header?
+      nama: name,
+      noHp: phone,
+      alamat: address,
+      city: main["CITY"] || main["Kota"] || main.KOTA,
     },
-    items: invoiceRows
-      .map((row) => ({
-        sku: "NO_SKU", // SKU not in INCOME header
-        produk: row["ITEM PRODUCT"],
-        jumlah: parseFloat(row["QTY"]) || 0,
-        satuan: "Pcs", // Unit not in INCOME header
-        harga: parseFloat(row["PRICE/ITEM"]) || 0,
-        total: parseFloat(row["ITEM*QTY"]) || 0,
-        kategori: row["CATEGORY"],
-      }))
-      .filter((item) => item.produk),
+    items: rows.map((r) => {
+      const { sku, produk } = parseItemRow(r);
+      return {
+        sku: sku,
+        nama: produk,
+        qty: parseFloat(r["QTY"] || r["JUMLAH"]) || 0,
+        satuan: r["SATUAN"] || "Pcs",
+        harga: parseFloat(r["PRICE/ITEM"] || r["HARGA"]) || 0,
+        total: parseFloat(r["ITEM*QTY"] || r["TOTAL"]) || 0,
+      };
+    }),
     summary: {
-      subtotal: parseFloat(mainRow["SUBTOTAL ITEM"]) || 0,
-      ongkir: parseFloat(mainRow["DELIVERY"]) || 0,
-      packing: parseFloat(mainRow["PACKING"]) || 0,
-      diskon: parseFloat(mainRow["DISCOUNT"]) || 0,
-      totalTagihan: parseFloat(mainRow["GRAND TOTAL"]) || 0,
+      subtotal: parseFloat(main["SUBTOTAL ITEM"] || main["SUB TOTAL"]) || 0,
+      ongkir: parseFloat(main["DELIVERY"] || main["ONGKIR"]) || 0,
+      packing: parseFloat(main["PACKING"]) || 0,
+      diskon: parseFloat(main["DISCOUNT"] || main["DISKON"]) || 0,
+      total: parseFloat(main["GRAND TOTAL"] || main["TOTAL TAGIHAN"]) || 0,
     },
   };
 
-  sessionStorage.setItem("invoiceData", JSON.stringify(invoiceData));
+  sessionStorage.setItem("invoiceDetailData", JSON.stringify(data));
   window.location.href = "invoice.html";
 }
 
-function editInvoice(noPesanan) {
-  const invoiceRows = groupedInvoices.map[noPesanan];
-  if (!invoiceRows) return;
+/**
+ * Edit Invoice
+ */
+async function editInvoice(orderNo) {
+  const rows = groupedInvoices.map[orderNo];
+  if (!rows) return;
 
-  const mainRow = invoiceRows[0];
+  const main = rows[0];
+  const name = main["NAME"] || main["NAMA PELANGGAN"];
+  const phone = main["HP"] || main["NO HP"];
+
+  let address = main["ALAMAT"] || "";
+  if (window.Utils && window.Utils.getAddressForCustomer) {
+    const found = await window.Utils.getAddressForCustomer(name, phone);
+    if (found) address = found;
+  }
 
   const editData = {
     info: {
-      noPesanan: noPesanan,
-      tanggal: mainRow["DATE"],
-      kasir: mainRow["CASHIER"],
-      transaksi: mainRow["TRANSACTION"],
-      payment: mainRow["PAYMENT"],
-      roPo: mainRow["RO/PO"] || "",
+      noPesanan: orderNo,
+      tanggal: main["DATE"] || main["TANGGAL"],
+      kasir: main["CASHIER"] || main["KASIR"],
+      transaksi: main["TRANSACTION"] || main["TRANSAKSI"] || "LUNAS",
+      payment: main["PAYMENT"],
+      roPo: main["RO/PO"] || "",
     },
     customer: {
-      nama: mainRow["NAME"],
-      noHp: mainRow["HP"],
-      alamat: "",
-      city: mainRow["CITY"],
-      channel: "",
+      nama: name,
+      noHp: phone,
+      alamat: address,
+      city: main["CITY"] || main["Kota"] || main.KOTA,
+      channel: main["CHANNEL"],
     },
-    items: invoiceRows
-      .map((row) => ({
-        sku: "",
-        produk: row["ITEM PRODUCT"],
-        jumlah: parseFloat(row["QTY"]) || 0,
-        satuan: "Pcs",
-        harga: parseFloat(row["PRICE/ITEM"]) || 0,
-        total: parseFloat(row["ITEM*QTY"]) || 0,
-        kategori: row["CATEGORY"],
-      }))
-      .filter((item) => item.produk),
+    items: rows.map((r) => {
+      const { sku, produk } = parseItemRow(r);
+      return {
+        sku: sku,
+        produk: produk,
+        jumlah: parseFloat(r["QTY"] || r["JUMLAH"]) || 0,
+        satuan: r["SATUAN"] || "Pcs",
+        harga: parseFloat(r["PRICE/ITEM"] || r["HARGA"]) || 0,
+        total: parseFloat(r["ITEM*QTY"] || r["TOTAL"]) || 0,
+        kategori: r["CATEGORY"] || r["KATEGORI"],
+      };
+    }),
     summary: {
-      subtotal: parseFloat(mainRow["SUBTOTAL ITEM"]) || 0,
-      ongkir: parseFloat(mainRow["DELIVERY"]) || 0,
-      packing: parseFloat(mainRow["PACKING"]) || 0,
-      diskon: parseFloat(mainRow["DISCOUNT"]) || 0,
-      totalTagihan: parseFloat(mainRow["GRAND TOTAL"]) || 0,
+      subtotal: parseFloat(main["SUBTOTAL ITEM"] || main["SUB TOTAL"]) || 0,
+      ongkir: parseFloat(main["DELIVERY"] || main["ONGKIR"]) || 0,
+      packing: parseFloat(main["PACKING"]) || 0,
+      diskon: parseFloat(main["DISCOUNT"] || main["DISKON"]) || 0,
     },
-    totalBayar: parseFloat(mainRow["TOTAL DP/FP"]) || 0,
+    totalBayar: parseFloat(main["GRAND TOTAL"] || main["TOTAL TAGIHAN"]) || 0,
   };
 
   sessionStorage.setItem("editInvoiceData", JSON.stringify(editData));
-  window.location.href = "form_edit_invoice.html?origin=INCOME";
+
+  // Check transaction type for correct redirection
+  if (editData.info.transaksi === "DP" || editData.info.dpFp === "DP") {
+    window.location.href = "form_edit_pelunasan.html";
+  } else {
+    window.location.href = "form_edit_invoice.html";
+  }
 }
 
+/**
+ * Delete Invoice
+ */
 async function deleteInvoiceAction(noPesanan) {
-  if (
-    !confirm(
-      `Yakin ingin menghapus invoice ${noPesanan}? Data yang dihapus tidak bisa dikembalikan.`,
-    )
-  ) {
-    return;
-  }
+  if (!confirm(`Yakin ingin menghapus invoice ${noPesanan}?`)) return;
 
-  // Show loading spinner
   if (window.showGlobalLoader) window.showGlobalLoader();
 
   try {
-    const result = await deleteInvoice(invoiceService.sheetName, noPesanan);
+    const result = await deleteInvoice("INCOME", noPesanan);
     if (result.success) {
       alert("Invoice berhasil dihapus.");
       await invoiceService.clearCache();
@@ -281,10 +324,9 @@ async function deleteInvoiceAction(noPesanan) {
       throw new Error(result.error || "Gagal menghapus.");
     }
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Delete Error:", error);
     alert("Gagal menghapus: " + error.message);
   } finally {
-    // Hide loading spinner
     if (window.hideGlobalLoader) window.hideGlobalLoader();
   }
 }
